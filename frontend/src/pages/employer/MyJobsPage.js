@@ -1,0 +1,78 @@
+import React, { Component } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { api, qs } from '../../api';
+import { Spinner, Empty, JobBadge, Tabs, Pagination, Alert } from '../../components/ui';
+import { date, salary, jobStatusOf, PANEL_BG } from '../../utils/format';
+
+const TABS = [['', 'Tất cả'], ['OPEN', 'Đang tuyển'], ['FILLED', 'Đủ người'], ['CLOSED', 'Đã đóng'], ['EXPIRED', 'Hết hạn'], ['COMPLETED', 'Hoàn thành'], ['HIDDEN', 'Bị ẩn']];
+
+// SCR-E04 / FR-JOB-03, FR-JOB-04
+export default class MyJobsPage extends Component {
+  state = { status: '', items: null, meta: null, msg: '', error: '' };
+  componentDidMount() { this.load(1); }
+  load = async (page = this.state.meta?.page || 1) => {
+    const r = await api.get(`/employers/me/jobs${qs({ status: this.state.status, page })}`);
+    this.setState({ items: r.data, meta: r.meta });
+  };
+  act = async (fn, msg) => {
+    this.setState({ msg: '', error: '' });
+    try {
+      await fn();
+      this.setState({ msg });
+      this.load();
+    } catch (e) {
+      this.setState({ error: e.message });
+    }
+  };
+  render() {
+    const { items, meta, status } = this.state;
+    return (
+      <div className="container page">
+        <header className="emp-head">
+          <div>
+            <h1 className="display">Tin tuyển dụng</h1>
+            <p className="muted">{meta ? `${meta.total} tin` : 'Đang tải…'} · theo dõi ứng viên, sửa, đóng hoặc mở lại tin.</p>
+          </div>
+          <Link to="/employer/jobs/new" className="btn btn-lg">+ Đăng tin mới</Link>
+        </header>
+        <div style={{ margin: '32px 0 24px' }}><Tabs items={TABS} value={status} onChange={(s) => this.setState({ status: s, items: null }, () => this.load(1))} /></div>
+        <div className="stack" style={{ marginBottom: 16 }}><Alert type="ok">{this.state.msg}</Alert><Alert>{this.state.error}</Alert></div>
+        {!items ? <Spinner /> : !items.length ? (
+          <div className="voice" style={{ minHeight: 0 }}><Empty title="Chưa có tin nào"><Link to="/employer/jobs/new" className="accent ico-row" style={{ justifyContent: 'center' }}>Đăng tin đầu tiên <ArrowRight size={16} /></Link></Empty></div>
+        ) : (
+          <div className="emp-jobs">
+            {items.map((j, i) => {
+              const st = jobStatusOf(j);
+              return (
+                <article key={j._id} className="emp-job">
+                  <div className="emp-job-art" style={{ background: PANEL_BG[i % PANEL_BG.length] }}>
+                    <span className="join-num">{j.applicationCount}</span>
+                    <span className="small">ứng viên</span>
+                  </div>
+                  <div className="emp-job-body">
+                    <div className="row" style={{ gap: 8 }}>
+                      <JobBadge status={st} />
+                      {j.counts.PENDING ? <span className="chip chip-yellow tiny">{j.counts.PENDING} mới</span> : null}
+                    </div>
+                    <h2 className="h-md"><Link to={`/jobs/${j._id}`}>{j.title}</Link></h2>
+                    <div className="muted small">{salary(j)} · {j.viewCount} lượt xem · đã nhận {j.acceptedCount}/{j.slots} · hết hạn {date(j.expiresAt)}</div>
+                    {st === 'HIDDEN' && <div className="small" style={{ color: 'var(--alert)' }}>Lý do: {j.hiddenReason}</div>}
+                    <div className="row" style={{ gap: 8, marginTop: 4 }}>
+                      <Link to={`/employer/jobs/${j._id}/applicants`} className="btn btn-sm">Ứng viên</Link>
+                      {st !== 'HIDDEN' && <Link to={`/employer/jobs/${j._id}/edit`} className="btn btn-sm btn-ghost">Sửa</Link>}
+                      {st === 'OPEN' && <button className="btn btn-sm btn-ghost" onClick={() => window.confirm('Đóng tin? Các đơn đang chờ sẽ bị từ chối.') && this.act(() => api.patch(`/jobs/${j._id}/close`), 'Đã đóng tin')}>Đóng</button>}
+                      {st === 'CLOSED' && <button className="btn btn-sm btn-ghost" onClick={() => this.act(() => api.patch(`/jobs/${j._id}/reopen`), 'Đã mở lại tin')}>Mở lại</button>}
+                      {j.applicationCount === 0 && st !== 'HIDDEN' && <button className="btn btn-sm btn-ghost" style={{ color: 'var(--alert)' }} onClick={() => window.confirm('Xóa tin này?') && this.act(() => api.del(`/jobs/${j._id}`), 'Đã xóa tin')}>Xóa</button>}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+        <Pagination meta={meta} onPage={this.load} />
+      </div>
+    );
+  }
+}

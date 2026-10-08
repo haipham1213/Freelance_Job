@@ -1,0 +1,19 @@
+{
+  "name": "freelance-marketplace",
+  "private": true,
+  "workspaces": [
+    "server",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w server\" \"npm start -w frontend\"",
+    "build": "npm run build -w frontend",
+    "start": "npm start -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  },
+  "overrides": {
+    "typescript": "^4.9.5"
+  }
+}
