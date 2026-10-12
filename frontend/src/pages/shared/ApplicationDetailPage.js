@@ -5,12 +5,8 @@ import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, AppBadge, Stars, Avatar, CompanyLogo, Modal, Field, Alert, ReasonModal, BackLink } from '../../components/ui';
 import ErrorPage from '../public/ErrorPage';
-import { Mascot } from '../../components/Illustrations';
-import { date, dateTime, APP_STATUS, salary, PANEL_BG } from '../../utils/format';
+import { date, dateTime, APP_STATUS, salary } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
-
-// Màu khối đầu trang theo trạng thái đơn (chỉ số trong PANEL_BG)
-const STATUS_BG = { PENDING: 0, ACCEPTED: 4, REJECTED: 2, WITHDRAWN: 1, COMPLETED: 5, NOT_COMPLETED: 3 };
 
 // SCR-S06 / SCR-E07: chấm 1–5 sao, nhận xét ≤ 500 ký tự
 class ReviewModal extends Component {
@@ -83,7 +79,7 @@ class ApplicationDetailPage extends Component {
           </Field>
           <div className="row">
             <button className="btn" disabled={this.state.busy} onClick={() => this.act(() => api.patch(`/applications/${id}/accept`, { employerNote: this.state.note || undefined }), 'Đã nhận ứng viên')}><Check size={18} /> Nhận</button>
-            <button className="btn btn-ghost stu-on-sand" onClick={() => this.setState({ modal: 'reject' })}>Từ chối</button>
+            <button className="btn btn-ghost" onClick={() => this.setState({ modal: 'reject' })}>Từ chối</button>
           </div>
         </div>
       );
@@ -94,7 +90,7 @@ class ApplicationDetailPage extends Component {
           <p className="muted small">Xác nhận kết quả sau khi công việc bắt đầu ({date(job.startDate)}).</p>
           <div className="row">
             <button className="btn" disabled={!started || this.state.busy} onClick={() => this.act(() => api.patch(`/applications/${id}/result`, { result: 'COMPLETED' }), 'Đã xác nhận hoàn thành')}><Check size={18} /> Hoàn thành</button>
-            <button className="btn btn-ghost stu-on-sand" disabled={!started} onClick={() => this.setState({ modal: 'notCompleted' })}>Không hoàn thành</button>
+            <button className="btn btn-ghost" disabled={!started} onClick={() => this.setState({ modal: 'notCompleted' })}>Không hoàn thành</button>
           </div>
         </div>
       );
@@ -114,17 +110,17 @@ class ApplicationDetailPage extends Component {
     return (
       <div className="container page">
         <BackLink to={isEmployer ? `/employer/jobs/${app.jobId}/applicants` : '/student/applications'}>{isEmployer ? 'Danh sách ứng viên' : 'Đơn của tôi'}</BackLink>
-        <section className="stu-hero stu-app-hero" style={{ background: PANEL_BG[STATUS_BG[app.status] ?? 1] }}>
+        <section className="card stu-app-hero">
+          {isEmployer ? <Avatar src={student.avatarUrl} name={student.fullName} size="lg" /> : <CompanyLogo src={employer.company?.logoUrl} name={app.jobSnapshot.companyName} />}
           <div className="stu-hero-main">
             <div className="row" style={{ gap: 10 }}>
               <AppBadge status={app.status} />
-              <span className="small">Đơn ứng tuyển · {dateTime(app.createdAt)}</span>
+              <span className="fog small">Nộp lúc {dateTime(app.createdAt)}</span>
             </div>
-            <Link to={`/jobs/${app.jobId}`} className="display stu-app-title">{app.jobSnapshot.title}</Link>
-            <p>{app.jobSnapshot.companyName} {job && `· ${salary(job)} · bắt đầu ${date(job.startDate)}`}</p>
-            <a href={app.cvUrl} target="_blank" rel="noreferrer" className="btn" style={{ alignSelf: 'flex-start' }}><FileText size={18} /> Xem CV đã nộp</a>
+            <Link to={`/jobs/${app.jobId}`} className="h-lg stu-detail-title">{app.jobSnapshot.title}</Link>
+            <p className="muted">{app.jobSnapshot.companyName}{job && `, ${salary(job)}, bắt đầu ${date(job.startDate)}`}</p>
           </div>
-          <Mascot kind={isEmployer ? 'blob' : 'triangle'} size={110} />
+          <a href={app.cvUrl} target="_blank" rel="noreferrer" className="btn"><FileText size={18} /> Xem CV đã nộp</a>
         </section>
         <div className="layout-main" style={{ marginTop: 24 }}>
           <div className="stack-lg">
@@ -135,7 +131,7 @@ class ApplicationDetailPage extends Component {
               {app.notCompletedReason && <Alert>Lý do không hoàn thành: {app.notCompletedReason}</Alert>}
               <Alert type="info">{msg}</Alert>
               {isEmployer ? this.employerActions(app, job) : app.status === 'PENDING' && (
-                <button className="btn btn-ghost stu-on-sand" style={{ alignSelf: 'flex-start' }} onClick={() => this.act(() => api.patch(`/applications/${app._id}/withdraw`), 'Đã rút đơn')}>Rút đơn</button>
+                <button className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => this.act(() => api.patch(`/applications/${app._id}/withdraw`), 'Đã rút đơn')}>Rút đơn</button>
               )}
               {!app.coverLetter && !app.employerNote && !app.rejectReason && !app.notCompletedReason && !msg && !(isEmployer ? ['PENDING', 'ACCEPTED'] : ['PENDING']).includes(app.status) && (
                 <p className="muted">Không có thao tác nào cần làm với đơn này.</p>

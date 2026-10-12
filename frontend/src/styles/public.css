@@ -1,0 +1,71 @@
+/* Public pages: chi tiết việc, trang công ty, đăng nhập/đăng ký, thông báo, lỗi (hệ TopCV-hybrid) */
+
+/* Chi tiết việc: card đầu trang kiểu TopCV */
+.pub-head { display: grid; grid-template-columns: auto minmax(0, 1fr) 260px; gap: 20px; align-items: start; margin-top: 12px; }
+.pub-head .logo-box { width: 88px; height: 88px; }
+.pub-head-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pub-head-main .display { font-size: clamp(22px, 2.6vw, 26px); }
+.pub-head-actions { display: flex; flex-direction: column; gap: 10px; }
+.pub-key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+.pub-key-item { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.pub-key-item > span:last-child, .pub-facts li > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.pub-key-item strong { font-size: 14px; color: var(--ink); overflow-wrap: anywhere; }
+.pub-key-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.pub-body p { margin: 0 0 8px; color: var(--body); }
+.pub-sec { font-size: 18px; padding-left: 10px; box-shadow: inset 3px 0 0 var(--brand); margin: 20px 0 10px; }
+.pub-body .pub-sec:first-child { margin-top: 0; }
+.pub-aside { position: sticky; top: 84px; }
+.pub-facts { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 14px; font-size: 14px; }
+.pub-facts li { display: flex; gap: 10px; align-items: center; }
+.pub-facts .pub-key-icon { width: 34px; height: 34px; background: var(--brand-wash); color: var(--brand-dark); }
+
+/* Trang công ty */
+.pub-company { padding: 0; overflow: hidden; }
+.pub-cover { height: 96px; background: var(--brand-dark); display: flex; justify-content: flex-end; align-items: flex-end; padding: 0 24px 8px; }
+.pub-company-body { display: flex; gap: 20px; align-items: flex-start; padding: 0 24px 22px; }
+.pub-logo-lg { width: 96px; height: 96px; margin-top: -40px; flex-shrink: 0; border-radius: var(--radius); background: var(--white); box-shadow: inset 0 0 0 1px var(--line), var(--shadow-sm); border: 4px solid var(--white); overflow: hidden; display: grid; place-items: center; font-size: 36px; font-weight: 700; color: var(--brand); }
+.pub-logo-lg img { width: 100%; height: 100%; object-fit: cover; }
+.pub-company-body .stack { padding-top: 14px; }
+.pub-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+
+/* Đăng nhập / đăng ký: card chia đôi */
+.pub-auth { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .85fr); gap: 0; padding: 0; overflow: hidden; max-width: 980px; margin: 0 auto; }
+.pub-auth-form { padding: 36px 40px; }
+.pub-auth-art { background: var(--brand-wash); padding: 36px 32px; display: flex; flex-direction: column; justify-content: center; gap: 16px; color: var(--ink); }
+.pub-auth-art ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px; color: var(--body); }
+.pub-auth-art svg.lucide { color: var(--brand); }
+.pub-role { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px 16px; border: 0; cursor: pointer; background: var(--white); border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--stone-border); color: var(--ink); font-weight: 600; }
+.pub-role svg { color: var(--muted); }
+.pub-role.active { background: var(--brand-wash-2); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.pub-role.active svg { color: var(--brand); }
+
+/* Lỗi */
+.pub-error { max-width: 560px; margin: 24px auto 0; padding: 40px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.pub-error-code { font-size: 64px; line-height: 1; color: var(--brand); }
+
+/* Thông báo */
+.pub-notif { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; border: 0; cursor: pointer; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 14px 16px; transition: box-shadow .15s; }
+.pub-notif:hover { box-shadow: inset 0 0 0 1px var(--brand); }
+.pub-notif.unread { background: var(--brand-wash-2); box-shadow: inset 3px 0 0 var(--brand), var(--hairline); }
+.pub-notif.unread .pub-notif-title { font-weight: 600; }
+.pub-notif-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--brand-wash); color: var(--brand-dark); display: grid; place-items: center; flex-shrink: 0; }
+
+@media (max-width: 960px) {
+  .pub-head { grid-template-columns: auto minmax(0, 1fr); }
+  .pub-head-actions { grid-column: 1 / -1; }
+  .pub-aside { position: static; }
+  .pub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .pub-auth { grid-template-columns: minmax(0, 1fr); }
+  .pub-auth-art { display: none; }
+  .pub-auth-form { padding: 24px 20px; }
+}
+@media (max-width: 560px) {
+  .pub-head { grid-template-columns: minmax(0, 1fr); }
+  .pub-head .logo-box { width: 64px; height: 64px; }
+  .pub-key, .pub-grid { grid-template-columns: minmax(0, 1fr); }
+  .pub-company-body { flex-direction: column; gap: 0; }
+  .pub-notif { flex-wrap: wrap; }
+  .pub-notif-time { width: 100%; padding-left: 54px; }
+}

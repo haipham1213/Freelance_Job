@@ -1,27 +1,27 @@
 import React, { Component } from 'react';
-import { ArrowLeft, GraduationCap, Store } from 'lucide-react';
+import { ArrowLeft, Check, GraduationCap, Store } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { api, fieldErrors } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Field, Alert, Spinner } from '../../components/ui';
-import { homeOf, PANEL_BG } from '../../utils/format';
+import { homeOf } from '../../utils/format';
 import { Mascot } from '../../components/Illustrations';
 import withRouter from '../../utils/withRouter';
 
-// Bố cục chia đôi kiểu headspace.com: khối màu + nhân vật bên trái, form bên phải
-const SHELL_BG = { blob: PANEL_BG[4], cloud: PANEL_BG[1], flower: PANEL_BG[2], triangle: PANEL_BG[0] };
+// Bố cục chia đôi kiểu job board: card form + bảng thương hiệu xanh nhạt với lợi ích và một mascot nhỏ
+const PERKS = ['Lương và ca làm công khai trước khi nộp', 'Một CV dùng cho mọi đơn ứng tuyển', 'Đánh giá hai chiều sau mỗi công việc'];
 const Shell = ({ title, subtitle, emoji, children }) => (
   <div className="container page">
-    <div className="pub-auth">
-      <div className="pub-auth-art" style={{ background: SHELL_BG[emoji] }} aria-hidden="true">
-        <span className="float pub-a1"><Mascot kind={emoji} size={150} /></span>
-        <span className="float pub-a2"><Mascot kind={emoji === 'blob' ? 'cloud' : 'blob'} size={80} /></span>
-        <span className="float pub-a3"><Mascot kind={emoji === 'triangle' ? 'flower' : 'triangle'} size={64} /></span>
-      </div>
+    <div className="card pub-auth">
       <div className="pub-auth-form">
         <h1 className="display">{title}</h1>
-        {subtitle && <p className="muted" style={{ marginTop: 12, fontSize: 17 }}>{subtitle}</p>}
-        <div className="stack" style={{ marginTop: 28 }}>{children}</div>
+        {subtitle && <p className="muted" style={{ marginTop: 8 }}>{subtitle}</p>}
+        <div className="stack" style={{ marginTop: 24 }}>{children}</div>
+      </div>
+      <div className="pub-auth-art" aria-hidden="true">
+        <Mascot kind={emoji} size={96} />
+        <strong className="h-md">Việc part-time an toàn cho sinh viên</strong>
+        <ul>{PERKS.map((p) => <li key={p} className="ico-row"><Check size={18} />{p}</li>)}</ul>
       </div>
     </div>
   </div>
@@ -100,14 +100,14 @@ class Register extends FormPage {
           <div className="grid-2" role="radiogroup" aria-label="Vai trò">
             {[['STUDENT', GraduationCap, 'Sinh viên', 'Tìm việc làm thêm'], ['EMPLOYER', Store, 'Nhà tuyển dụng', 'Đăng tin tuyển người']].map(([v, Ico, t, d]) => (
               <button type="button" key={v} role="radio" aria-checked={role === v} onClick={() => this.setState({ form: { ...this.state.form, role: v } })}
-                className={`tile ${role === v ? 'wash-solar' : 'wash-mist'}`} style={{ border: 0, cursor: 'pointer', textAlign: 'left', padding: 20, borderRadius: 20, boxShadow: role === v ? 'inset 0 0 0 2px var(--ink)' : 'none' }}>
+                className={`pub-role ${role === v ? 'active' : ''}`}>
                 <Ico size={28} strokeWidth={1.75} /><div>{t}</div><div className="fog tiny">{d}</div>
               </button>
             ))}
           </div>
           {this.input('fullName', role === 'EMPLOYER' ? 'Họ tên người liên hệ' : 'Họ và tên', { required: true, minLength: 2, maxLength: 100 })}
           {this.input('email', 'Email', { type: 'email', required: true, autoComplete: 'email' })}
-          {this.input('password', 'Mật khẩu (8–64 ký tự, có chữ và số)', { type: 'password', required: true, minLength: 8, maxLength: 64, autoComplete: 'new-password' })}
+          {this.input('password', 'Mật khẩu (8-64 ký tự, có chữ và số)', { type: 'password', required: true, minLength: 8, maxLength: 64, autoComplete: 'new-password' })}
           {this.input('confirm', 'Nhập lại mật khẩu', { type: 'password', required: true, autoComplete: 'new-password' })}
           <Alert>{this.state.error}</Alert>
           <button className="btn btn-block" disabled={this.state.busy}>Đăng ký</button>
@@ -199,7 +199,7 @@ class Reset extends FormPage {
           <><Alert type="ok">{this.state.done}</Alert><Link to="/login" className="btn btn-block">Đăng nhập</Link></>
         ) : (
           <form className="stack" onSubmit={this.submit}>
-            {this.input('newPassword', 'Mật khẩu mới (8–64 ký tự, có chữ và số)', { type: 'password', required: true, minLength: 8, autoComplete: 'new-password' })}
+            {this.input('newPassword', 'Mật khẩu mới (8-64 ký tự, có chữ và số)', { type: 'password', required: true, minLength: 8, autoComplete: 'new-password' })}
             {this.input('confirm', 'Nhập lại mật khẩu mới', { type: 'password', required: true })}
             <Alert>{this.state.error}</Alert>
             <button className="btn btn-block" disabled={this.state.busy}>Đặt lại mật khẩu</button>

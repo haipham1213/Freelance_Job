@@ -1,0 +1,58 @@
+/* Employer pages: bảng điều khiển nhà tuyển dụng kiểu TopCV (card trắng viền mảnh, số liệu gọn, một màu nhấn xanh) */
+.emp-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.emp-head p { margin: 4px 0 0; }
+.emp-hero { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-left: 4px solid var(--brand); }
+.emp-hero p { margin: 4px 0 0; }
+.emp-note { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--wash-honey); border-radius: var(--radius); padding: 14px 18px; }
+.emp-note p { margin: 2px 0 0; }
+
+.emp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); }
+.emp-stats a { padding: 16px 20px; display: flex; flex-direction: column; gap: 2px; transition: background .15s; }
+.emp-stats a + a { box-shadow: inset 1px 0 0 var(--line); }
+.emp-stats a:hover { background: var(--brand-wash-2); }
+.emp-stats strong { font-size: 26px; color: var(--brand); line-height: 1.2; }
+.emp-stats span { color: var(--body); font-size: 14px; }
+
+.emp-rows { display: grid; margin-top: 8px; }
+.emp-row { display: flex; align-items: center; gap: 12px; padding: 12px 4px; min-width: 0; }
+.emp-row + .emp-row { box-shadow: inset 0 1px 0 var(--line); }
+.emp-row:hover .h-sm { color: var(--brand); }
+.emp-row-body { flex: 1; min-width: 0; }
+
+.emp-upsell { background: var(--brand-wash-2); box-shadow: inset 0 0 0 1px var(--brand-wash); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.emp-upsell p { margin: 0; }
+
+.emp-logo-card { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.emp-logo-card .logo-box { width: 120px; height: 120px; font-size: 44px; }
+
+.emp-jobs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.emp-job { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 16px; align-items: start; }
+.emp-job-art { border-radius: var(--radius-ctl); background: var(--brand-wash); color: var(--brand-dark); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; }
+.emp-job-art strong { font-size: 24px; line-height: 1.1; }
+.emp-job-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.emp-job-body .h-sm a:hover { color: var(--brand); }
+.emp-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--body); }
+.emp-actions { gap: 8px; margin-top: 4px; }
+
+.emp-step { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+.emp-step span { width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 13px; flex-shrink: 0; }
+
+.emp-premium-head { align-items: center; display: flex; flex-direction: column; }
+.emp-premium-head p { margin: 0; }
+.emp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.emp-plan { position: relative; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 24px; display: flex; flex-direction: column; gap: 8px; }
+.emp-plan-best { box-shadow: inset 0 0 0 2px var(--brand), var(--shadow-sm); }
+.emp-plan-tag { position: absolute; top: 20px; right: 20px; }
+.emp-price { font-weight: 700; font-size: 30px; color: var(--brand); line-height: 1.2; }
+.emp-perks { list-style: none; padding: 0; margin: 8px 0 12px; display: grid; gap: 8px; flex: 1; font-size: 14px; }
+.emp-perks li { display: flex; gap: 8px; }
+.emp-perks li::before { content: '✓'; font-weight: 700; color: var(--brand); }
+.emp-result-art { width: 120px; height: 120px; border-radius: 50%; background: var(--brand-wash); display: grid; place-items: center; margin: 0 auto; }
+
+@media (max-width: 760px) {
+  .emp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .emp-stats a:nth-child(3) { box-shadow: inset 0 1px 0 var(--line); }
+  .emp-stats a:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
+  .emp-job { grid-template-columns: 60px minmax(0, 1fr); gap: 12px; padding: 14px; }
+  .emp-plans { grid-template-columns: minmax(0, 1fr); }
+}

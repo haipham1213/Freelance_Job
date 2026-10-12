@@ -5,14 +5,14 @@ import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Alert, PayBadge, Empty, Pagination } from '../../components/ui';
 import { Mascot } from '../../components/Illustrations';
-import { money, date, dateTime, PANEL_BG } from '../../utils/format';
+import { money, date, dateTime } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
 const COMPARE = [
   ['Số tin đang mở cùng lúc', '3', '20'],
   ['Thời gian hiển thị mỗi tin', '14 ngày', '30 ngày'],
-  ['Ghim “Nổi bật” đầu kết quả tìm kiếm', '—', true],
-  ['Huy hiệu Premium trên trang công ty', '—', true],
+  ['Ghim “Nổi bật” đầu kết quả tìm kiếm', 'Không', true],
+  ['Huy hiệu Premium trên trang công ty', 'Không', true],
 ];
 
 // SCR-E08 / FR-PAY-01, FR-PAY-03
@@ -35,8 +35,8 @@ export class PremiumPage extends Component {
     if (!plans) return <Spinner />;
     return (
       <div className="container page stack-lg">
-        <div className="center stack dash-hello">
-          <Mascot kind="flower" size={96} />
+        <div className="card center stack emp-premium-head">
+          <Mascot kind="flower" size={64} />
           <h1 className="display">Nâng cấp Premium</h1>
           <p className="muted">Tuyển nhanh hơn với nhiều tin hơn và vị trí nổi bật.</p>
           {user.isPremium && <Alert type="ok">Bạn đang là Premium đến {date(user.employer?.premiumUntil)}. Mua thêm sẽ cộng dồn thời hạn.</Alert>}
@@ -45,21 +45,21 @@ export class PremiumPage extends Component {
         <Alert>{error}</Alert>
         <div className="emp-plans">
           {plans.map((p, i) => (
-            <div key={p._id} className="emp-plan" style={{ background: PANEL_BG[i ? 5 : 1] }}>
-              {i > 0 && <span className="chip chip-dark emp-plan-tag">Tiết kiệm hơn</span>}
+            <div key={p._id} className={`emp-plan ${i > 0 ? 'emp-plan-best' : ''}`}>
+              {i > 0 && <span className="chip chip-featured emp-plan-tag">Tiết kiệm hơn</span>}
               <h2 className="h-md">{p.name}</h2>
               <div className="emp-price">{money(p.price)}</div>
-              <div className="small">{p.durationDays} ngày · ≈ {money(Math.round(p.price / p.durationDays))}/ngày</div>
+              <div className="small muted">{p.durationDays} ngày, khoảng {money(Math.round(p.price / p.durationDays))}/ngày</div>
               <ul className="emp-perks">{COMPARE.map(([k, , b]) => <li key={k}>{b === true ? k : `${k}: ${b}`}</li>)}</ul>
-              <button className="btn btn-lg btn-block" disabled={!!busy || !user.emailVerified} onClick={() => this.buy(p.code)}>{busy === p.code ? 'Đang chuyển sang VNPay…' : 'Thanh toán qua VNPay'}</button>
+              <button className={`btn btn-block ${i > 0 ? '' : 'btn-ghost'}`} disabled={!!busy || !user.emailVerified} onClick={() => this.buy(p.code)}>{busy === p.code ? 'Đang chuyển sang VNPay…' : 'Thanh toán qua VNPay'}</button>
             </div>
           ))}
         </div>
-        <h2 className="h-lg center" style={{ marginTop: 64 }}>So sánh các gói</h2>
+        <h2 className="h-lg" style={{ marginTop: 32 }}>So sánh các gói</h2>
         <div className="card table-wrap">
           <table className="table">
             <thead><tr><th>Quyền lợi</th><th>Miễn phí</th><th className="accent">Premium</th></tr></thead>
-            <tbody>{COMPARE.map(([k, a, b]) => <tr key={k}><td>{k}</td><td className="muted">{a}</td><td>{b === true ? <Check size={20} aria-label="Có" /> : b}</td></tr>)}</tbody>
+            <tbody>{COMPARE.map(([k, a, b]) => <tr key={k}><td>{k}</td><td className="muted">{a}</td><td className="accent">{b === true ? <Check size={20} aria-label="Có" /> : b}</td></tr>)}</tbody>
           </table>
         </div>
         <p className="fog small center">Thanh toán qua cổng VNPay (môi trường thử nghiệm). Không hoàn tiền trong hệ thống.</p>
@@ -94,10 +94,10 @@ class PaymentResult extends Component {
     if (error) return <div className="container page"><Alert>{error}</Alert></div>;
     if (!payment) return <Spinner />;
     const s = payment.displayStatus;
-    const view = { SUCCESS: ['flower', 'Thanh toán thành công', 4], FAILED: ['cloud', 'Thanh toán không thành công', 2], EXPIRED: ['triangle', 'Giao dịch đã hết hạn', 3], PENDING: ['blob', 'Đang xử lý giao dịch…', 0] }[s];
+    const view = { SUCCESS: ['flower', 'Thanh toán thành công'], FAILED: ['cloud', 'Thanh toán không thành công'], EXPIRED: ['triangle', 'Giao dịch đã hết hạn'], PENDING: ['blob', 'Đang xử lý giao dịch…'] }[s];
     return (
       <div className="container page center stack-lg" style={{ maxWidth: 640 }}>
-        <div className="emp-result-art" style={{ background: PANEL_BG[view[2]] }}><Mascot kind={view[0]} size={140} /></div>
+        <div className="emp-result-art"><Mascot kind={view[0]} size={80} /></div>
         <h1 className="display">{view[1]}</h1>
         <div className="card stack" style={{ textAlign: 'left' }}>
           <div className="row-between"><span className="muted">Gói</span><span>{payment.planSnapshot.name}</span></div>
@@ -129,15 +129,15 @@ export class PaymentsPage extends Component {
     const { items, meta } = this.state;
     return (
       <div className="container page">
-        <header className="emp-head">
+        <header className="card emp-head">
           <div>
             <h1 className="display">Lịch sử giao dịch</h1>
             <p className="muted">Các lần thanh toán gói Premium qua VNPay.</p>
           </div>
-          <Link to="/employer/premium" className="btn btn-lg">Mua Premium</Link>
+          <Link to="/employer/premium" className="btn">Mua Premium</Link>
         </header>
-        <div style={{ marginTop: 32 }}>
-          {!items ? <Spinner /> : !items.length ? <div className="voice" style={{ minHeight: 0 }}><Empty title="Chưa có giao dịch" /></div> : (
+        <div style={{ marginTop: 20 }}>
+          {!items ? <Spinner /> : !items.length ? <div className="card"><Empty title="Chưa có giao dịch" /></div> : (
             <div className="card table-wrap">
               <table className="table">
                 <thead><tr><th>Thời gian</th><th>Gói</th><th>Số tiền</th><th>Mã giao dịch</th><th>Trạng thái</th></tr></thead>

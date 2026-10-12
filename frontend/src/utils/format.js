@@ -35,5 +35,5 @@ export const ROLE = { STUDENT: 'Sinh viên', EMPLOYER: 'Nhà tuyển dụng', AD
 export const jobStatusOf = (j) => (j.status === 'OPEN' && new Date(j.expiresAt) < new Date() ? 'EXPIRED' : j.status);
 export const homeOf = (role) => ({ STUDENT: '/student', EMPLOYER: '/employer', ADMIN: '/admin' })[role] || '/';
 export const WASHES = ['wash-powder', 'wash-lavender', 'wash-mint', 'wash-solar'];
-// Màu khối nổi bật theo chủ đề, như bảng chọn của headspace.com
-export const PANEL_BG = ['#ffd55c', '#a8c8ff', '#f2a7cb', '#f9a24b', '#a6e3bf', '#cdb6ff'];
+// Nền minh họa (Scene) và ô số liệu: tông pastel nhạt quanh màu xanh thương hiệu
+export const PANEL_BG = ['#e3f5ea', '#e6effd', '#fff1d6', '#fde6ee', '#ece7fd', '#e2f4f4'];

@@ -1,17 +1,15 @@
 import React, { Component } from 'react';
-import { ArrowRight, Building2, Check } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Building2, Check, FileText, Flag, Percent, Search, Users, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { Spinner, Empty, Pagination, Tabs, Alert, ReasonModal, JobBadge, PayBadge, Stars, Field, Modal } from '../../components/ui';
 import { money, shortMoney, date, dateTime, ROLE, REPORT_REASONS, jobStatusOf } from '../../utils/format';
-import { Mascot } from '../../components/Illustrations';
 
-// Tiêu đề trang kiểu headspace.com: chữ lớn đậm + nhân vật nhỏ
-const Head = ({ title, sub, mascot = 'cloud', children }) => (
+// Tiêu đề trang quản trị: gọn, tiêu đề + mô tả một dòng + hành động bên phải
+const Head = ({ title, sub, children }) => (
   <div className="adm-head">
-    <Mascot kind={mascot} size={64} />
     <div style={{ flex: 1, minWidth: 0 }}>
-      <h1 className="display">{title}</h1>
+      <h1 className="adm-title">{title}</h1>
       {sub && <p className="muted adm-sub">{sub}</p>}
     </div>
     {children}
@@ -62,26 +60,26 @@ export class AdminDashboardPage extends Component {
     const max = Math.max(...d.revenueByMonth.map((m) => m.total), 1);
     const total = d.revenueByMonth.reduce((a, m) => a + m.total, 0);
     const stats = [
-      ['Người dùng', (d.users.STUDENT || 0) + (d.users.EMPLOYER || 0), `${d.users.STUDENT || 0} SV · ${d.users.EMPLOYER || 0} NTD`, 'wash-powder', '/admin/users'],
-      ['Tin đang tuyển', d.openJobs, 'Đang hiển thị công khai', 'wash-mint', '/admin/jobs'],
-      ['Đơn 30 ngày', d.applications30d, 'Đơn ứng tuyển mới', 'wash-lavender'],
-      ['Tỷ lệ được nhận', `${d.acceptRate}%`, 'Trong 30 ngày', 'wash-solar'],
-      ['Báo cáo chờ xử lý', d.openReports, 'Cần xem xét', d.openReports ? 'wash-solar' : 'wash-mist', '/admin/reports'],
-      ['Doanh thu 12 tháng', shortMoney(total), 'Premium', 'wash-powder', '/admin/payments'],
+      ['Người dùng', (d.users.STUDENT || 0) + (d.users.EMPLOYER || 0), `${d.users.STUDENT || 0} SV, ${d.users.EMPLOYER || 0} NTD`, Users, '/admin/users'],
+      ['Tin đang tuyển', d.openJobs, 'Đang hiển thị công khai', BriefcaseBusiness, '/admin/jobs'],
+      ['Đơn 30 ngày', d.applications30d, 'Đơn ứng tuyển mới', FileText],
+      ['Tỷ lệ được nhận', `${d.acceptRate}%`, 'Trong 30 ngày', Percent],
+      ['Báo cáo chờ xử lý', d.openReports, 'Cần xem xét', Flag, '/admin/reports'],
+      ['Doanh thu 12 tháng', shortMoney(total), 'Gói Premium', Wallet, '/admin/payments'],
     ];
     return (
       <div className="stack-lg">
-        <Head title="Tổng quan hệ thống" sub="Số liệu người dùng, tin tuyển dụng và doanh thu Premium." mascot="triangle" />
-        <div className="grid-3 adm-stats">
-          {stats.map(([k, v, sub, w, to]) => {
-            const inner = <><div className="join-num">{v}</div><div><div className="adm-stat-label">{k}</div><div className="small adm-stat-sub">{sub}</div></div></>;
-            return to ? <Link key={k} to={to} className={`tile adm-stat adm-stat-link ${w}`}>{inner}</Link> : <div key={k} className={`tile adm-stat ${w}`}>{inner}</div>;
+        <Head title="Tổng quan hệ thống" sub="Số liệu người dùng, tin tuyển dụng và doanh thu Premium." />
+        <div className="adm-stats">
+          {stats.map(([k, v, sub, Icon, to]) => {
+            const inner = <><span className="adm-stat-ico"><Icon size={20} aria-hidden="true" /></span><div><div className="adm-stat-label">{k}</div><div className="adm-stat-num">{v}</div><div className="tiny fog">{sub}</div></div></>;
+            return to ? <Link key={k} to={to} className="adm-stat adm-stat-link">{inner}</Link> : <div key={k} className="adm-stat">{inner}</div>;
           })}
         </div>
         <div className="card stack adm-chart">
           <div className="row-between">
-            <h2 className="h-lg">Doanh thu Premium theo tháng</h2>
-            <span className="chip chip-dark">{shortMoney(total)} / 12 tháng</span>
+            <h2 className="h-md">Doanh thu Premium theo tháng</h2>
+            <span className="chip chip-green">{shortMoney(total)} / 12 tháng</span>
           </div>
           <div className="bar-chart" role="img" aria-label="Biểu đồ doanh thu theo tháng">
             {d.revenueByMonth.map((m) => (
@@ -116,7 +114,7 @@ export class UsersPage extends ListPage {
               <td><div>{u.fullName}</div><div className="fog tiny">{u.email}</div>{u.employer?.company?.name && <div className="tiny ico-row"><Building2 size={14} />{u.employer.company.name}{u.isPremium && <span className="accent"> ★</span>}</div>}</td>
               <td>{ROLE[u.role]}</td>
               <td>{u.emailVerified ? <Check size={18} aria-label="Đã xác thực" /> : <span className="fog">Chưa</span>}</td>
-              <td>{u.ratingCount ? `${u.ratingAvg}★ (${u.ratingCount})` : '—'}</td>
+              <td>{u.ratingCount ? `${u.ratingAvg}★ (${u.ratingCount})` : <span className="fog">-</span>}</td>
               <td>{date(u.createdAt)}</td>
               <td>{u.status === 'LOCKED' ? <span className="chip chip-red" title={u.lockReason}>Bị khóa</span> : <span className="chip chip-green">Hoạt động</span>}</td>
               <td>
@@ -139,9 +137,9 @@ export class UsersPage extends ListPage {
     const { f, modal, plans } = this.state;
     return (
       <div>
-        <Head title="Người dùng" sub="Khóa / mở khóa tài khoản và kích hoạt Premium thủ công." mascot="blob" />
-        <div className="row adm-toolbar">
-          <input className="input adm-search" placeholder="Tìm theo email hoặc tên" defaultValue={f.q} onKeyDown={(e) => e.key === 'Enter' && this.filter({ q: e.target.value })} />
+        <Head title="Người dùng" sub="Khóa / mở khóa tài khoản và kích hoạt Premium thủ công." />
+        <div className="adm-toolbar">
+          <label className="adm-search"><Search size={16} aria-hidden="true" /><input placeholder="Tìm theo email hoặc tên, Enter để lọc" aria-label="Tìm người dùng" defaultValue={f.q} onKeyDown={(e) => e.key === 'Enter' && this.filter({ q: e.target.value })} /></label>
           <select className="pill-select" value={f.role || ''} onChange={(e) => this.filter({ role: e.target.value })}>
             <option value="">Mọi vai trò</option><option value="STUDENT">Sinh viên</option><option value="EMPLOYER">Nhà tuyển dụng</option><option value="ADMIN">Admin</option>
           </select>
@@ -221,9 +219,9 @@ export class AdminJobsPage extends ListPage {
     const { f, modal } = this.state;
     return (
       <div>
-        <Head title="Tin tuyển dụng" sub="Kiểm duyệt tin đăng, ẩn tin vi phạm." mascot="cloud" />
-        <div className="row adm-toolbar">
-          <input className="input adm-search" placeholder="Tìm theo tiêu đề" onKeyDown={(e) => e.key === 'Enter' && this.filter({ q: e.target.value })} />
+        <Head title="Tin tuyển dụng" sub="Kiểm duyệt tin đăng, ẩn tin vi phạm." />
+        <div className="adm-toolbar">
+          <label className="adm-search"><Search size={16} aria-hidden="true" /><input placeholder="Tìm theo tiêu đề, Enter để lọc" aria-label="Tìm tin" onKeyDown={(e) => e.key === 'Enter' && this.filter({ q: e.target.value })} /></label>
           <Tabs items={[['', 'Tất cả'], ['OPEN', 'Đang tuyển'], ['FILLED', 'Đủ người'], ['CLOSED', 'Đã đóng'], ['COMPLETED', 'Hoàn thành'], ['HIDDEN', 'Bị ẩn']]} value={f.status || ''} onChange={(status) => this.filter({ status })} />
         </div>
         {this.body()}
@@ -256,7 +254,7 @@ class ResolveModal extends Component {
       <Modal title="Kết luận báo cáo" onClose={this.props.onClose}>
         <form className="stack" onSubmit={this.submit}>
           {opts.map(([v, l, d]) => (
-            <label key={v} className="card-sm row" style={{ cursor: 'pointer', flexWrap: 'nowrap', boxShadow: this.state.decision === v ? 'inset 0 0 0 2px var(--ink)' : 'none' }}>
+            <label key={v} className="card-sm row" style={{ cursor: 'pointer', flexWrap: 'nowrap', boxShadow: this.state.decision === v ? 'inset 0 0 0 1.5px var(--brand)' : 'var(--hairline)' }}>
               <input type="radio" checked={this.state.decision === v} onChange={() => this.setState({ decision: v })} />
               <div><div>{l}</div><div className="fog tiny">{d}</div></div>
             </label>
@@ -301,7 +299,7 @@ export class ReportsPage extends ListPage {
     const { f, modal } = this.state;
     return (
       <div>
-        <Head title="Báo cáo vi phạm" sub="Xem xét và kết luận các báo cáo từ người dùng." mascot="flower" />
+        <Head title="Báo cáo vi phạm" sub="Xem xét và kết luận các báo cáo từ người dùng." />
         <div className="adm-toolbar"><Tabs items={[['OPEN', 'Chờ xử lý'], ['RESOLVED', 'Đã xử lý'], ['DISMISSED', 'Bác bỏ'], ['', 'Tất cả']]} value={f.status ?? ''} onChange={(status) => this.filter({ status })} /></div>
         {this.body()}
         {modal && <ResolveModal onClose={this.closeModal} onSubmit={(body) => this.act(() => api.patch(`/admin/reports/${modal._id}/resolve`, body), 'Đã xử lý báo cáo')} />}
@@ -322,7 +320,7 @@ export class ReviewsPage extends ListPage {
             <tr key={r._id} style={{ opacity: r.isHidden ? 0.55 : 1 }}>
               <td>{r.reviewerId?.fullName} <span className="fog tiny">({ROLE[r.reviewerRole]})</span> <ArrowRight size={14} style={{ verticalAlign: '-2px' }} aria-label="đánh giá" /> {r.revieweeId?.fullName}</td>
               <td><Stars value={r.rating} /></td>
-              <td style={{ maxWidth: 320 }}>{r.comment || <span className="fog">—</span>}{r.isHidden && <div className="tiny" style={{ color: 'var(--alert)' }}>Đã ẩn: {r.hiddenReason}</div>}</td>
+              <td style={{ maxWidth: 320 }}>{r.comment || <span className="fog">Không có nhận xét</span>}{r.isHidden && <div className="tiny" style={{ color: 'var(--alert)' }}>Đã ẩn: {r.hiddenReason}</div>}</td>
               <td>{date(r.createdAt)}</td>
               <td>
                 {r.isHidden
@@ -339,8 +337,8 @@ export class ReviewsPage extends ListPage {
     const { f, modal } = this.state;
     return (
       <div>
-        <Head title="Đánh giá" sub="Ẩn đánh giá không phù hợp; điểm trung bình tự tính lại." mascot="triangle" />
-        <div className="row adm-toolbar">
+        <Head title="Đánh giá" sub="Ẩn đánh giá không phù hợp; điểm trung bình tự tính lại." />
+        <div className="adm-toolbar">
           <Tabs items={[['', 'Tất cả'], ['false', 'Đang hiển thị'], ['true', 'Đã ẩn']]} value={f.isHidden || ''} onChange={(isHidden) => this.filter({ isHidden })} />
           <select className="pill-select" value={f.rating || ''} onChange={(e) => this.filter({ rating: e.target.value })}>
             <option value="">Mọi điểm</option>{[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} sao</option>)}
@@ -379,7 +377,7 @@ export class CategoriesPage extends Component {
     const { items, name, edit, msg, error } = this.state;
     return (
       <div>
-        <Head title="Danh mục" sub="Ngành nghề hiển thị trên trang chủ và bộ lọc tìm việc." mascot="cloud" />
+        <Head title="Danh mục" sub="Ngành nghề hiển thị trên trang chủ và bộ lọc tìm việc." />
         <form className="search-bar adm-add" onSubmit={(e) => { e.preventDefault(); this.act(() => api.post('/admin/categories', { name }), 'Đã thêm danh mục'); }}>
           <input className="input" style={{ flex: 1, minWidth: 0 }} placeholder="Tên danh mục mới" maxLength={60} value={name} onChange={(e) => this.setState({ name: e.target.value })} required />
           <button className="btn">+ Thêm danh mục</button>
@@ -459,13 +457,14 @@ export class AdminPaymentsPage extends ListPage {
     const { f, plans, meta } = this.state;
     return (
       <div className="stack-lg">
-        <Head title="Gói & giao dịch" sub="Giá gói Premium và lịch sử thanh toán VNPay." mascot="blob" />
+        <Head title="Gói & giao dịch" sub="Giá gói Premium và lịch sử thanh toán VNPay." />
         <div className="grid-2">
           {(plans || []).map((p) => (
-            <form key={p._id} className={`tile stack adm-plan ${p.isActive ? 'wash-solar' : 'wash-mist'}`} onSubmit={(e) => { e.preventDefault(); this.savePlan(p, { price: Number(e.target.price.value) }); }}>
-              <div className="row-between"><h2 className="h-lg">{p.name}</h2><span className={`chip ${p.isActive ? 'chip-dark' : ''}`}>{p.isActive ? 'Đang bán' : 'Đã tắt'}</span></div>
-              <div className="small">{p.code} · {p.durationDays} ngày · <strong>{money(p.price)}</strong></div>
-              <Field label="Giá (VNĐ) — chỉ áp dụng cho giao dịch mới">
+            <form key={p._id} className={`card stack adm-plan ${p.isActive ? 'adm-plan-on' : ''}`} onSubmit={(e) => { e.preventDefault(); this.savePlan(p, { price: Number(e.target.price.value) }); }}>
+              <div className="row-between"><h2 className="h-md">{p.name}</h2><span className={`chip ${p.isActive ? 'chip-green' : ''}`}>{p.isActive ? 'Đang bán' : 'Đã tắt'}</span></div>
+              <div className="small muted">{p.code}, {p.durationDays} ngày</div>
+              <div className="adm-stat-num">{money(p.price)}</div>
+              <Field label="Giá mới (VNĐ), áp dụng cho giao dịch mới">
                 <div className="row" style={{ flexWrap: 'nowrap' }}>
                   <input name="price" className="input" type="number" min="1000" step="1000" defaultValue={p.price} />
                   <button className="btn btn-sm">Lưu</button>
@@ -476,10 +475,10 @@ export class AdminPaymentsPage extends ListPage {
           ))}
         </div>
         <div>
-          <div className="row-between adm-toolbar">
+          <div className="adm-toolbar">
             <Tabs items={[['', 'Tất cả'], ['SUCCESS', 'Thành công'], ['PENDING', 'Đang xử lý'], ['FAILED', 'Thất bại']]} value={f.status || ''} onChange={(status) => this.filter({ status })} />
-            <div className="row">
-              <input className="input adm-search adm-month" type="month" value={f.month || ''} onChange={(e) => this.filter({ month: e.target.value })} aria-label="Lọc theo tháng" />
+            <div className="row adm-toolbar-end">
+              <input className="input adm-month" type="month" value={f.month || ''} onChange={(e) => this.filter({ month: e.target.value })} aria-label="Lọc theo tháng" />
               {meta && <span className="muted">Doanh thu: <strong>{money(meta.revenue)}</strong></span>}
             </div>
           </div>

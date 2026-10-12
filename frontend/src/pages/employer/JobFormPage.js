@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { api, fieldErrors } from '../../api';
 import { Spinner, Field, Alert, Modal, BackLink } from '../../components/ui';
-import { Mascot } from '../../components/Illustrations';
 import { toInputDate } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
@@ -54,18 +53,17 @@ class JobFormPage extends Component {
     return (
       <div className="container page" style={{ maxWidth: 880 }}>
         <BackLink to="/employer/jobs">Tin tuyển dụng</BackLink>
-        <header className="emp-head" style={{ marginTop: 16 }}>
+        <header className="card emp-head" style={{ marginTop: 12 }}>
           <div>
             <h1 className="display">{this.isEdit() ? 'Sửa tin tuyển dụng' : 'Đăng tin tuyển dụng'}</h1>
             <p className="muted">Mô tả rõ ràng, lương minh bạch giúp tin của bạn nhận nhiều ứng viên hơn.</p>
           </div>
-          <Mascot kind="triangle" size={84} />
         </header>
         {locked && <div style={{ marginTop: 16 }}><Alert type="warn">Tin đã nhận người: không sửa được lương, địa điểm, ngày bắt đầu; số chỗ không được nhỏ hơn số người đã nhận.</Alert></div>}
-        <form className="stack" style={{ marginTop: 32 }} onSubmit={this.submit}>
+        <form className="stack" style={{ marginTop: 16 }} onSubmit={this.submit}>
           <section className="card stack-lg">
           <h2 className="emp-step"><span>1</span>Thông tin chung</h2>
-          {input('title', `Tiêu đề * (${form.title.length}/120)`, { required: true, minLength: 10, maxLength: 120, placeholder: 'VD: Nhân viên phục vụ ca tối – Quận 1' })}
+          {input('title', `Tiêu đề * (${form.title.length}/120)`, { required: true, minLength: 10, maxLength: 120, placeholder: 'VD: Nhân viên phục vụ ca tối, Quận 1' })}
           <div className="grid-2">
             <Field label="Danh mục *" error={errors.categoryId}>
               <select className="select" required value={form.categoryId} onChange={this.set('categoryId')}>
@@ -73,7 +71,7 @@ class JobFormPage extends Component {
                 {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
               </select>
             </Field>
-            {input('slots', 'Số người cần tuyển * (1–50)', { type: 'number', required: true, min: 1, max: 50 })}
+            {input('slots', 'Số người cần tuyển * (1 - 50)', { type: 'number', required: true, min: 1, max: 50 })}
           </div>
           <Field label={`Mô tả công việc * (tối thiểu 50 ký tự · ${form.description.length}/5000)`} error={errors.description}>
             <textarea className="textarea" required minLength={50} maxLength={5000} value={form.description} onChange={this.set('description')} style={{ minHeight: 180 }} />
@@ -94,7 +92,7 @@ class JobFormPage extends Component {
             {input('salaryMax', 'Lương đến (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
             {input('startDate', 'Ngày bắt đầu *', { type: 'date', required: true, disabled: locked, min: this.isEdit() ? undefined : toInputDate(new Date()) })}
             {input('endDate', 'Ngày kết thúc', { type: 'date', min: form.startDate })}
-            {input('schedule', 'Ca làm', { maxLength: 200, placeholder: '18h–22h, T2–T6' })}
+            {input('schedule', 'Ca làm', { maxLength: 200, placeholder: '18h-22h, T2-T6' })}
           </div>
           </section>
           <section className="card stack-lg">
@@ -107,8 +105,8 @@ class JobFormPage extends Component {
           </section>
           <Alert>{!this.state.quota && this.state.error}</Alert>
           <div className="row" style={{ marginTop: 8 }}>
-            <button className="btn btn-lg" disabled={this.state.busy}>{this.isEdit() ? 'Lưu thay đổi' : 'Đăng tin'}</button>
-            <Link to="/employer/jobs" className="btn btn-lg btn-ghost">Hủy</Link>
+            <button className="btn" disabled={this.state.busy}>{this.isEdit() ? 'Lưu thay đổi' : 'Đăng tin'}</button>
+            <Link to="/employer/jobs" className="btn btn-ghost">Hủy</Link>
           </div>
         </form>
         {this.state.quota && (

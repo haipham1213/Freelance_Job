@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { api, fieldErrors } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Field, Alert, CompanyLogo } from '../../components/ui';
-import { PANEL_BG } from '../../utils/format';
 
 // SCR-E02 / FR-PRO-03
 export default class CompanyPage extends Component {
@@ -58,14 +57,14 @@ export default class CompanyPage extends Component {
     );
     return (
       <div className="container page">
-        <header className="emp-head">
+        <header className="card emp-head">
           <div>
             <h1 className="display">Hồ sơ công ty</h1>
             <p className="muted">Thông tin rõ ràng giúp sinh viên tin tưởng và ứng tuyển nhiều hơn.</p>
           </div>
           <Link to={`/employers/${this.context.user._id}`} className="btn btn-ghost">Xem trang công khai</Link>
         </header>
-        <div className="layout-main" style={{ marginTop: 32 }}>
+        <div className="layout-main" style={{ marginTop: 20 }}>
           <form className="card stack-lg" onSubmit={this.save}>
             <div className="grid-2">
               {input('name', 'Tên công ty / cửa hàng *', { required: true, minLength: 2, maxLength: 150 })}
@@ -83,15 +82,16 @@ export default class CompanyPage extends Component {
             </Field>
             <Alert>{this.state.error}</Alert>
             <Alert type="ok">{this.state.msg}</Alert>
-            <div><button className="btn btn-lg" disabled={this.state.busy}>Lưu hồ sơ</button></div>
+            <div><button className="btn" disabled={this.state.busy}>Lưu hồ sơ</button></div>
           </form>
-          <aside className="emp-logo-panel" style={{ background: PANEL_BG[0] }}>
+          <aside className="card emp-logo-card">
             <CompanyLogo src={logoUrl} />
-            {this.state.isPremium && <span className="chip chip-dark">★ Premium</span>}
-            <label className="btn" style={{ cursor: 'pointer' }}>
-              Đổi logo (JPG/PNG ≤ 2 MB)
+            {this.state.isPremium && <span className="chip chip-featured">★ Premium</span>}
+            <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
+              Đổi logo
               <input type="file" accept="image/jpeg,image/png" hidden onChange={this.uploadLogo} />
             </label>
+            <div className="fog tiny">JPG hoặc PNG, tối đa 2 MB</div>
             {this.state.logoMsg && <div className="small">{this.state.logoMsg}</div>}
           </aside>
         </div>

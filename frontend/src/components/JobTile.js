@@ -4,20 +4,21 @@ import { MapPin } from 'lucide-react';
 import { salary, timeAgo } from '../utils/format';
 import { Scene } from './Illustrations';
 
-// Thẻ việc dạng "library card" của headspace.com: minh họa tự sinh theo id + ngành, logo công ty ở góc
+// Thẻ việc gọn kiểu TopCV: logo vuông bên trái (thiếu logo thì dùng minh họa tự sinh), tiêu đề, công ty, chip lương + địa điểm
 const JobTile = ({ job: j, category, badge }) => (
-  <Link to={`/jobs/${j._id}`} className="lib-card">
-    <div className="lib-art">
-      <Scene seed={j._id} category={category} className="lib-scene" />
-      {badge && j.isFeatured && <span className="chip chip-dark tiny lib-badge">★ Nổi bật</span>}
-      <span className="lib-logo">
-        {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" /> : (j.companySnapshot?.name || '?')[0]}
+  <Link to={`/jobs/${j._id}`} className={`jt ${badge && j.isFeatured ? 'jt-hot' : ''}`}>
+    <span className="jt-logo">
+      {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" /> : <Scene seed={j._id} category={category} />}
+    </span>
+    <span className="jt-body">
+      <span className="jt-title">{badge && j.isFeatured && <span className="jt-badge">Nổi bật</span>}{j.title}</span>
+      <span className="jt-company">{j.companySnapshot?.name}</span>
+      <span className="jt-chips">
+        <span className="jt-chip jt-salary">{salary(j)}</span>
+        <span className="jt-chip ico-row"><MapPin size={13} />{j.city || j.district}</span>
+        <span className="jt-time">{timeAgo(j.createdAt)}</span>
       </span>
-    </div>
-    <div className="lib-salary">{salary(j)}</div>
-    <h3 className="lib-title">{j.title}</h3>
-    <div className="lib-meta muted small">{j.companySnapshot?.name}{category && ` · ${category}`}</div>
-    <div className="lib-meta fog small ico-row"><MapPin size={14} />{[j.district, j.city].filter(Boolean).join(', ')} · {timeAgo(j.createdAt)}</div>
+    </span>
   </Link>
 );
 

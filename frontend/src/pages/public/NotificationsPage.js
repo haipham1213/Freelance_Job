@@ -25,10 +25,10 @@ class NotificationsPage extends Component {
     return (
       <div className="container page" style={{ maxWidth: 860 }}>
         <div className="row-between">
-          <h1 className="display pub-title">Thông báo</h1>
+          <h1 className="display">Thông báo</h1>
           <button className="btn btn-ghost btn-sm" onClick={this.readAll}>Đánh dấu tất cả đã đọc</button>
         </div>
-        <div style={{ margin: '24px 0' }}>
+        <div style={{ margin: '16px 0' }}>
           <Tabs items={[['', 'Tất cả'], ['false', 'Chưa đọc']]} value={filter} onChange={(f) => this.setState({ filter: f, items: null }, () => this.load(1))} />
         </div>
         {!items ? <Spinner /> : !items.length ? <div className="card"><Empty mascot="blob" title="Không có thông báo" /></div> : (
@@ -37,7 +37,7 @@ class NotificationsPage extends Component {
               <button key={n._id} className={`pub-notif ${n.isRead ? '' : 'unread'}`} onClick={() => this.open(n)}>
                 <span className="pub-notif-icon" aria-hidden="true">{React.createElement(ICON[n.type] || Bell, { size: 22 })}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div>{!n.isRead && <span className="accent">● </span>}{n.title}</div>
+                  <div className="pub-notif-title">{n.title}</div>
                   <div className="muted small">{n.message}</div>
                 </div>
                 <span className="fog tiny pub-notif-time">{dateTime(n.createdAt)}</span>

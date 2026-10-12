@@ -6,8 +6,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Stars, CompanyLogo, JobBadge, AppBadge, Modal, Field, Alert, BackLink } from '../../components/ui';
 import ReportModal from '../../components/ReportModal';
 import ErrorPage from './ErrorPage';
-import { money, date, salary, SALARY_TYPE, jobStatusOf, PANEL_BG } from '../../utils/format';
-import { Scene } from '../../components/Illustrations';
+import { money, date, SALARY_TYPE, jobStatusOf } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
 class ApplyModal extends Component {
@@ -111,70 +110,76 @@ class JobDetailPage extends Component {
     const status = jobStatusOf(job);
     const canReport = user && ['STUDENT', 'EMPLOYER'].includes(user.role) && String(job.employerId) !== String(user._id);
     const info = [
-      [Wallet, 'Mức lương', `${money(job.salaryMin)}${job.salaryMax !== job.salaryMin ? ` – ${money(job.salaryMax)}` : ''} / ${SALARY_TYPE[job.salaryType]}`],
+      [Wallet, 'Mức lương', `${money(job.salaryMin)}${job.salaryMax !== job.salaryMin ? ` - ${money(job.salaryMax)}` : ''} / ${SALARY_TYPE[job.salaryType]}`],
       [MapPin, 'Địa điểm', [job.address, job.district, job.city].filter(Boolean).join(', ')],
       [Clock, 'Ca làm', job.schedule || 'Thỏa thuận'],
       [CalendarDays, 'Bắt đầu', `${date(job.startDate)}${job.endDate ? ` → ${date(job.endDate)}` : ''}`],
       [Users, 'Số chỗ còn', `${job.remainingSlots}/${job.slots}`],
       [Hourglass, 'Hạn nhận hồ sơ', date(job.expiresAt)],
     ];
+    const key = info.filter(([, k]) => ['Mức lương', 'Địa điểm', 'Hạn nhận hồ sơ'].includes(k));
     return (
       <div className="container page">
         <BackLink to="/jobs">Danh sách việc</BackLink>
-        <header className="pub-hero" style={{ background: PANEL_BG[0] }}>
-          <div className="stack-lg" style={{ minWidth: 0 }}>
+        <header className="card pub-head">
+          <CompanyLogo src={employer.company?.logoUrl} name={employer.company?.name} />
+          <div className="pub-head-main">
             <div className="row">
-              {job.isFeatured && <span className="chip chip-dark">★ Nổi bật</span>}
+              {job.isFeatured && <span className="chip chip-featured">★ Nổi bật</span>}
               {status !== 'OPEN' && <JobBadge status={status} />}
-              {category && <Link to={`/jobs?categoryId=${category._id}`} className="chip chip-white">{category.name}</Link>}
-              <span className="small">{job.viewCount} lượt xem</span>
+              {category && <Link to={`/jobs?categoryId=${category._id}`} className="chip">{category.name}</Link>}
+              <span className="fog small">{job.viewCount} lượt xem</span>
             </div>
             <h1 className="display">{job.title}</h1>
-            <div className="pub-hero-salary">{salary(job)}</div>
-            <Link to={`/employers/${employer._id}`} className="row" style={{ flexWrap: 'nowrap' }}>
-              <CompanyLogo src={employer.company?.logoUrl} name={employer.company?.name} />
-              <span className="h-sm">{employer.company?.name || employer.fullName}</span>
-            </Link>
-          </div>
-          <span className="pub-hero-art" aria-hidden="true"><Scene seed={job._id} category={category?.name} className="ica-hero-scene" /></span>
-        </header>
-        <div className="layout-main" style={{ marginTop: 32 }}>
-          <article className="stack-lg">
-            <div className="pub-info">
-              {info.map(([Ico, k, v]) => (
-                <div key={k} className="pub-info-item">
-                  <div className="fog small ico-row"><Ico size={16} />{k}</div>
-                  <div className="h-sm">{v}</div>
+            <Link to={`/employers/${employer._id}`} className="muted">{employer.company?.name || employer.fullName}</Link>
+            <div className="pub-key">
+              {key.map(([Ico, k, v]) => (
+                <div key={k} className="pub-key-item">
+                  <span className="pub-key-icon"><Ico size={20} /></span>
+                  <span><span className="fog small">{k}</span><strong>{v}</strong></span>
                 </div>
               ))}
             </div>
-            <div className="card stack">
-              <h2 className="h-lg">Mô tả công việc</h2>
-              <p className="muted pre" style={{ fontSize: 17 }}>{job.description}</p>
-              {job.requirements && (
-                <>
-                  <h2 className="h-lg" style={{ marginTop: 24 }}>Yêu cầu</h2>
-                  <p className="muted pre" style={{ fontSize: 17 }}>{job.requirements}</p>
-                </>
-              )}
-            </div>
+          </div>
+          <div className="pub-head-actions">
+            <Alert type="info">{flash}</Alert>
+            {this.actions()}
+          </div>
+        </header>
+        <div className="layout-main" style={{ marginTop: 20 }}>
+          <article className="card pub-body">
+            <h2 className="pub-sec">Mô tả công việc</h2>
+            <p className="pre">{job.description}</p>
+            {job.requirements && (
+              <>
+                <h2 className="pub-sec">Yêu cầu</h2>
+                <p className="pre">{job.requirements}</p>
+              </>
+            )}
           </article>
           <aside className="stack-lg pub-aside">
             <div className="card stack">
-              <Alert type="info">{flash}</Alert>
-              {this.actions()}
-            </div>
-            <div className="card stack">
               <div className="row" style={{ flexWrap: 'nowrap' }}>
                 <CompanyLogo src={employer.company?.logoUrl} name={employer.company?.name} />
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <Link to={`/employers/${employer._id}`} className="h-sm">{employer.company?.name || employer.fullName}</Link>
                   {employer.isPremium && <div className="accent tiny">★ Nhà tuyển dụng Premium</div>}
                 </div>
               </div>
               <Stars value={employer.ratingAvg} count={employer.ratingCount} />
               {employer.company?.address && <div className="muted small ico-row"><MapPin size={14} />{employer.company.address}</div>}
-              <Link to={`/employers/${employer._id}`} className="btn btn-ghost btn-sm">Xem trang công ty & đánh giá</Link>
+              <Link to={`/employers/${employer._id}`} className="btn btn-ghost btn-sm">Xem trang công ty</Link>
+            </div>
+            <div className="card">
+              <h2 className="h-sm">Thông tin chung</h2>
+              <ul className="pub-facts">
+                {info.map(([Ico, k, v]) => (
+                  <li key={k}>
+                    <span className="pub-key-icon"><Ico size={18} /></span>
+                    <span><span className="fog small">{k}</span><span>{v}</span></span>
+                  </li>
+                ))}
+              </ul>
             </div>
             {canReport && <button className="btn-link small ico-row" style={{ color: 'var(--muted)' }} onClick={() => this.setState({ modal: 'report' })}><Flag size={14} />Báo cáo tin này</button>}
           </aside>

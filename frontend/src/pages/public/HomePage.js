@@ -1,255 +1,169 @@
 import React, { Component } from 'react';
-import { ArrowLeft, ArrowRight, Clock, PenLine, Sparkles, Star, Sun } from 'lucide-react';
+import { ArrowRight, Eye, Search, Star, UserRoundCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { Spinner } from '../../components/ui';
-import { HeroIllustrationRight, Mascot, categoryIcon } from '../../components/Illustrations';
-import { PANEL_BG } from '../../utils/format';
+import { HeroIllustrationRight, Scene } from '../../components/Illustrations';
 import JobTile from '../../components/JobTile';
 import withRouter from '../../utils/withRouter';
 import { AuthContext } from '../../context/AuthContext';
 
 const STEPS = [
-  ['cloud', 'Tạo hồ sơ & CV', 'Đăng ký bằng email trường, tải CV PDF một lần dùng cho mọi đơn.'],
-  ['triangle', 'Ứng tuyển minh bạch', 'Mức lương, ca làm, số chỗ còn trống hiển thị rõ ràng trước khi nộp.'],
-  ['blob', 'Đánh giá hai chiều', 'Sau mỗi công việc, sinh viên và nhà tuyển dụng chấm điểm cho nhau.'],
+  [UserRoundCheck, 'Tạo hồ sơ một lần', 'Đăng ký bằng email trường, tải CV PDF một lần và dùng lại cho mọi đơn.'],
+  [Eye, 'Thấy rõ trước khi nộp', 'Mức lương, ca làm và số chỗ còn trống hiển thị ngay trên tin tuyển dụng.'],
+  [Star, 'Đánh giá hai chiều', 'Sau mỗi công việc, sinh viên và nhà tuyển dụng chấm điểm cho nhau.'],
 ];
-
-// Tab như "Explore our library" của headspace.com; key = salaryType của API-20
-const LIB_TABS = [['', Star, 'Nổi bật'], ['HOURLY', Clock, 'Theo giờ'], ['DAILY', Sun, 'Theo ngày'], ['PROJECT', PenLine, 'Theo dự án']];
-const ROTATE = ['Tìm ca làm hợp lịch học', 'Nhận lương minh bạch', 'Tích lũy kinh nghiệm', 'Gặp nhà tuyển dụng uy tín'];
-const TRUST = ['Hơn 100 việc part-time mỗi tuần', 'Lương & ca làm công khai trước khi nộp', 'Đánh giá hai chiều sau mỗi công việc'];
+// Tab lọc theo salaryType của API-20
+const TABS = [['', 'Tất cả'], ['HOURLY', 'Theo giờ'], ['DAILY', 'Theo ngày'], ['PROJECT', 'Theo dự án']];
 const FAQ = [
   ['Ứng tuyển có mất phí không?', 'Hoàn toàn miễn phí với sinh viên. Nếu nhà tuyển dụng yêu cầu đóng phí, hãy báo cáo tin đó ngay.'],
-  ['Tôi cần chuẩn bị gì để ứng tuyển?', 'Đăng ký bằng email trường, điền hồ sơ và tải lên một CV PDF — dùng lại cho mọi đơn ứng tuyển.'],
+  ['Tôi cần chuẩn bị gì để ứng tuyển?', 'Đăng ký bằng email trường, điền hồ sơ và tải lên một CV PDF. CV này được dùng lại cho mọi đơn ứng tuyển.'],
   ['Làm sao biết nhà tuyển dụng đáng tin?', 'Mỗi nhà tuyển dụng có trang công khai với điểm đánh giá từ những sinh viên đã từng làm việc ở đó.'],
-  ['Nhà tuyển dụng đăng tin thế nào?', 'Mỗi tài khoản được đăng tối đa 3 tin miễn phí; gói Premium giúp tin được ghim nổi bật.'],
+  ['Nhà tuyển dụng đăng tin thế nào?', 'Mỗi tài khoản được đăng tối đa 3 tin miễn phí. Gói Premium giúp tin được ghim nổi bật.'],
 ];
-const CheckIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.6" /><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-);
 
+// Trang chủ bố cục kiểu TopCV: banner tìm kiếm, việc làm tốt nhất, ngành nổi bật, khối nhà tuyển dụng
 class HomePage extends Component {
   static contextType = AuthContext;
-  state = { q: '', categoryId: '', categories: [], jobs: null, tab: '', lib: null, reviews: [] };
-  track = React.createRef();
+  state = { q: '', categoryId: '', city: '', categories: [], locations: [], jobs: null, tab: '', reviews: [] };
 
   async componentDidMount() {
-    const [c, j] = await Promise.all([api.get('/categories'), api.get('/jobs?limit=10')]);
-    this.setState({ categories: c.data, jobs: j.data, lib: j.data, categoryId: c.data[0]?._id || '' });
-    // Lời chứng thực thật: đánh giá có bình luận của sinh viên dành cho các nhà tuyển dụng đang đăng tin
+    const [c, l, j] = await Promise.all([api.get('/categories'), api.get('/jobs/locations'), api.get('/jobs?limit=9')]);
+    this.setState({ categories: c.data, locations: l.data, jobs: j.data });
+    // Lời chứng thực thật: đánh giá có bình luận dành cho các nhà tuyển dụng đang đăng tin
     const ids = [...new Set(j.data.map((x) => x.employerId))].slice(0, 6);
     const rs = await Promise.all(ids.map((id) => api.get(`/users/${id}/reviews?limit=3`).catch(() => ({ data: [] }))));
     this.setState({ reviews: rs.flatMap((r) => r.data).filter((r) => r.comment).slice(0, 3) });
   }
 
   loadTab = async (tab) => {
-    this.setState({ tab, lib: null });
-    const r = await api.get(`/jobs${qs({ limit: 10, salaryType: tab })}`);
-    if (this.state.tab === tab) this.setState({ lib: r.data });
+    this.setState({ tab, jobs: null });
+    const r = await api.get(`/jobs${qs({ limit: 9, salaryType: tab })}`);
+    if (this.state.tab === tab) this.setState({ jobs: r.data });
   };
-
-  slide = (dir) => {
-    const el = this.track.current;
-    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
-  }
 
   search = (e) => {
     e.preventDefault();
-    this.props.navigate(`/jobs${qs({ q: this.state.q, categoryId: this.state.categoryId })}`);
+    const { q, categoryId, city } = this.state;
+    this.props.navigate(`/jobs${qs({ q, categoryId, city })}`);
   };
 
+  set = (k) => (e) => this.setState({ [k]: e.target.value });
+
   render() {
-    const { q, categoryId, categories, jobs, tab, lib, reviews } = this.state;
-    const companies = [...new Set((jobs || []).map((j) => j.companySnapshot?.name).filter(Boolean))];
-    const topics = categories.slice(0, 6);
-    const active = topics.find((c) => c._id === categoryId) || topics[0];
+    const { q, categoryId, city, categories, locations, jobs, tab, reviews } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const user = this.context.user;
     // Sinh viên đã đăng nhập không vào được /employer/* (403) → dẫn sang đăng ký tài khoản nhà tuyển dụng
-    const isEmployer = user?.role === 'EMPLOYER';
-    const postJob = isEmployer ? '/employer/jobs/new' : '/register?role=EMPLOYER';
+    const postJob = user?.role === 'EMPLOYER' ? '/employer/jobs/new' : '/register?role=EMPLOYER';
     const openJobs = categories.reduce((n, c) => n + c.jobCount, 0);
+    const logos = [...new Map((jobs || []).filter((j) => j.companySnapshot?.logoUrl).map((j) => [j.companySnapshot.name, j.companySnapshot])).values()].slice(0, 6);
     return (
-      <div className="container">
-        <section className="hero">
-          <h1 className="hero-title">
-            <span className="rotator" aria-hidden="true">
-              <span className="rotator-track">
-                {[...ROTATE, ROTATE[0]].map((t, i) => <span key={i}>{t}</span>)}
-              </span>
-            </span>
-            <span className="sr-only">{ROTATE.join(', ')}, </span>
-            tất cả với JobSV
-          </h1>
-          <ul className="trust-row">
-            {TRUST.map((t) => <li key={t}><CheckIcon />{t}</li>)}
-          </ul>
-        </section>
-
-        <section className="hero-cards">
-          <div className="hero-card">
-            <h2 className="display">Việc làm thêm hợp lịch học, lương minh bạch</h2>
-            <Link to="/jobs" className="btn btn-lg">Tìm việc ngay</Link>
-            <div className="hero-card-art">
-              <div className="mock-phone">
-                <div className="tiny">Việc nổi bật</div>
-                <div className="mock-title">{jobs?.[0]?.title || 'Phục vụ quán cà phê'}</div>
-                <div className="row" style={{ justifyContent: 'center', gap: 6 }}>
-                  <span className="chip chip-white">Ca tối</span>
-                  <span className="chip chip-white">25k/giờ</span>
-                </div>
-                <span className="mock-play"><ArrowRight size={26} /></span>
-              </div>
-              <div className="sun-face" aria-hidden="true">
-                <svg viewBox="0 0 60 20"><path d="M4 4 q10 12 22 2 M34 6 q10 12 22 -2" fill="none" stroke="#2d2c2b" strokeWidth="3.5" strokeLinecap="round" /></svg>
-              </div>
-              <div className="bubble">Hôm nay làm gì nhỉ?<div className="tiny fog"><span className="accent">●</span> JobSV</div></div>
+      <>
+        <section className="hx-hero">
+          <div className="container hx-hero-grid">
+            <div>
+              <h1 className="hero-title">Tìm việc part-time hợp lịch học</h1>
+              <p className="hx-sub">Lương, ca làm và đánh giá nhà tuyển dụng công khai trước khi bạn ứng tuyển.</p>
+              <form className="hx-search" onSubmit={this.search} role="search">
+                <label className="hx-field hx-q">
+                  <Search size={18} aria-hidden="true" />
+                  <input value={q} onChange={this.set('q')} placeholder="Vị trí, kỹ năng: phục vụ, gia sư, Canva" aria-label="Từ khóa" />
+                </label>
+                <select className="hx-field" value={categoryId} onChange={this.set('categoryId')} aria-label="Ngành nghề">
+                  <option value="">Tất cả ngành nghề</option>
+                  {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+                <select className="hx-field" value={city} onChange={this.set('city')} aria-label="Thành phố">
+                  <option value="">Tất cả địa điểm</option>
+                  {locations.map((l) => <option key={l.city}>{l.city}</option>)}
+                </select>
+                <button className="btn btn-lg">Tìm việc</button>
+              </form>
             </div>
-          </div>
-          <div className="hero-card">
-            <h2 className="display">Tuyển sinh viên nhanh, có đánh giá thật</h2>
-            <Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link>
-            <div className="hero-card-art">
-              <HeroIllustrationRight className="hero-card-illo" />
-            </div>
+            <HeroIllustrationRight className="hx-illo" />
           </div>
         </section>
 
-        <section className="section center">
-          <h2 className="display">Bạn muốn tìm việc gì?</h2>
-          <div className="topic-chips" role="tablist" aria-label="Ngành nghề">
-            {topics.map((c) => (
-              <button key={c._id} role="tab" aria-selected={c === active} className={`topic-chip ${c === active ? 'active' : ''}`} onClick={() => this.setState({ categoryId: c._id })}>
-                {c.name}
-              </button>
+        <div className="container">
+          <section className="hx-stats" aria-label="Số liệu JobSV">
+            <div><strong>{openJobs}</strong><span>việc đang tuyển</span></div>
+            <div><strong>{categories.length}</strong><span>ngành nghề phổ biến</span></div>
+            <div><strong>0đ</strong><span>phí ứng tuyển cho sinh viên</span></div>
+          </section>
+
+          <section className="section card hx-box">
+            <div className="hx-box-head">
+              <h2 className="display">Việc làm tốt nhất</h2>
+              <Link to={`/jobs${qs({ salaryType: tab })}`} className="accent ico-row">Xem tất cả <ArrowRight size={16} /></Link>
+            </div>
+            <div className="tabs" role="tablist" aria-label="Hình thức trả lương">
+              {TABS.map(([key, label]) => (
+                <button key={key} role="tab" aria-selected={tab === key} className={`tab ${tab === key ? 'active' : ''}`} onClick={() => this.loadTab(key)}>{label}</button>
+              ))}
+            </div>
+            {!jobs ? <Spinner /> : !jobs.length ? <p className="muted center" style={{ padding: 32 }}>Chưa có việc nào theo hình thức này.</p> : (
+              <div className="jobs-grid">{jobs.map((j) => <JobTile key={j._id} job={j} category={catName[j.categoryId]} badge />)}</div>
+            )}
+          </section>
+
+          <section className="section">
+            <h2 className="display">Top ngành nghề nổi bật</h2>
+            <div className="hx-cats">
+              {categories.map((c) => (
+                <Link key={c._id} to={`/jobs?categoryId=${c._id}`} className="hx-cat">
+                  <Scene seed={c._id} category={c.name} className="hx-cat-art" />
+                  <span className="h-sm">{c.name}</span>
+                  <span className="accent small">{c.jobCount} việc làm</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="section hx-split">
+            <div className="card">
+              <h2 className="display">Làm thêm an toàn hơn</h2>
+              <ul className="hx-steps">
+                {STEPS.map(([Icon, title, text]) => (
+                  <li key={title}>
+                    <span className="hx-step-icon"><Icon size={22} /></span>
+                    <span><strong>{title}</strong><span className="muted">{text}</span></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="card">
+              <h2 className="display">Sinh viên nói gì</h2>
+              {reviews.length ? reviews.map((r) => (
+                <figure key={r._id} className="hx-quote">
+                  <blockquote>“{r.comment}”</blockquote>
+                  <figcaption className="small muted">{r.reviewerId?.fullName || 'Sinh viên'} <span className="stars">{'★'.repeat(r.rating)}</span></figcaption>
+                </figure>
+              )) : <p className="muted">Đánh giá của sinh viên sẽ xuất hiện ở đây sau mỗi công việc hoàn thành.</p>}
+            </div>
+          </section>
+
+          <section className="section card hx-employer">
+            <div className="stack">
+              <h2 className="display">Bạn cần tuyển sinh viên?</h2>
+              <p className="muted">Đăng tối đa 3 tin miễn phí, nhận hồ sơ có CV sẵn và đánh giá thật sau mỗi công việc.</p>
+              <div><Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link></div>
+            </div>
+            {logos.length > 0 && (
+              <div className="hx-logos" aria-label="Nhà tuyển dụng đang đăng tin">
+                {logos.map((c) => <span key={c.name} className="logo-box"><img src={c.logoUrl} alt={c.name} /></span>)}
+              </div>
+            )}
+          </section>
+
+          <section className="section card faq">
+            <h2 className="display">Câu hỏi thường gặp</h2>
+            {FAQ.map(([question, answer]) => (
+              <details key={question}><summary>{question}</summary><p className="muted">{answer}</p></details>
             ))}
-          </div>
-          {active && (
-            <div className="topic-panel" role="tabpanel" style={{ background: PANEL_BG[topics.indexOf(active) % PANEL_BG.length] }}>
-              <div className="topic-text">
-                <h3 className="display">{active.name}</h3>
-                <p className="topic-sub">{active.jobCount} việc đang tuyển · ca linh hoạt theo lịch học</p>
-                <form className="search-bar" onSubmit={this.search} role="search">
-                  <input className="input" placeholder={`Tìm trong ${active.name.toLowerCase()}…`} value={q} onChange={(e) => this.setState({ q: e.target.value })} aria-label="Từ khóa" />
-                  <button className="btn">Tìm việc</button>
-                </form>
-                <Link to={`/jobs?categoryId=${active._id}`} className="topic-link ico-row">Xem tất cả việc {active.name.toLowerCase()} <ArrowRight size={16} /></Link>
-              </div>
-              <div className="topic-art" aria-hidden="true">
-                {active.imageUrl ? <img src={active.imageUrl} alt="" /> : React.createElement(categoryIcon(active.name), { size: 96, strokeWidth: 1.4 })}
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="section center voices">
-          <div className="voices-head">
-            <span className="float f1"><Mascot kind="cloud" size={84} /></span>
-            <span className="float f2"><Mascot kind="flower" size={64} /></span>
-            <span className="float f3"><Mascot kind="triangle" size={72} /></span>
-            <span className="float f4"><Mascot kind="blob" size={60} /></span>
-            <h2 className="display">Sinh viên làm thêm an tâm hơn mỗi ngày</h2>
-          </div>
-          <div className="grid-3 voices-grid">
-            {(reviews.length ? reviews : STEPS.map(([, title, text]) => ({ _id: title, comment: text, title }))).map((r) => (
-              <figure key={r._id} className="voice">
-                <blockquote>“{r.comment}”</blockquote>
-                <figcaption className="tiny">
-                  {r.title ? r.title : <>{r.reviewerId?.fullName || 'Sinh viên'} · <span className="stars">{'★'.repeat(r.rating)}</span></>}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
-
-        <section className="section partner">
-          <div className="partner-logos" aria-label="Nhà tuyển dụng trên JobSV">
-            <div className="marquee-track">
-              {[...companies, ...companies].map((c, i) => <span key={i} aria-hidden={i >= companies.length}>{c}</span>)}
-            </div>
-          </div>
-          <div className="partner-body">
-            <div className="stack-lg">
-              <h2 className="display">Được các quán, cửa hàng và doanh nghiệp tin dùng</h2>
-              <p style={{ fontSize: 19 }}>Tuyển sinh viên part-time nhanh, có hồ sơ CV sẵn và đánh giá thật sau mỗi công việc.</p>
-              <div className="row">
-                <Link to={postJob} className="btn btn-sand">Đăng tin tuyển dụng</Link>
-                <Link to={isEmployer ? '/employer/premium' : postJob} className="btn btn-outline">Tìm hiểu Premium</Link>
-              </div>
-            </div>
-            <div className="partner-art" aria-hidden="true">
-              {categories.filter((c) => c.imageUrl).slice(0, 3).map((c, i) => <img key={c._id} className={`ph ph${i}`} src={c.imageUrl} alt="" />)}
-              <span className="ph-star"><Sparkles size={48} /></span>
-              <span className="ph-cloud"><Mascot kind="cloud" size={130} /></span>
-            </div>
-          </div>
-        </section>
-
-        <div className="ticker" aria-hidden="true">
-          <div className="marquee-track">
-            {Array.from({ length: 12 }, (_, i) => <span key={i}>tìm việc cùng jobsv <b className="eyes">{i % 2 ? '◡◡' : '●●'}</b></span>)}
-          </div>
+          </section>
         </div>
-
-        <section className="section">
-          <h2 className="display center">Việc nổi bật</h2>
-          <div className="lib-head">
-            <div className="lib-tabs" role="tablist" aria-label="Loại lương">
-              {LIB_TABS.map(([key, Icon, label]) => (
-                <button key={key} role="tab" aria-selected={tab === key} className={`lib-tab ${tab === key ? 'active' : ''}`} onClick={() => this.loadTab(key)}>
-                  <Icon size={16} aria-hidden="true" />{label}
-                </button>
-              ))}
-            </div>
-            <div className="lib-arrows">
-              <button className="lib-arrow" onClick={() => this.slide(-1)} aria-label="Trước"><ArrowLeft size={20} /></button>
-              <button className="lib-arrow" onClick={() => this.slide(1)} aria-label="Sau"><ArrowRight size={20} /></button>
-            </div>
-          </div>
-          {!lib ? <Spinner /> : (
-            <div className="lib-track" ref={this.track}>
-              {lib.map((j, i) => (
-                <JobTile key={j._id} job={j} category={catName[j.categoryId]} badge={!!tab} />
-              ))}
-              {!lib.length && <div className="empty">Chưa có việc nào loại này</div>}
-              <Link to={`/jobs${qs({ salaryType: tab })}`} className="lib-card lib-more ico-row">Xem tất cả <ArrowRight size={18} /></Link>
-            </div>
-          )}
-        </section>
-
-        <section className="section join">
-          <span className="float j1"><Mascot kind="flower" size={70} /></span>
-          <span className="float j2"><Mascot kind="blob" size={62} /></span>
-          <span className="float j3"><Mascot kind="triangle" size={66} /></span>
-          <span className="float j4"><Mascot kind="cloud" size={74} /></span>
-          <div className="live-pill"><span className="live-dot" />{openJobs} việc đang tuyển</div>
-          <h2 className="display">Bắt đầu kiếm thêm thu nhập ngay hôm nay</h2>
-          <Link to={user ? '/jobs' : '/register'} className="btn">{user ? 'Tìm việc ngay' : 'Tạo tài khoản miễn phí'}</Link>
-          <div className="join-stats">
-            {[[openJobs, 'Việc đang tuyển'], [categories.length, 'Ngành nghề'], ['3', 'Tin miễn phí cho nhà tuyển dụng'], ['★★★★★', 'Đánh giá hai chiều']].map(([n, l]) => (
-              <div key={l}><div className="join-num">{n}</div><div>{l}</div></div>
-            ))}
-          </div>
-        </section>
-
-        <section className="section faq">
-          <h2 className="display center">Câu hỏi thường gặp</h2>
-          <div style={{ marginTop: 32 }}>
-            {FAQ.map(([q, a]) => (
-              <details key={q}><summary>{q}</summary><p className="muted">{a}</p></details>
-            ))}
-          </div>
-        </section>
-
-        <section className="mega-cta">
-          <span className="float m1"><Mascot kind="cloud" size={110} /></span>
-          <span className="float m2"><Mascot kind="blob" size={96} /></span>
-          <span className="float m3"><Mascot kind="flower" size={80} /></span>
-          <span className="float m4"><Mascot kind="triangle" size={90} /></span>
-          <Link to="/jobs" className="mega-btn">Tìm việc cùng JobSV</Link>
-        </section>
-      </div>
+      </>
     );
   }
 }
