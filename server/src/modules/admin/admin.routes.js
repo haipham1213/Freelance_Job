@@ -19,7 +19,7 @@ import { authenticate, authorize } from '../../middlewares/auth.js';
 import { notify } from '../../utils/notify.js';
 import { recomputeRating } from '../../utils/rating.js';
 import { rawFile, saveUpload } from '../../utils/files.js';
-import { rejectPending, visibleMatch } from '../jobs/jobs.service.js';
+import { quotaOf, rejectPending, visibleMatch } from '../jobs/jobs.service.js';
 import { extendPremium } from '../payments/payments.service.js';
 
 const router = Router();
@@ -78,16 +78,28 @@ router.get('/admin/users', async (req, res) => {
   ok(res, items.map((u) => u.toPublic()), meta);
 });
 
-// API-53: BR-07, BR-38 (mất Premium còn lại)
+// Khóa tài khoản (API-53 và kết luận V3): BR-06 thu hồi phiên, BR-38 mất Premium còn lại,
+// bậc V3 "Job bị đóng": tin OPEN của Employer → CLOSED, đơn PENDING → REJECTED (BR-28)
+const lockUser = async (u, why, adminId, session) => {
+  u.status = 'LOCKED';
+  u.lockReason = why;
+  if (u.employer?.premiumUntil) u.set('employer.premiumUntil', null);
+  await u.save({ session });
+  await Token.updateMany({ userId: u._id, type: 'REFRESH', revokedAt: null }, { revokedAt: new Date() }, { session });
+  if (u.role !== 'EMPLOYER') return;
+  for (const job of await Job.find({ employerId: u._id, status: 'OPEN', deletedAt: null }).session(session)) {
+    job.status = 'CLOSED';
+    await job.save({ session });
+    await rejectPending(job, 'Nhà tuyển dụng đã bị khóa tài khoản', adminId, session);
+  }
+};
+
+// API-53: BR-07
 router.patch('/admin/users/:id/lock', validate(reason), async (req, res) => {
   const u = await User.findById(oid(req.params.id));
   if (!u) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy user');
   if (u.role === 'ADMIN') throw new AppError(403, 'CANNOT_LOCK_ADMIN', 'Không thể khóa tài khoản Admin');
-  u.status = 'LOCKED';
-  u.lockReason = req.body.reason;
-  if (u.employer?.premiumUntil) u.set('employer.premiumUntil', null);
-  await u.save();
-  await Token.updateMany({ userId: u._id, type: 'REFRESH', revokedAt: null }, { revokedAt: new Date() });
+  await mongoose.connection.transaction((session) => lockUser(u, req.body.reason, req.user._id, session));
   await audit(req, 'USER_LOCK', 'USER', u._id, { reason: req.body.reason });
   ok(res, u.toPublic());
 });
@@ -135,6 +147,11 @@ router.patch('/admin/jobs/:id/unhide', async (req, res) => {
   const job = await Job.findOne({ _id: oid(req.params.id), status: 'HIDDEN' });
   if (!job) throw new AppError(409, 'INVALID_STATUS', 'Tin không ở trạng thái ẩn');
   job.status = job.hiddenFromStatus || 'CLOSED';
+  // BR-15: hiện lại thành OPEN chỉ khi Employer còn hạn mức, không thì về CLOSED để họ tự mở lại sau
+  if (job.status === 'OPEN') {
+    const q = await quotaOf(await User.findById(job.employerId));
+    if (q.used >= q.limit) job.status = 'CLOSED';
+  }
   job.hiddenReason = undefined;
   await job.save();
   await audit(req, 'JOB_UNHIDE', 'JOB', job._id);
@@ -211,13 +228,7 @@ router.patch('/admin/reports/:id/resolve',
       if (decision === 'V2' && job && job.status !== 'HIDDEN') await hideJob(job, `Vi phạm: ${note}`, req.user._id, session);
       if (decision === 'V3') {
         const u = await User.findById(offenderId).session(session);
-        if (u && u.role !== 'ADMIN') {
-          u.status = 'LOCKED';
-          u.lockReason = `Vi phạm nghiêm trọng: ${note}`;
-          if (u.employer?.premiumUntil) u.set('employer.premiumUntil', null);
-          await u.save({ session });
-          await Token.updateMany({ userId: u._id, type: 'REFRESH', revokedAt: null }, { revokedAt: new Date() }, { session });
-        }
+        if (u && u.role !== 'ADMIN') await lockUser(u, `Vi phạm nghiêm trọng: ${note}`, req.user._id, session);
       }
       const label = { V1: 'Cảnh cáo', V2: 'Ẩn nội dung vi phạm', V3: 'Khóa tài khoản' }[decision];
       await notify(offenderId, 'VIOLATION', `Xử lý vi phạm: ${label}`, note, null, session);

@@ -131,7 +131,13 @@ router.put('/jobs/:id', authenticate, authorize('EMPLOYER'), validate(jobBody), 
     throw new AppError(400, 'VALIDATION_ERROR', 'Ngày bắt đầu phải từ hôm nay trở đi');
   }
   job.set(b);
-  await job.save();
+  await mongoose.connection.transaction(async (session) => {
+    // BR-27: số chỗ vừa giảm bằng số người đã nhận → đủ người
+    const full = job.status === 'OPEN' && job.acceptedCount > 0 && job.slots <= job.acceptedCount;
+    if (full) job.status = 'FILLED';
+    await job.save({ session });
+    if (full) await rejectPending(job, 'Đã đủ số lượng', req.user._id, session);
+  });
   ok(res, { job });
 });
 

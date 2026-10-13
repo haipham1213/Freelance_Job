@@ -54,6 +54,11 @@ router.get('/payments/vnpay-ipn', async (req, res) => {
   if (!payment) return reply('01', 'Order not found');
   if (Number(q.vnp_Amount) !== payment.amount * 100) return reply('04', 'Invalid amount', payment);
   if (payment.status !== 'PENDING') return reply('02', 'Order already confirmed', payment);
+  // BR-38: quá 15 phút thì Payment hết hạn; tiền đã trừ (nếu có) xử lý bằng kích hoạt thủ công FR-ADM-08
+  if (payment.expiresAt < new Date()) {
+    await Payment.updateOne({ _id: payment._id, status: 'PENDING' }, { status: 'EXPIRED', vnpResponseCode: q.vnp_ResponseCode, ipnRaw: q });
+    return reply('02', 'Order expired', payment);
+  }
   const success = q.vnp_ResponseCode === '00' && q.vnp_TransactionStatus === '00';
   await mongoose.connection.transaction(async (session) => {
     // Điều kiện status PENDING trong lệnh cập nhật → IPN gửi 2 lần chỉ cộng hạn 1 lần

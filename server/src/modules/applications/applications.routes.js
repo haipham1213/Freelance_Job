@@ -172,8 +172,12 @@ router.patch('/applications/:id/result', authenticate, authorize('EMPLOYER'),
       { _id: app0._id, status: 'ACCEPTED' },
       { status: result, finishedAt: new Date(), ...(result === 'NOT_COMPLETED' && { notCompletedReason: reason }), ...history(result, req.user._id) },
     );
-    if (job.status !== 'OPEN' && !(await Application.exists({ jobId: job._id, status: 'ACCEPTED' })))
-      await Job.updateOne({ _id: job._id, status: { $in: ['FILLED', 'CLOSED'] } }, { status: 'COMPLETED' });
+    // ST-06: FILLED / CLOSED / EXPIRED (= OPEN quá expiresAt) → COMPLETED khi không còn đơn ACCEPTED
+    if (!(await Application.exists({ jobId: job._id, status: 'ACCEPTED' })))
+      await Job.updateOne(
+        { _id: job._id, $or: [{ status: { $in: ['FILLED', 'CLOSED'] } }, { status: 'OPEN', expiresAt: { $lt: new Date() } }] },
+        { status: 'COMPLETED' },
+      );
     await notify(app.studentId, 'WORK_RESULT', 'Kết quả công việc',
       `"${job.title}": ${result === 'COMPLETED' ? 'Hoàn thành' : 'Không hoàn thành'}. Bạn có 14 ngày để đánh giá nhà tuyển dụng.`, `/student/applications/${app._id}`);
     ok(res, { application: app });
