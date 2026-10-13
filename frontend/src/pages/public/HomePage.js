@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
-import { Ban, CalendarClock, Check, Lock, LockOpen, Plus, RotateCcw, Search, Star } from 'lucide-react';
+import { Ban, CalendarClock, Check, Lock, MapPin, Plus, Search, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Spinner } from '../../components/ui';
+import { Dropdown, Spinner } from '../../components/ui';
 import { categoryIcon } from '../../components/Illustrations';
 import JobTile from '../../components/JobTile';
 import withRouter from '../../utils/withRouter';
@@ -17,52 +17,13 @@ const PROMISES = [
   [CalendarClock, 'Tin luôn còn hiệu lực', 'Tin tự hết hạn sau 14 ngày (30 ngày với Premium). Tin đã đủ người không còn hiện.'],
 ];
 
-// Khoảnh khắc chính của trang: liên hệ nhà tuyển dụng mờ khi "Đang chờ", hiện ra khi "Được nhận" (BR-12).
-// Tự chạy một lần khi cuộn tới; người dùng bấm "Xem lại" để chạy lại; giảm chuyển động thì hiện sẵn trạng thái cuối.
-class ContactUnlock extends Component {
-  state = { open: false };
-  ref = React.createRef();
-  componentDidMount() {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches || !('IntersectionObserver' in window)) return this.setState({ open: true });
-    this.io = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      this.io.disconnect();
-      this.t = setTimeout(() => this.setState({ open: true }), 700);
-    }, { threshold: 0.6 });
-    this.io.observe(this.ref.current);
-  }
-  componentWillUnmount() { this.io?.disconnect(); clearTimeout(this.t); }
-  replay = () => {
-    clearTimeout(this.t);
-    this.setState({ open: false });
-    this.t = setTimeout(() => this.setState({ open: true }), 900);
-  };
-  render() {
-    const { open } = this.state;
-    return (
-      <div className="gn-unlock" ref={this.ref}>
-        <div className="row-between">
-          <span className="gn-unlock-meta">Đơn ứng tuyển</span>
-          <span className={`chip ${open ? 'chip-green' : 'chip-yellow'}`}>{open ? 'Được nhận' : 'Đang chờ'}</span>
-        </div>
-        <h3>Phục vụ ca tối, The Coffee Corner</h3>
-        <p className="gn-unlock-meta">Nộp 12/10 kèm CV_NguyenMinhAn.pdf</p>
-        <div className={`gn-contact ${open ? 'open' : ''}`}>
-          <span className="gn-contact-ico">{open ? <LockOpen size={20} aria-hidden="true" /> : <Lock size={20} aria-hidden="true" />}</span>
-          <div>
-            <span className="gn-unlock-meta">Liên hệ nhà tuyển dụng</span>
-            <strong className="gn-phone" aria-hidden={!open}>0901 234 567</strong>
-            <span className="gn-mail" aria-hidden={!open}>ha.tran@coffeecorner.vn</span>
-          </div>
-        </div>
-        <div className="row-between gn-unlock-foot">
-          <p aria-live="polite">{open ? 'Đã được nhận, hai bên thấy liên hệ của nhau.' : 'Liên hệ chỉ mở khi bạn được nhận.'}</p>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={this.replay}><RotateCcw size={14} aria-hidden="true" />Xem lại</button>
-        </div>
-      </div>
-    );
-  }
-}
+// Bảng so sánh với cách tìm việc qua group mạng xã hội; mỗi dòng ứng với một cam kết bên trái
+const COMPARE = [
+  ['Bị đòi đặt cọc, phí đồng phục', 'Tự xoay xở, khó đòi lại tiền', 'Báo cáo tin, admin ẩn tin hoặc khóa tài khoản'],
+  ['Số điện thoại của bạn', 'Để công khai dưới bài đăng', 'Chỉ nhà tuyển dụng đã nhận bạn mới thấy'],
+  ['Quán có uy tín không', 'Hỏi quanh, nghe lời đồn', 'Điểm đánh giá từ người đã làm xong việc'],
+  ['Tin đã cũ', 'Bài cũ vẫn trôi, gọi mới biết đủ người', 'Tin tự ẩn khi hết hạn hoặc đủ người'],
+];
 
 const STUDENT_PERKS = [
   'Tìm theo ngành, khu vực và mức lương, gõ không dấu vẫn ra',
@@ -141,20 +102,19 @@ class HomePage extends Component {
               <Search size={18} aria-hidden="true" />
               <input value={q} onChange={this.set('q')} placeholder="Vị trí hoặc kỹ năng" aria-label="Từ khóa" />
             </label>
-            <select className="hx-field" value={categoryId} onChange={this.set('categoryId')} aria-label="Ngành nghề">
-              <option value="">Ngành nghề</option>
-              {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-            </select>
-            <select className="hx-field" value={city} onChange={this.set('city')} aria-label="Thành phố">
-              <option value="">Địa điểm</option>
-              {locations.map((l) => <option key={l.city}>{l.city}</option>)}
-            </select>
+            <Dropdown className="hx-field" value={categoryId} onChange={this.set('categoryId')} ariaLabel="Ngành nghề" placeholder="Ngành nghề" searchable
+              options={categories.map((c) => ({ value: c._id, label: c.name, icon: categoryIcon(c.name), count: c.jobCount }))} />
+            <Dropdown className="hx-field" value={city} onChange={this.set('city')} ariaLabel="Thành phố" placeholder="Địa điểm"
+              options={locations.map((l) => ({ value: l.city, label: l.city, icon: MapPin }))} />
             <button className="btn btn-lg">Tìm việc</button>
           </form>
           {busiest.length > 0 && (
             <p className="gn-chips">
               <span>Đang tuyển nhiều:</span>
-              {busiest.map((c) => <Link key={c._id} to={`/jobs?categoryId=${c._id}`} className="gn-chip">{c.name}</Link>)}
+              {busiest.map((c) => {
+                const Icon = categoryIcon(c.name);
+                return <Link key={c._id} to={`/jobs?categoryId=${c._id}`} className="gn-chip"><Icon size={15} aria-hidden="true" />{c.name}<span>{c.jobCount}</span></Link>;
+              })}
             </p>
           )}
         </section>
@@ -199,7 +159,19 @@ class HomePage extends Component {
                 ))}
               </dl>
             </div>
-            <ContactUnlock />
+            <table className="gn-compare">
+              <caption className="sr-only">So sánh tìm việc qua group mạng xã hội và qua JobSV</caption>
+              <thead><tr><th scope="col">Tình huống</th><th scope="col">Group mạng xã hội</th><th scope="col">JobSV</th></tr></thead>
+              <tbody>
+                {COMPARE.map(([when, group, jobsv]) => (
+                  <tr key={when}>
+                    <th scope="row">{when}</th>
+                    <td className="gn-compare-no" data-label="Group mạng xã hội"><X size={16} aria-hidden="true" />{group}</td>
+                    <td className="gn-compare-yes" data-label="JobSV"><Check size={16} aria-hidden="true" />{jobsv}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 

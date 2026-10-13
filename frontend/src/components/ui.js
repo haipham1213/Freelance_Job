@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { ArrowLeft, Building2, Inbox } from 'lucide-react';
+import { ArrowLeft, Building2, Check, ChevronDown, Inbox, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { APP_STATUS, JOB_STATUS, PAY_STATUS } from '../utils/format';
 
@@ -126,3 +126,104 @@ export class ReasonModal extends Component {
 }
 
 export const BackLink = ({ to, children = 'Quay lại' }) => <Link to={to} className="muted small ico-row" style={{ display: 'inline-flex' }}><ArrowLeft size={16} />{children}</Link>;
+
+// Bỏ dấu để lọc "phuc vu" khớp "Phục vụ"
+const fold = (s = '') => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
+let ddSeq = 0;
+
+// Dropdown thay <select> ở ô tìm kiếm/bộ lọc: danh sách mở được tùy biến (icon, số việc, dấu tích, ô lọc).
+// options: [{ value, label, icon?, count? }]; onChange nhận { target: { value } } như sự kiện của <select>.
+// Bàn phím: ↑↓ Home End để di chuyển, Enter chọn, Esc/Tab đóng; mở bằng Enter, Space hoặc ↓.
+export class Dropdown extends Component {
+  state = { open: false, active: 0, filter: '' };
+  root = React.createRef();
+  btn = React.createRef();
+  list = React.createRef();
+  input = React.createRef();
+  id = `dd-${++ddSeq}`;
+
+  componentDidMount() { document.addEventListener('mousedown', this.outside); }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.outside); }
+  componentDidUpdate() {
+    if (this.state.open) this.list.current?.querySelector('[data-active]')?.scrollIntoView({ block: 'nearest' });
+  }
+  outside = (e) => this.state.open && !this.root.current.contains(e.target) && this.close(false);
+
+  items = () => {
+    const all = [{ value: '', label: this.props.placeholder }, ...this.props.options];
+    const f = fold(this.state.filter.trim());
+    return f ? all.filter((o) => o.value !== '' && fold(o.label).includes(f)) : all;
+  };
+
+  open = () => {
+    const active = Math.max(0, this.items().findIndex((o) => String(o.value) === String(this.props.value ?? '')));
+    this.setState({ open: true, active, filter: '' }, () => (this.input.current || this.list.current)?.focus());
+  };
+
+  close = (refocus = true) => {
+    this.setState({ open: false, filter: '' });
+    if (refocus) this.btn.current?.focus();
+  };
+
+  select = (o) => {
+    this.props.onChange({ target: { value: o.value } });
+    this.close();
+  };
+
+  key = (e) => {
+    const n = this.items().length;
+    const move = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+    if (move) { e.preventDefault(); this.setState(({ active }) => ({ active: (active + move + n) % Math.max(n, 1) })); }
+    else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); this.setState({ active: e.key === 'Home' ? 0 : n - 1 }); }
+    else if (e.key === 'Enter') { e.preventDefault(); const o = this.items()[this.state.active]; if (o) this.select(o); }
+    else if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+    else if (e.key === 'Tab') this.close(false);
+  };
+
+  render() {
+    const { value, options, placeholder, ariaLabel, className = '', searchable } = this.props;
+    const { open, active, filter } = this.state;
+    const current = options.find((o) => String(o.value) === String(value ?? ''));
+    const items = open ? this.items() : [];
+    const activeId = items[active] ? `${this.id}-${active}` : undefined;
+    return (
+      <div className={`dd ${className} ${open ? 'open' : ''}`} ref={this.root}>
+        <button type="button" ref={this.btn} className="dd-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel}
+          onClick={() => (open ? this.close() : this.open())}
+          onKeyDown={(e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); this.open(); } }}>
+          <span className="dd-value">{current ? current.label : placeholder}</span>
+          <ChevronDown size={16} className="dd-chevron" aria-hidden="true" />
+        </button>
+        {open && (
+          <div className="dd-pop" onKeyDown={this.key}>
+            {searchable && (
+              <label className="dd-filter">
+                <Search size={15} aria-hidden="true" />
+                <input ref={this.input} value={filter} placeholder="Gõ để lọc" aria-label={`Lọc ${ariaLabel.toLowerCase()}`}
+                  aria-controls={this.id} aria-activedescendant={activeId}
+                  onChange={(e) => this.setState({ filter: e.target.value, active: 0 })} />
+              </label>
+            )}
+            <ul id={this.id} ref={this.list} role="listbox" tabIndex={-1} aria-label={ariaLabel} aria-activedescendant={activeId}>
+              {items.map((o, i) => {
+                const Icon = o.icon;
+                const selected = String(o.value) === String(value ?? '');
+                return (
+                  <li key={o.value === '' ? '_all' : o.value} id={`${this.id}-${i}`} role="option" aria-selected={selected}
+                    className={`${i === active ? 'active' : ''} ${selected ? 'selected' : ''}`} data-active={i === active || undefined}
+                    onMouseEnter={() => this.setState({ active: i })} onMouseDown={(e) => e.preventDefault()} onClick={() => this.select(o)}>
+                    {Icon && <Icon size={16} className="dd-icon" aria-hidden="true" />}
+                    <span className="dd-label">{o.label}</span>
+                    {o.count > 0 && <span className="dd-count">{o.count}</span>}
+                    {selected && <Check size={16} className="dd-check" aria-hidden="true" />}
+                  </li>
+                );
+              })}
+              {!items.length && <li className="dd-empty" role="presentation">Không có mục nào khớp "{filter}"</li>}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+}
