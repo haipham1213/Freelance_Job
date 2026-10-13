@@ -163,7 +163,7 @@ class JobDetailPage extends Component {
                 <CompanyLogo src={employer.company?.logoUrl} name={employer.company?.name} />
                 <div style={{ minWidth: 0 }}>
                   <Link to={`/employers/${employer._id}`} className="h-sm">{employer.company?.name || employer.fullName}</Link>
-                  {employer.isPremium && <div className="accent tiny">★ Nhà tuyển dụng Premium</div>}
+                  {employer.isPremium && <div className="fog tiny">★ Nhà tuyển dụng Premium</div>}
                 </div>
               </div>
               <Stars value={employer.ratingAvg} count={employer.ratingCount} />

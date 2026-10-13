@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { ArrowRight, Bell as BellIcon, Menu } from 'lucide-react';
+import { ArrowRight, Bell as BellIcon, ChevronRight, Menu } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { api } from '../api';
@@ -120,7 +120,7 @@ class Navbar extends Component {
     const links = LINKS[user?.role || 'GUEST'] || LINKS.GUEST;
     return (
       <>
-      {!user && (
+      {!user && this.props.location.pathname !== '/' && (
         <div className="promo-bar">
           <Link to="/jobs" className="ico-row" style={{ justifyContent: 'center' }}>Mới: Việc làm thêm dịp Tết, lương cao gấp đôi <ArrowRight size={16} /></Link>
         </div>
@@ -141,7 +141,8 @@ class Navbar extends Component {
             ) : (
               <>
                 <Link to="/login" className="nav-link">Đăng nhập</Link>
-                <Link to="/register" className="btn btn-primary">Đăng ký miễn phí</Link>
+                <Link to="/register" className="btn btn-primary">Đăng ký miễn phí <ChevronRight size={16} aria-hidden="true" /></Link>
+                <Link to="/register?role=EMPLOYER" className="btn btn-box">Nhà tuyển dụng</Link>
               </>
             )}
             <button className="btn btn-sm btn-ghost nav-burger" onClick={() => this.setState({ open: !this.state.open })} aria-label="Mở menu"><Menu size={18} /></button>

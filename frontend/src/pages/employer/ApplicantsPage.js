@@ -28,15 +28,15 @@ class ApplicantsPage extends Component {
       <div className="container page">
         <BackLink to="/employer/jobs">Tin tuyển dụng</BackLink>
         {job && (
-          <section className="card emp-head" style={{ marginTop: 12 }}>
+          <header className="emp-head" style={{ marginTop: 16, marginBottom: 16 }}>
             <div className="stack">
-              <div className="row"><JobBadge status={job.status} /><span>Đã nhận {job.acceptedCount}/{job.slots} người</span></div>
-              <h1 className="h-lg">{job.title}</h1>
+              <div className="row"><JobBadge status={job.status} /><span className="muted small">Đã nhận {job.acceptedCount}/{job.slots} người</span></div>
+              <h1 className="display">{job.title}</h1>
             </div>
             <Link to={`/jobs/${job._id}`} className="btn btn-ghost">Xem tin</Link>
-          </section>
+          </header>
         )}
-        <div style={{ margin: '20px 0 16px' }}><Tabs items={TABS} value={status} onChange={(s) => this.setState({ status: s, items: null }, () => this.load(1))} /></div>
+        <div style={{ margin: '0 0 20px' }}><Tabs items={TABS} value={status} onChange={(s) => this.setState({ status: s, items: null }, () => this.load(1))} /></div>
         {!items ? <Spinner /> : !items.length ? <div className="card"><Empty title="Chưa có ứng viên" /></div> : (
           <div className="grid-2">
             {items.map((a) => {

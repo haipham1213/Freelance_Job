@@ -57,14 +57,14 @@ export default class CompanyPage extends Component {
     );
     return (
       <div className="container page">
-        <header className="card emp-head">
+        <header className="emp-head">
           <div>
             <h1 className="display">Hồ sơ công ty</h1>
             <p className="muted">Thông tin rõ ràng giúp sinh viên tin tưởng và ứng tuyển nhiều hơn.</p>
           </div>
           <Link to={`/employers/${this.context.user._id}`} className="btn btn-ghost">Xem trang công khai</Link>
         </header>
-        <div className="layout-main" style={{ marginTop: 20 }}>
+        <div className="layout-main">
           <form className="card stack-lg" onSubmit={this.save}>
             <div className="grid-2">
               {input('name', 'Tên công ty / cửa hàng *', { required: true, minLength: 2, maxLength: 150 })}

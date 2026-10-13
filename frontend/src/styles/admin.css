@@ -1,4 +1,4 @@
-/* Admin console: dày thông tin hơn trang công khai, card trắng viền mảnh, một màu nhấn xanh */
+/* Admin console (DESIGN Goodnotes): dày thông tin, viền mảnh thay bóng, đơn sắc; cyan chỉ cho nút chính */
 .adm-logo { padding: 0 8px 18px; font-size: 22px; }
 .adm-logo .chip { margin-left: 2px; }
 .adm-ico { flex-shrink: 0; }
@@ -6,31 +6,31 @@
 .adm-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .admin-main { background: var(--page-bg); }
-.admin-main .adm-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
-.adm-title { font-size: 22px; line-height: 1.3; }
-.adm-sub { margin: 2px 0 0; font-size: 14px; }
+.admin-main .adm-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.adm-title { font-size: clamp(26px, 3vw, 32px); line-height: 1.15; letter-spacing: -0.035em; }
+.adm-sub { margin: 6px 0 0; font-size: 15px; color: var(--muted); }
 
-.adm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.adm-stat { display: flex; gap: 14px; align-items: flex-start; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 16px; color: var(--ink); transition: box-shadow .15s; }
-.adm-stat-link:hover { box-shadow: inset 0 0 0 1px var(--brand), var(--shadow-sm); }
-.adm-stat-ico { width: 40px; height: 40px; border-radius: var(--radius-ctl); background: var(--brand-wash); color: var(--brand-dark); display: grid; place-items: center; flex-shrink: 0; }
-.adm-stat-label { font-size: 13px; color: var(--body); font-weight: 500; }
-.adm-stat-num { font-size: 24px; font-weight: 700; color: var(--brand-dark); line-height: 1.25; }
+.adm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.adm-stat { display: flex; gap: 14px; align-items: flex-start; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 20px; color: var(--ink); }
+.adm-stat-link:hover { box-shadow: inset 0 0 0 1px var(--ink); }
+.adm-stat-ico { width: 40px; height: 40px; border-radius: var(--radius-ctl); background: var(--warm); color: var(--ink); display: grid; place-items: center; flex-shrink: 0; }
+.adm-stat-label { font-size: 14px; color: var(--body); font-weight: 500; }
+.adm-stat-num { font-size: 32px; font-weight: 700; letter-spacing: -0.035em; color: var(--ink); line-height: 1.15; margin: 2px 0; }
 
-.adm-chart { padding: 20px; }
+.adm-chart { padding: 24px; }
 .adm-chart .bar-chart { height: 200px; margin-top: 12px; }
 .adm-chart .bar-chart > div { min-width: 0; }
 .adm-chart .bar-chart .fog { white-space: nowrap; }
 .adm-chart .bar { max-width: 32px; }
-.adm-chart .bar-chart > div:hover .bar { background: var(--brand-dark); }
+.adm-chart .bar-chart > div:hover .bar { background: var(--steel); }
 
-/* Thanh công cụ: tìm kiếm + select + tab, nằm trên bảng */
-.adm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 10px; margin-bottom: 12px; }
+/* Thanh công cụ: tìm kiếm + select + tab, nằm thẳng trên bảng, không khung */
+.adm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .adm-toolbar-end { margin-left: auto; gap: 12px; }
 .adm-search { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 360px; height: 38px; padding: 0 12px; border-radius: var(--radius-ctl); box-shadow: inset 0 0 0 1px var(--stone-border); color: var(--muted); }
-.adm-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--brand); }
+.adm-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 3px var(--aqua-mist); }
 .adm-search input { border: 0; outline: none; background: transparent; width: 100%; color: var(--ink); font-size: 14px; }
-.adm-search input::placeholder { color: #7d878e; }
+.adm-search input::placeholder { color: #888889; }
 .adm-month { width: auto; padding: 7px 12px; font-size: 14px; }
 
 .adm-table-card { padding: 0; overflow: hidden; }
@@ -40,7 +40,11 @@
 .adm-add .input { box-shadow: none; }
 .adm-cat-img { width: 40px; height: 40px; border-radius: var(--radius-ctl); object-fit: cover; }
 .adm-plan { gap: 0; }
-.adm-plan-on { box-shadow: inset 0 0 0 1px var(--brand); }
+.adm-plan-on { box-shadow: inset 0 0 0 1px var(--stone-border); }
+/* Thao tác nguy hiểm trong bảng: nút viền đỏ nhạt, chữ đỏ */
+.btn-ghost.adm-danger { color: var(--alert); box-shadow: inset 0 0 0 1px #eba7a3; }
+.btn-ghost.adm-danger:hover { background: var(--alert-wash); }
+.adm-warn { color: var(--alert); }
 
 @media (max-width: 860px) {
   .adm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -53,7 +57,8 @@
 }
 @media (max-width: 640px) {
   .adm-table-card .table td { white-space: nowrap; }
-  .adm-stats { grid-template-columns: minmax(0, 1fr); }
+  .adm-stats { gap: 12px; }
+  .adm-stat { flex-direction: column; gap: 8px; padding: 16px; }
   .adm-toolbar .tabs { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
   .adm-toolbar .tab { flex-shrink: 0; white-space: nowrap; }
   .adm-add { flex-direction: row; }

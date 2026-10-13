@@ -66,14 +66,21 @@ export default class ProfilePage extends Component {
     if (!form) return <Spinner />;
     const user = this.context.user;
     return (
-      <div className="container page stu-profile">
+      <div className="container page">
+        <header className="stu-head">
+          <div className="stu-head-text">
+            <h1 className="display">Hồ sơ & CV</h1>
+            <p className="muted">Nhà tuyển dụng xem hồ sơ này khi bạn ứng tuyển.</p>
+          </div>
+        </header>
+        <div className="stu-profile">
         <aside className="stack">
           <section className="card stu-me">
             <Avatar src={user.avatarUrl} name={user.fullName} size="lg" />
-            <h1 className="h-lg">{form.fullName || user.fullName}</h1>
+            <h2 className="h-lg">{form.fullName || user.fullName}</h2>
             <p className="muted small stu-ellipsis">{user.email}</p>
             <div className="stu-me-progress">
-              <div className="row-between small"><span>Hồ sơ hoàn thiện</span><strong className="accent">{completion}%</strong></div>
+              <div className="row-between small"><span>Hồ sơ hoàn thiện</span><strong>{completion}%</strong></div>
               <div className="progress"><div style={{ width: `${completion}%` }} /></div>
             </div>
           </section>
@@ -82,14 +89,25 @@ export default class ProfilePage extends Component {
             <p className="muted small">PDF, tối đa 5 MB. Dùng lại cho mọi đơn ứng tuyển.</p>
             {cv?.url ? (
               <div className="stu-cv-file">
-                <a href={cv.url} target="_blank" rel="noreferrer" className="ico-row accent"><FileText size={18} />{cv.fileName}</a>
-                <div className="fog tiny">Cập nhật {date(cv.uploadedAt)}</div>
+                <FileText size={20} aria-hidden="true" />
+                <div>
+                  <a href={cv.url} target="_blank" rel="noreferrer" title={cv.fileName}>{cv.fileName}</a>
+                  <div className="fog tiny">Cập nhật {date(cv.uploadedAt)}</div>
+                </div>
+                <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                  Thay CV
+                  <input type="file" accept="application/pdf" hidden onChange={this.uploadCv} />
+                </label>
               </div>
-            ) : <Alert type="warn">Bạn cần CV để ứng tuyển.</Alert>}
-            <label className="btn btn-block" style={{ cursor: 'pointer' }}>
-              <Upload size={16} /> {cv?.url ? 'Thay CV' : 'Tải CV lên'}
-              <input type="file" accept="application/pdf" hidden onChange={this.uploadCv} />
-            </label>
+            ) : (
+              <>
+                <Alert type="warn">Bạn cần CV để ứng tuyển.</Alert>
+                <label className="btn btn-block" style={{ cursor: 'pointer' }}>
+                  <Upload size={16} /> Tải CV lên
+                  <input type="file" accept="application/pdf" hidden onChange={this.uploadCv} />
+                </label>
+              </>
+            )}
             {this.state.cvMsg && <div className="small">{this.state.cvMsg}</div>}
           </section>
         </aside>
@@ -127,6 +145,7 @@ export default class ProfilePage extends Component {
             <Alert type="ok">{this.state.msg}</Alert>
             <button className="btn btn-lg" disabled={this.state.busy} style={{ alignSelf: 'flex-start' }}>Lưu hồ sơ</button>
         </form>
+        </div>
       </div>
     );
   }

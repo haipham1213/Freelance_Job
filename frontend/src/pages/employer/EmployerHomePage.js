@@ -3,10 +3,9 @@ import { Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { Spinner, Empty, Avatar } from '../../components/ui';
-import { Mascot } from '../../components/Illustrations';
 import { date, timeAgo } from '../../utils/format';
 
-// SCR-E01: bảng điều khiển nhà tuyển dụng kiểu TopCV (thẻ chào, hàng số liệu, gói, đơn chờ duyệt)
+// SCR-E01: bảng điều khiển nhà tuyển dụng (lời chào làm tiêu đề trang, hàng số liệu, gói, đơn chờ duyệt)
 export default class EmployerHomePage extends Component {
   state = { data: null };
   async componentDidMount() { this.setState({ data: (await api.get('/employers/me/stats')).data }); }
@@ -25,7 +24,7 @@ export default class EmployerHomePage extends Component {
     ];
     return (
       <div className="container page stack-lg">
-        <section className="card emp-hero">
+        <header className="emp-head" style={{ marginBottom: 0 }}>
           <div>
             <h1 className="display">{hello}, {user.fullName.trim().split(' ').pop()}</h1>
             <p className="muted">{company?.name ? `Quản lý tuyển dụng của ${company.name}` : 'Hoàn thiện hồ sơ công ty để bắt đầu tuyển người.'}</p>
@@ -34,7 +33,7 @@ export default class EmployerHomePage extends Component {
             <Link to="/employer/jobs" className="btn btn-ghost">Tin tuyển dụng</Link>
             <Link to="/employer/jobs/new" className="btn"><Plus size={18} />Đăng tin mới</Link>
           </div>
-        </section>
+        </header>
 
         {!hasCompany && (
           <section className="emp-note">
@@ -75,8 +74,7 @@ export default class EmployerHomePage extends Component {
           </section>
 
           <aside className="emp-upsell">
-            <Mascot kind={isPremium ? 'flower' : 'cloud'} size={64} />
-            <span className={`chip ${isPremium ? 'chip-featured' : 'chip-green'}`}>{isPremium ? '★ Premium' : 'Gói miễn phí'}</span>
+            <span className={`chip ${isPremium ? 'chip-featured' : ''}`}>{isPremium ? '★ Premium' : 'Gói miễn phí'}</span>
             <h2 className="h-md">{isPremium ? 'Bạn đang dùng Premium' : 'Tuyển nhanh hơn với Premium'}</h2>
             <p className="muted small">
               {isPremium ? `Hiệu lực đến ${date(premiumUntil)}. Tin của bạn được ghim Nổi bật và hiển thị 30 ngày.` : 'Tối đa 3 tin đang mở, mỗi tin hiển thị 14 ngày. Premium: 20 tin, 30 ngày, ghim Nổi bật.'}

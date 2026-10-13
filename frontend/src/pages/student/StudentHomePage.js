@@ -3,7 +3,7 @@ import { ArrowRight, Bookmark, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
-import { Spinner, AppBadge, Empty, Avatar } from '../../components/ui';
+import { Spinner, AppBadge, Empty } from '../../components/ui';
 import JobTile from '../../components/JobTile';
 import { timeAgo } from '../../utils/format';
 
@@ -12,7 +12,7 @@ const greeting = () => {
   return h < 11 ? 'Chào buổi sáng' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
 };
 
-// SCR-S01: bảng điều khiển ứng viên kiểu TopCV (thẻ chào, số liệu, việc phù hợp, đơn gần đây)
+// SCR-S01: bảng điều khiển ứng viên (lời chào, số liệu, việc phù hợp, đơn gần đây)
 export default class StudentHomePage extends Component {
   static contextType = AuthContext;
   state = { profile: null, apps: null, jobs: null, counts: {} };
@@ -31,9 +31,8 @@ export default class StudentHomePage extends Component {
     const stats = [['Đang chờ', counts.PENDING], ['Được nhận', counts.ACCEPTED], ['Hoàn thành', counts.COMPLETED], ['Điểm uy tín', u.ratingCount ? `${u.ratingAvg}★` : '-']];
     return (
       <div className="container page">
-        <section className="card stu-greet">
-          <Avatar src={u.avatarUrl} name={u.fullName} size="lg" />
-          <div className="stu-greet-text">
+        <header className="stu-head">
+          <div className="stu-head-text">
             <h1 className="display">{greeting()}, {u.fullName.trim().split(' ').pop()}</h1>
             <p className="muted">Hôm nay bạn muốn tìm ca làm nào?</p>
           </div>
@@ -41,22 +40,22 @@ export default class StudentHomePage extends Component {
             <Link to="/jobs" className="btn"><Search size={16} /> Tìm việc</Link>
             <Link to="/student/saved-jobs" className="btn btn-ghost"><Bookmark size={16} /> Việc đã lưu</Link>
           </div>
-        </section>
+        </header>
 
         <section className="stu-stats">
           {stats.map(([k, v], i) => (
-            <Link key={k} to={i < 3 ? '/student/applications' : '/student/profile'} className="card stu-stat">
+            <Link key={k} to={i < 3 ? '/student/applications' : '/student/profile'} className="stu-stat">
               <strong>{v ?? 0}</strong>
               <span className="muted small">{k}</span>
             </Link>
           ))}
         </section>
 
-        <div className="layout-main" style={{ marginTop: 16 }}>
-          <section className="card">
+        <div className="layout-main section">
+          <section>
             <div className="row-between">
               <h2 className="h-lg">Việc làm phù hợp</h2>
-              <Link to="/jobs" className="accent ico-row small">Xem tất cả <ArrowRight size={16} /></Link>
+              <Link to="/jobs" className="accent ico-row small">Xem tất cả <ArrowRight size={16} aria-hidden="true" /></Link>
             </div>
             {!jobs ? <Spinner /> : <div className="stu-jobs">{jobs.map((j) => <JobTile key={j._id} job={j} badge />)}</div>}
           </section>

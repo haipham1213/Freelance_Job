@@ -73,6 +73,10 @@ test('luồng chính và các business rule quan trọng', async () => {
   await api('POST', '/jobs', jobBody, 'emp');
   assert.equal((await api('POST', '/jobs', jobBody, 'emp')).body.error.code, 'QUOTA_EXCEEDED');
 
+  // Khoảng lương phổ biến theo ngành (3 tin cùng 25k–30k/giờ)
+  const catRow = (await api('GET', '/categories')).body.data.find((c) => c.slug === 'phuc-vu');
+  assert.deepEqual([catRow.jobCount, catRow.pay], [3, { salaryType: 'HOURLY', salaryMin: 25000, salaryMax: 30000 }]);
+
   // Tìm kiếm không dấu
   const found = await api('GET', '/jobs?q=phuc vu');
   assert.equal(found.body.meta.total, 3);

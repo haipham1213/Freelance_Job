@@ -5,12 +5,11 @@ import { api, fieldErrors } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Field, Alert, Spinner } from '../../components/ui';
 import { homeOf } from '../../utils/format';
-import { Mascot } from '../../components/Illustrations';
 import withRouter from '../../utils/withRouter';
 
-// Bố cục chia đôi kiểu job board: card form + bảng thương hiệu xanh nhạt với lợi ích và một mascot nhỏ
+// Bố cục chia đôi: card form + panel nền ngà liệt kê lợi ích
 const PERKS = ['Lương và ca làm công khai trước khi nộp', 'Một CV dùng cho mọi đơn ứng tuyển', 'Đánh giá hai chiều sau mỗi công việc'];
-const Shell = ({ title, subtitle, emoji, children }) => (
+const Shell = ({ title, subtitle, children }) => (
   <div className="container page">
     <div className="card pub-auth">
       <div className="pub-auth-form">
@@ -19,7 +18,6 @@ const Shell = ({ title, subtitle, emoji, children }) => (
         <div className="stack" style={{ marginTop: 24 }}>{children}</div>
       </div>
       <div className="pub-auth-art" aria-hidden="true">
-        <Mascot kind={emoji} size={96} />
         <strong className="h-md">Việc part-time an toàn cho sinh viên</strong>
         <ul>{PERKS.map((p) => <li key={p} className="ico-row"><Check size={18} />{p}</li>)}</ul>
       </div>
@@ -58,7 +56,7 @@ class Login extends FormPage {
     if (!this.context.ready) return <Spinner />;
     if (this.context.user && !this.state.busy) return <Navigate to={homeOf(this.context.user.role)} replace />;
     return (
-      <Shell title="Chào mừng trở lại" emoji="blob">
+      <Shell title="Chào mừng trở lại">
         <form className="stack" onSubmit={this.submit}>
           {this.input('email', 'Email', { type: 'email', required: true, autoComplete: 'email', autoFocus: true })}
           {this.input('password', 'Mật khẩu', { type: 'password', required: true, autoComplete: 'current-password' })}
@@ -88,14 +86,14 @@ class Register extends FormPage {
   render() {
     if (this.state.done)
       return (
-        <Shell title="Kiểm tra email của bạn" emoji="cloud">
+        <Shell title="Kiểm tra email của bạn">
           <p className="muted">Chúng tôi đã gửi link xác thực tới <strong>{this.state.done}</strong>. Link có hiệu lực trong 24 giờ.</p>
           <Link to="/login" className="btn btn-block">Đến trang đăng nhập</Link>
         </Shell>
       );
     const { role } = this.state.form;
     return (
-      <Shell title="Tạo tài khoản" subtitle="Miễn phí cho sinh viên và nhà tuyển dụng" emoji="flower">
+      <Shell title="Tạo tài khoản" subtitle="Miễn phí cho sinh viên và nhà tuyển dụng">
         <form className="stack" onSubmit={this.submit}>
           <div className="grid-2" role="radiogroup" aria-label="Vai trò">
             {[['STUDENT', GraduationCap, 'Sinh viên', 'Tìm việc làm thêm'], ['EMPLOYER', Store, 'Nhà tuyển dụng', 'Đăng tin tuyển người']].map(([v, Ico, t, d]) => (
@@ -142,13 +140,13 @@ class VerifyEmail extends Component {
     if (status === 'loading') return <Spinner />;
     if (status === 'ok')
       return (
-        <Shell title="Xác thực thành công" emoji="blob">
+        <Shell title="Xác thực thành công">
           <p className="muted center">{message}. Bạn đã có thể dùng đầy đủ chức năng.</p>
           <Link to={this.context.user ? homeOf(this.context.user.role) : '/login'} className="btn btn-block">Tiếp tục</Link>
         </Shell>
       );
     return (
-      <Shell title="Link không hợp lệ" emoji="triangle">
+      <Shell title="Link không hợp lệ">
         <Alert>{message}</Alert>
         {this.state.resent ? <Alert type="ok">Nếu email chưa được xác thực, chúng tôi đã gửi link mới.</Alert> : (
           <form className="stack" onSubmit={this.resend}>
@@ -170,7 +168,7 @@ class Forgot extends FormPage {
   });
   render() {
     return (
-      <Shell title="Quên mật khẩu" subtitle="Nhập email, chúng tôi sẽ gửi link đặt lại (hiệu lực 30 phút)" emoji="triangle">
+      <Shell title="Quên mật khẩu" subtitle="Nhập email, chúng tôi sẽ gửi link đặt lại (hiệu lực 30 phút)">
         {this.state.done ? <Alert type="ok">{this.state.done}</Alert> : (
           <form className="stack" onSubmit={this.submit}>
             {this.input('email', 'Email', { type: 'email', required: true, autoFocus: true })}
@@ -194,7 +192,7 @@ class Reset extends FormPage {
   });
   render() {
     return (
-      <Shell title="Đặt mật khẩu mới" emoji="cloud">
+      <Shell title="Đặt mật khẩu mới">
         {this.state.done ? (
           <><Alert type="ok">{this.state.done}</Alert><Link to="/login" className="btn btn-block">Đăng nhập</Link></>
         ) : (
@@ -221,7 +219,7 @@ class ChangePassword extends FormPage {
   });
   render() {
     return (
-      <Shell title="Đổi mật khẩu" emoji="flower">
+      <Shell title="Đổi mật khẩu">
         <form className="stack" onSubmit={this.submit}>
           {this.input('currentPassword', 'Mật khẩu hiện tại', { type: 'password', required: true, autoComplete: 'current-password' })}
           {this.input('newPassword', 'Mật khẩu mới', { type: 'password', required: true, minLength: 8, autoComplete: 'new-password' })}

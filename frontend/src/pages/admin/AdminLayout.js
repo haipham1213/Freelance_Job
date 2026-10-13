@@ -18,7 +18,7 @@ class AdminLayout extends Component {
     return (
       <div className="admin-shell">
         <aside className="sidebar">
-          <Link to="/" className="logo adm-logo"><span className="logo-mark" />jobsv <span className="chip chip-green tiny">Admin</span></Link>
+          <Link to="/" className="logo adm-logo"><span className="logo-mark" />jobsv <span className="chip tiny">Admin</span></Link>
           {MENU.map(([to, Icon, label]) => (
             <NavLink key={to} to={to} end className="side-link"><Icon size={18} className="adm-ico" aria-hidden="true" />{label}</NavLink>
           ))}
@@ -30,7 +30,7 @@ class AdminLayout extends Component {
                 <div className="fog tiny adm-ellipsis">{this.context.user.email}</div>
               </div>
             </div>
-            <button className="btn btn-sm btn-ghost btn-block" style={{ color: 'var(--alert)' }} onClick={this.logout}>Đăng xuất</button>
+            <button className="btn btn-sm btn-ghost btn-block adm-danger" onClick={this.logout}>Đăng xuất</button>
           </div>
         </aside>
         <main className="admin-main"><Outlet /></main>

@@ -31,7 +31,7 @@ class NotificationsPage extends Component {
         <div style={{ margin: '16px 0' }}>
           <Tabs items={[['', 'Tất cả'], ['false', 'Chưa đọc']]} value={filter} onChange={(f) => this.setState({ filter: f, items: null }, () => this.load(1))} />
         </div>
-        {!items ? <Spinner /> : !items.length ? <div className="card"><Empty mascot="blob" title="Không có thông báo" /></div> : (
+        {!items ? <Spinner /> : !items.length ? <div className="card"><Empty title="Không có thông báo" /></div> : (
           <div className="stack">
             {items.map((n) => (
               <button key={n._id} className={`pub-notif ${n.isRead ? '' : 'unread'}`} onClick={() => this.open(n)}>

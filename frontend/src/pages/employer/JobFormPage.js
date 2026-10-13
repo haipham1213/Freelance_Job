@@ -51,60 +51,62 @@ class JobFormPage extends Component {
       <Field label={label} error={errors[k]}><input className="input" value={form[k]} onChange={this.set(k)} {...props} /></Field>
     );
     return (
-      <div className="container page" style={{ maxWidth: 880 }}>
+      <div className="container page" style={{ maxWidth: 1000 }}>
         <BackLink to="/employer/jobs">Tin tuyển dụng</BackLink>
-        <header className="card emp-head" style={{ marginTop: 12 }}>
+        <header className="emp-head" style={{ marginTop: 16 }}>
           <div>
             <h1 className="display">{this.isEdit() ? 'Sửa tin tuyển dụng' : 'Đăng tin tuyển dụng'}</h1>
             <p className="muted">Mô tả rõ ràng, lương minh bạch giúp tin của bạn nhận nhiều ứng viên hơn.</p>
           </div>
         </header>
-        {locked && <div style={{ marginTop: 16 }}><Alert type="warn">Tin đã nhận người: không sửa được lương, địa điểm, ngày bắt đầu; số chỗ không được nhỏ hơn số người đã nhận.</Alert></div>}
-        <form className="stack" style={{ marginTop: 16 }} onSubmit={this.submit}>
-          <section className="card stack-lg">
-          <h2 className="emp-step"><span>1</span>Thông tin chung</h2>
-          {input('title', `Tiêu đề * (${form.title.length}/120)`, { required: true, minLength: 10, maxLength: 120, placeholder: 'VD: Nhân viên phục vụ ca tối, Quận 1' })}
-          <div className="grid-2">
-            <Field label="Danh mục *" error={errors.categoryId}>
-              <select className="select" required value={form.categoryId} onChange={this.set('categoryId')}>
-                <option value="">Chọn danh mục</option>
-                {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-              </select>
-            </Field>
-            {input('slots', 'Số người cần tuyển * (1 - 50)', { type: 'number', required: true, min: 1, max: 50 })}
-          </div>
-          <Field label={`Mô tả công việc * (tối thiểu 50 ký tự · ${form.description.length}/5000)`} error={errors.description}>
-            <textarea className="textarea" required minLength={50} maxLength={5000} value={form.description} onChange={this.set('description')} style={{ minHeight: 180 }} />
-          </Field>
-          <Field label="Yêu cầu" error={errors.requirements}>
-            <textarea className="textarea" maxLength={2000} value={form.requirements} onChange={this.set('requirements')} />
-          </Field>
+        {locked && <div style={{ marginBottom: 16 }}><Alert type="warn">Tin đã nhận người: không sửa được lương, địa điểm, ngày bắt đầu; số chỗ không được nhỏ hơn số người đã nhận.</Alert></div>}
+        <form onSubmit={this.submit}>
+          <section className="emp-form-sec">
+            <div><h2>Thông tin chung</h2><p className="muted small">Tiêu đề, danh mục và mô tả công việc.</p></div>
+            <div className="stack-lg">
+              {input('title', `Tiêu đề * (${form.title.length}/120)`, { required: true, minLength: 10, maxLength: 120, placeholder: 'VD: Nhân viên phục vụ ca tối, Quận 1' })}
+              <div className="grid-2">
+                <Field label="Danh mục *" error={errors.categoryId}>
+                  <select className="select" required value={form.categoryId} onChange={this.set('categoryId')}>
+                    <option value="">Chọn danh mục</option>
+                    {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </select>
+                </Field>
+                {input('slots', 'Số người cần tuyển * (1 - 50)', { type: 'number', required: true, min: 1, max: 50 })}
+              </div>
+              <Field label={`Mô tả công việc * (tối thiểu 50 ký tự · ${form.description.length}/5000)`} error={errors.description}>
+                <textarea className="textarea" required minLength={50} maxLength={5000} value={form.description} onChange={this.set('description')} style={{ minHeight: 180 }} />
+              </Field>
+              <Field label="Yêu cầu" error={errors.requirements}>
+                <textarea className="textarea" maxLength={2000} value={form.requirements} onChange={this.set('requirements')} />
+              </Field>
+            </div>
           </section>
-          <section className="card stack-lg">
-          <h2 className="emp-step"><span>2</span>Lương & thời gian</h2>
-          <div className="grid-3">
-            <Field label="Hình thức trả *" error={errors.salaryType}>
-              <select className="select" value={form.salaryType} onChange={this.set('salaryType')} disabled={locked}>
-                <option value="HOURLY">Theo giờ</option><option value="DAILY">Theo ngày</option><option value="PROJECT">Theo dự án</option>
-              </select>
-            </Field>
-            {input('salaryMin', 'Lương từ (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
-            {input('salaryMax', 'Lương đến (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
-            {input('startDate', 'Ngày bắt đầu *', { type: 'date', required: true, disabled: locked, min: this.isEdit() ? undefined : toInputDate(new Date()) })}
-            {input('endDate', 'Ngày kết thúc', { type: 'date', min: form.startDate })}
-            {input('schedule', 'Ca làm', { maxLength: 200, placeholder: '18h-22h, T2-T6' })}
-          </div>
+          <section className="emp-form-sec">
+            <div><h2>Lương & thời gian</h2><p className="muted small">Mức lương hiển thị công khai trên tin.</p></div>
+            <div className="grid-3">
+              <Field label="Hình thức trả *" error={errors.salaryType}>
+                <select className="select" value={form.salaryType} onChange={this.set('salaryType')} disabled={locked}>
+                  <option value="HOURLY">Theo giờ</option><option value="DAILY">Theo ngày</option><option value="PROJECT">Theo dự án</option>
+                </select>
+              </Field>
+              {input('salaryMin', 'Lương từ (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
+              {input('salaryMax', 'Lương đến (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
+              {input('startDate', 'Ngày bắt đầu *', { type: 'date', required: true, disabled: locked, min: this.isEdit() ? undefined : toInputDate(new Date()) })}
+              {input('endDate', 'Ngày kết thúc', { type: 'date', min: form.startDate })}
+              {input('schedule', 'Ca làm', { maxLength: 200, placeholder: '18h-22h, T2-T6' })}
+            </div>
           </section>
-          <section className="card stack-lg">
-          <h2 className="emp-step"><span>3</span>Địa điểm</h2>
-          <div className="grid-3">
-            {input('city', 'Thành phố *', { required: true, disabled: locked, placeholder: 'TP.HCM' })}
-            {input('district', 'Quận / huyện', { disabled: locked })}
-            {input('address', 'Địa chỉ', { disabled: locked, maxLength: 200 })}
-          </div>
+          <section className="emp-form-sec">
+            <div><h2>Địa điểm</h2><p className="muted small">Nơi sinh viên đến làm việc.</p></div>
+            <div className="grid-3">
+              {input('city', 'Thành phố *', { required: true, disabled: locked, placeholder: 'TP.HCM' })}
+              {input('district', 'Quận / huyện', { disabled: locked })}
+              {input('address', 'Địa chỉ', { disabled: locked, maxLength: 200 })}
+            </div>
           </section>
           <Alert>{!this.state.quota && this.state.error}</Alert>
-          <div className="row" style={{ marginTop: 8 }}>
+          <div className="row" style={{ marginTop: 16, paddingTop: 24, boxShadow: 'inset 0 1px 0 var(--line)' }}>
             <button className="btn" disabled={this.state.busy}>{this.isEdit() ? 'Lưu thay đổi' : 'Đăng tin'}</button>
             <Link to="/employer/jobs" className="btn btn-ghost">Hủy</Link>
           </div>

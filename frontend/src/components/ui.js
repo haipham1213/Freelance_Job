@@ -1,14 +1,13 @@
 import React, { Component } from 'react';
-import { ArrowLeft, Building2 } from 'lucide-react';
+import { ArrowLeft, Building2, Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { APP_STATUS, JOB_STATUS, PAY_STATUS } from '../utils/format';
-import { Mascot } from './Illustrations';
 
 export const Spinner = () => <div className="spinner" role="status" aria-label="Đang tải" />;
 
-export const Empty = ({ mascot = 'cloud', title, children }) => (
+export const Empty = ({ icon: Icon = Inbox, title, children }) => (
   <div className="empty">
-    <div style={{ display: 'grid', placeItems: 'center', marginBottom: 8 }}><Mascot kind={mascot} size={80} /></div>
+    <div className="empty-icon"><Icon size={24} aria-hidden="true" /></div>
     <div className="h-sm">{title}</div>
     {children && <div className="muted small" style={{ marginTop: 8 }}>{children}</div>}
   </div>

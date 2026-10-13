@@ -43,7 +43,7 @@ class ListPage extends Component {
     return (
       <>
         <div className="stack" style={{ marginBottom: 16 }}><Alert type="ok">{msg}</Alert><Alert>{error}</Alert></div>
-        {!items ? <Spinner /> : !items.length ? <div className="card"><Empty title="Không có dữ liệu" mascot="blob" /></div> : <div className="card adm-table-card table-wrap">{this.table(items)}</div>}
+        {!items ? <Spinner /> : !items.length ? <div className="card"><Empty title="Không có dữ liệu" /></div> : <div className="card adm-table-card table-wrap">{this.table(items)}</div>}
         <Pagination meta={meta} onPage={this.load} />
       </>
     );
@@ -79,7 +79,7 @@ export class AdminDashboardPage extends Component {
         <div className="card stack adm-chart">
           <div className="row-between">
             <h2 className="h-md">Doanh thu Premium theo tháng</h2>
-            <span className="chip chip-green">{shortMoney(total)} / 12 tháng</span>
+            <span className="chip">{shortMoney(total)} / 12 tháng</span>
           </div>
           <div className="bar-chart" role="img" aria-label="Biểu đồ doanh thu theo tháng">
             {d.revenueByMonth.map((m) => (
@@ -122,7 +122,7 @@ export class UsersPage extends ListPage {
                   <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
                     {u.status === 'LOCKED'
                       ? <button className="btn btn-sm btn-ghost" onClick={() => this.act(() => api.patch(`/admin/users/${u._id}/unlock`), `Đã mở khóa ${u.email}`).catch(() => {})}>Mở khóa</button>
-                      : <button className="btn btn-sm btn-ghost" style={{ color: 'var(--alert)' }} onClick={() => this.setState({ modal: { type: 'lock', u } })}>Khóa</button>}
+                      : <button className="btn btn-sm btn-ghost adm-danger" onClick={() => this.setState({ modal: { type: 'lock', u } })}>Khóa</button>}
                     {u.role === 'EMPLOYER' && u.status === 'ACTIVE' && <button className="btn btn-sm btn-ghost" onClick={() => this.setState({ modal: { type: 'premium', u } })}>+ Premium</button>}
                   </div>
                 )}
@@ -199,7 +199,7 @@ export class AdminJobsPage extends ListPage {
         <tbody>
           {items.map((j) => (
             <tr key={j._id}>
-              <td><Link to={`/jobs/${j._id}`}>{j.title}</Link>{j.hiddenReason && <div className="tiny" style={{ color: 'var(--alert)' }}>Ẩn: {j.hiddenReason}</div>}</td>
+              <td><Link to={`/jobs/${j._id}`}>{j.title}</Link>{j.hiddenReason && <div className="tiny adm-warn">Ẩn: {j.hiddenReason}</div>}</td>
               <td>{j.companySnapshot?.name}</td>
               <td><JobBadge status={jobStatusOf(j)} /></td>
               <td>{j.applicationCount}</td>
@@ -207,7 +207,7 @@ export class AdminJobsPage extends ListPage {
               <td>
                 {j.status === 'HIDDEN'
                   ? <button className="btn btn-sm btn-ghost" onClick={() => this.act(() => api.patch(`/admin/jobs/${j._id}/unhide`), 'Đã hiện lại tin').catch(() => {})}>Hiện lại</button>
-                  : <button className="btn btn-sm btn-ghost" style={{ color: 'var(--alert)' }} onClick={() => this.setState({ modal: j })}>Ẩn</button>}
+                  : <button className="btn btn-sm btn-ghost adm-danger" onClick={() => this.setState({ modal: j })}>Ẩn</button>}
               </td>
             </tr>
           ))}
@@ -254,7 +254,7 @@ class ResolveModal extends Component {
       <Modal title="Kết luận báo cáo" onClose={this.props.onClose}>
         <form className="stack" onSubmit={this.submit}>
           {opts.map(([v, l, d]) => (
-            <label key={v} className="card-sm row" style={{ cursor: 'pointer', flexWrap: 'nowrap', boxShadow: this.state.decision === v ? 'inset 0 0 0 1.5px var(--brand)' : 'var(--hairline)' }}>
+            <label key={v} className="card-sm row" style={{ cursor: 'pointer', flexWrap: 'nowrap', boxShadow: this.state.decision === v ? 'inset 0 0 0 1.5px var(--ink)' : 'var(--hairline)' }}>
               <input type="radio" checked={this.state.decision === v} onChange={() => this.setState({ decision: v })} />
               <div><div>{l}</div><div className="fog tiny">{d}</div></div>
             </label>
@@ -288,7 +288,7 @@ export class ReportsPage extends ListPage {
               <td>{r.reporterId?.fullName}</td>
               <td>{dateTime(r.createdAt)}</td>
               <td><span className={`chip ${st[r.status][1]}`}>{st[r.status][0]}</span>{r.resolution?.level && <span className="chip chip-red tiny" style={{ marginLeft: 4 }}>{r.resolution.level}</span>}{r.resolution?.note && <div className="fog tiny">{r.resolution.note}</div>}</td>
-              <td>{r.status === 'OPEN' && <button className="btn btn-sm" onClick={() => this.setState({ modal: r })}>Xử lý</button>}</td>
+              <td>{r.status === 'OPEN' && <button className="btn btn-sm btn-ghost" onClick={() => this.setState({ modal: r })}>Xử lý</button>}</td>
             </tr>
           ))}
         </tbody>
@@ -320,12 +320,12 @@ export class ReviewsPage extends ListPage {
             <tr key={r._id} style={{ opacity: r.isHidden ? 0.55 : 1 }}>
               <td>{r.reviewerId?.fullName} <span className="fog tiny">({ROLE[r.reviewerRole]})</span> <ArrowRight size={14} style={{ verticalAlign: '-2px' }} aria-label="đánh giá" /> {r.revieweeId?.fullName}</td>
               <td><Stars value={r.rating} /></td>
-              <td style={{ maxWidth: 320 }}>{r.comment || <span className="fog">Không có nhận xét</span>}{r.isHidden && <div className="tiny" style={{ color: 'var(--alert)' }}>Đã ẩn: {r.hiddenReason}</div>}</td>
+              <td style={{ maxWidth: 320 }}>{r.comment || <span className="fog">Không có nhận xét</span>}{r.isHidden && <div className="tiny adm-warn">Đã ẩn: {r.hiddenReason}</div>}</td>
               <td>{date(r.createdAt)}</td>
               <td>
                 {r.isHidden
                   ? <button className="btn btn-sm btn-ghost" onClick={() => this.act(() => api.patch(`/admin/reviews/${r._id}/unhide`), 'Đã hiện lại đánh giá').catch(() => {})}>Hiện lại</button>
-                  : <button className="btn btn-sm btn-ghost" style={{ color: 'var(--alert)' }} onClick={() => this.setState({ modal: r })}>Ẩn</button>}
+                  : <button className="btn btn-sm btn-ghost adm-danger" onClick={() => this.setState({ modal: r })}>Ẩn</button>}
               </td>
             </tr>
           ))}

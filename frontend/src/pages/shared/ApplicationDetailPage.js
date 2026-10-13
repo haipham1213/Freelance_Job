@@ -110,19 +110,19 @@ class ApplicationDetailPage extends Component {
     return (
       <div className="container page">
         <BackLink to={isEmployer ? `/employer/jobs/${app.jobId}/applicants` : '/student/applications'}>{isEmployer ? 'Danh sách ứng viên' : 'Đơn của tôi'}</BackLink>
-        <section className="card stu-app-hero">
+        <header className="stu-app-hero">
           {isEmployer ? <Avatar src={student.avatarUrl} name={student.fullName} size="lg" /> : <CompanyLogo src={employer.company?.logoUrl} name={app.jobSnapshot.companyName} />}
           <div className="stu-hero-main">
             <div className="row" style={{ gap: 10 }}>
               <AppBadge status={app.status} />
               <span className="fog small">Nộp lúc {dateTime(app.createdAt)}</span>
             </div>
-            <Link to={`/jobs/${app.jobId}`} className="h-lg stu-detail-title">{app.jobSnapshot.title}</Link>
+            <h1 className="display"><Link to={`/jobs/${app.jobId}`} className="stu-detail-title">{app.jobSnapshot.title}</Link></h1>
             <p className="muted">{app.jobSnapshot.companyName}{job && `, ${salary(job)}, bắt đầu ${date(job.startDate)}`}</p>
           </div>
-          <a href={app.cvUrl} target="_blank" rel="noreferrer" className="btn"><FileText size={18} /> Xem CV đã nộp</a>
-        </section>
-        <div className="layout-main" style={{ marginTop: 24 }}>
+          <a href={app.cvUrl} target="_blank" rel="noreferrer" className="btn btn-ghost"><FileText size={18} /> Xem CV đã nộp</a>
+        </header>
+        <div className="layout-main section">
           <div className="stack-lg">
             <div className="card stack">
               {app.coverLetter && <div className="card-sm card-white"><div className="fog small">Thư giới thiệu</div><p className="pre">{app.coverLetter}</p></div>}
@@ -174,7 +174,7 @@ class ApplicationDetailPage extends Component {
             </div>
             {isEmployer && student.student && (
               <div className="stack small">
-                {student.student.school && <div className="ico-row"><GraduationCap size={16} />{student.student.school}{student.student.major && ` · ${student.student.major}`}{student.student.yearOfStudy && ` · năm ${student.student.yearOfStudy}`}</div>}
+                {student.student.school && <div className="ico-row"><GraduationCap size={16} />{student.student.school}{student.student.major && `, ${student.student.major}`}{student.student.yearOfStudy && `, năm ${student.student.yearOfStudy}`}</div>}
                 {student.student.skills?.length > 0 && <div className="row" style={{ gap: 6 }}>{student.student.skills.map((s) => <span key={s} className="chip">{s}</span>)}</div>}
                 {student.student.bio && <p className="muted pre">{student.student.bio}</p>}
               </div>
@@ -183,9 +183,9 @@ class ApplicationDetailPage extends Component {
             <div className="stu-contact">
               <h3 className="h-sm">Liên hệ</h3>
               {contactOpen ? (
-                <div className="stack small">
-                  <div className="ico-row"><Mail size={16} /><a className="accent" href={`mailto:${other.email}`}>{other.email}</a></div>
-                  {other.phone && <div className="ico-row"><Phone size={16} /><a className="accent" href={`tel:${other.phone}`}>{other.phone}</a></div>}
+                <div className="stack small stu-contact-open">
+                  <div className="ico-row"><Mail size={16} /><a href={`mailto:${other.email}`}>{other.email}</a></div>
+                  {other.phone && <div className="ico-row"><Phone size={16} /><a href={`tel:${other.phone}`}>{other.phone}</a></div>}
                 </div>
               ) : <p className="fog small">Thông tin liên hệ hiển thị khi đơn được nhận.</p>}
             </div>

@@ -1,10 +1,9 @@
 import React, { Component } from 'react';
-import { Check } from 'lucide-react';
+import { Check, CircleAlert, Clock, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Alert, PayBadge, Empty, Pagination } from '../../components/ui';
-import { Mascot } from '../../components/Illustrations';
 import { money, date, dateTime } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
@@ -35,8 +34,7 @@ export class PremiumPage extends Component {
     if (!plans) return <Spinner />;
     return (
       <div className="container page stack-lg">
-        <div className="card center stack emp-premium-head">
-          <Mascot kind="flower" size={64} />
+        <div className="stack emp-premium-head">
           <h1 className="display">Nâng cấp Premium</h1>
           <p className="muted">Tuyển nhanh hơn với nhiều tin hơn và vị trí nổi bật.</p>
           {user.isPremium && <Alert type="ok">Bạn đang là Premium đến {date(user.employer?.premiumUntil)}. Mua thêm sẽ cộng dồn thời hạn.</Alert>}
@@ -58,8 +56,8 @@ export class PremiumPage extends Component {
         <h2 className="h-lg" style={{ marginTop: 32 }}>So sánh các gói</h2>
         <div className="card table-wrap">
           <table className="table">
-            <thead><tr><th>Quyền lợi</th><th>Miễn phí</th><th className="accent">Premium</th></tr></thead>
-            <tbody>{COMPARE.map(([k, a, b]) => <tr key={k}><td>{k}</td><td className="muted">{a}</td><td className="accent">{b === true ? <Check size={20} aria-label="Có" /> : b}</td></tr>)}</tbody>
+            <thead><tr><th>Quyền lợi</th><th>Miễn phí</th><th>Premium</th></tr></thead>
+            <tbody>{COMPARE.map(([k, a, b]) => <tr key={k}><td>{k}</td><td className="muted">{a}</td><td>{b === true ? <Check size={20} aria-label="Có" /> : b}</td></tr>)}</tbody>
           </table>
         </div>
         <p className="fog small center">Thanh toán qua cổng VNPay (môi trường thử nghiệm). Không hoàn tiền trong hệ thống.</p>
@@ -94,11 +92,12 @@ class PaymentResult extends Component {
     if (error) return <div className="container page"><Alert>{error}</Alert></div>;
     if (!payment) return <Spinner />;
     const s = payment.displayStatus;
-    const view = { SUCCESS: ['flower', 'Thanh toán thành công'], FAILED: ['cloud', 'Thanh toán không thành công'], EXPIRED: ['triangle', 'Giao dịch đã hết hạn'], PENDING: ['blob', 'Đang xử lý giao dịch…'] }[s];
+    const view = { SUCCESS: [Check, 'ok', 'Thanh toán thành công'], FAILED: [X, 'bad', 'Thanh toán không thành công'], EXPIRED: [CircleAlert, '', 'Giao dịch đã hết hạn'], PENDING: [Clock, '', 'Đang xử lý giao dịch…'] }[s];
+    const Icon = view[0];
     return (
       <div className="container page center stack-lg" style={{ maxWidth: 640 }}>
-        <div className="emp-result-art"><Mascot kind={view[0]} size={80} /></div>
-        <h1 className="display">{view[1]}</h1>
+        <div className={`emp-result-icon ${view[1]}`}><Icon size={32} aria-hidden="true" /></div>
+        <h1 className="display">{view[2]}</h1>
         <div className="card stack" style={{ textAlign: 'left' }}>
           <div className="row-between"><span className="muted">Gói</span><span>{payment.planSnapshot.name}</span></div>
           <div className="row-between"><span className="muted">Số tiền</span><span>{money(payment.amount)}</span></div>
@@ -129,14 +128,14 @@ export class PaymentsPage extends Component {
     const { items, meta } = this.state;
     return (
       <div className="container page">
-        <header className="card emp-head">
+        <header className="emp-head">
           <div>
             <h1 className="display">Lịch sử giao dịch</h1>
             <p className="muted">Các lần thanh toán gói Premium qua VNPay.</p>
           </div>
           <Link to="/employer/premium" className="btn">Mua Premium</Link>
         </header>
-        <div style={{ marginTop: 20 }}>
+        <div>
           {!items ? <Spinner /> : !items.length ? <div className="card"><Empty title="Chưa có giao dịch" /></div> : (
             <div className="card table-wrap">
               <table className="table">

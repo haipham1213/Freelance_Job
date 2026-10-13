@@ -4,7 +4,6 @@ import { api, qs } from '../../api';
 import { Link } from 'react-router-dom';
 import JobTile from '../../components/JobTile';
 import { Spinner, Empty, Pagination } from '../../components/ui';
-import { Mascot } from '../../components/Illustrations';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 
@@ -111,7 +110,7 @@ class JobsPage extends Component {
 
           <section>
             <div className="jp-head">
-              <h2 className="h-lg">{meta ? <>Tìm thấy <span className="accent">{meta.total}</span> việc làm phù hợp</> : 'Đang tìm…'}</h2>
+              <h2 className="h-lg">{meta ? <>Tìm thấy {meta.total} việc làm phù hợp</> : 'Đang tìm…'}</h2>
             </div>
             {!jobs ? <Spinner /> : !jobs.length ? (
               <div className="card"><Empty title="Không có việc phù hợp">Thử bỏ bớt bộ lọc hoặc dùng từ khóa khác.</Empty></div>
@@ -121,7 +120,6 @@ class JobsPage extends Component {
             <Pagination meta={meta} onPage={(page) => this.apply({ page: String(page) })} />
             {!user && (
               <div className="card jp-cta">
-                <Mascot kind="cloud" size={72} />
                 <div>
                   <strong>Chưa thấy việc hợp ý?</strong>
                   <p className="muted small">Tạo hồ sơ và tải CV một lần, ứng tuyển nhanh khi có việc mới.</p>

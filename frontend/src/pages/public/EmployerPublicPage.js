@@ -4,7 +4,6 @@ import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Stars, Empty, Avatar, Pagination } from '../../components/ui';
 import JobTile from '../../components/JobTile';
-import { Mascot } from '../../components/Illustrations';
 import ReportModal from '../../components/ReportModal';
 import ErrorPage from './ErrorPage';
 import { date, timeAgo } from '../../utils/format';
@@ -32,8 +31,7 @@ class EmployerPublicPage extends Component {
     const user = this.context.user;
     return (
       <div className="container page">
-        <header className="card pub-company">
-          <div className="pub-cover" aria-hidden="true"><Mascot kind="cloud" size={64} /></div>
+        <header className="card">
           <div className="pub-company-body">
             <div className="pub-logo-lg">
               {c.logoUrl ? <img src={c.logoUrl} alt="" /> : (c.name || employer.fullName || '?')[0]}

@@ -19,13 +19,16 @@ export default class SavedJobsPage extends Component {
     const { jobs } = this.state;
     return (
       <div className="container page">
-        <header className="card stu-head">
-          <h1 className="display">Việc làm đã lưu</h1>
-          <p className="muted">{jobs ? `${jobs.length} việc bạn đang để mắt tới` : 'Đang tải…'}</p>
+        <header className="stu-head">
+          <div className="stu-head-text">
+            <h1 className="display">Việc làm đã lưu</h1>
+            <p className="muted">{jobs ? `${jobs.length} việc bạn đang để mắt tới` : 'Đang tải…'}</p>
+          </div>
+          <Link to="/jobs" className="btn btn-ghost">Tìm thêm việc</Link>
         </header>
-        <div style={{ marginTop: 16 }}>
+        <div className="section">
           {!jobs ? <Spinner /> : !jobs.length ? (
-            <div className="card"><Empty mascot="flower" title="Chưa lưu việc nào"><Link to="/jobs" className="accent ico-row" style={{ justifyContent: 'center' }}>Khám phá việc làm <ArrowRight size={16} /></Link></Empty></div>
+            <div className="card"><Empty title="Chưa lưu việc nào"><Link to="/jobs" className="accent ico-row" style={{ justifyContent: 'center' }}>Khám phá việc làm <ArrowRight size={16} /></Link></Empty></div>
           ) : (
             <div className="jobs-grid">
               {jobs.map((j) => (

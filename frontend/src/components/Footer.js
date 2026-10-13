@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mascot } from './Illustrations';
 
 // Footer kiểu job board: logo + mô tả, các cột link, dòng bản quyền
 const GROUPS = [
@@ -15,7 +14,6 @@ const Footer = () => (
       <div className="foot-brand">
         <Link to="/" className="logo"><span className="logo-mark" />jobsv</Link>
         <p className="muted small">Việc làm part-time an toàn, minh bạch cho sinh viên. Lương và ca làm công khai trước khi ứng tuyển.</p>
-        <Mascot kind="blob" size={56} />
       </div>
       {GROUPS.map(([title, links]) => (
         <nav key={title} className="foot-col" aria-label={title}>

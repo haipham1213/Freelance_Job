@@ -19,14 +19,16 @@ export default class ApplicationsPage extends Component {
     const { items, meta, status } = this.state;
     return (
       <div className="container page">
-        <header className="card stu-head">
-          <h1 className="display">Việc làm đã ứng tuyển</h1>
-          <p className="muted">Theo dõi trạng thái mọi đơn ứng tuyển ở một nơi.</p>
-          <Tabs items={TABS} value={status} onChange={(s) => this.setState({ status: s, items: null }, () => this.load(1))} />
+        <header className="stu-head">
+          <div className="stu-head-text">
+            <h1 className="display">Việc làm đã ứng tuyển</h1>
+            <p className="muted">Theo dõi trạng thái mọi đơn ứng tuyển ở một nơi.</p>
+          </div>
         </header>
-        <div style={{ marginTop: 16 }}>
+        <Tabs items={TABS} value={status} onChange={(s) => this.setState({ status: s, items: null }, () => this.load(1))} />
+        <div>
           {!items ? <Spinner /> : !items.length ? (
-            <div className="card"><Empty title="Không có đơn nào"><Link to="/jobs" className="accent ico-row" style={{ justifyContent: 'center' }}>Tìm việc ngay <ArrowRight size={16} /></Link></Empty></div>
+            <div className="card section"><Empty title="Không có đơn nào"><Link to="/jobs" className="accent ico-row" style={{ justifyContent: 'center' }}>Tìm việc ngay <ArrowRight size={16} /></Link></Empty></div>
           ) : (
             <div className="stu-list">
               {items.map((a) => (
