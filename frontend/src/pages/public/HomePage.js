@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Ban, CalendarClock, Check, Lock, MapPin, Plus, Search, Star, X } from 'lucide-react';
+import { Ban, Building2, CalendarClock, Check, GraduationCap, Lock, MapPin, Plus, Search, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { Dropdown, Spinner } from '../../components/ui';
@@ -57,7 +57,7 @@ class HomePage extends Component {
   static contextType = AuthContext;
   state = {
     q: '', categoryId: '', city: '', categories: [], locations: [], jobs: null, tab: '',
-    total: 0, reviews: [], rating: null, plans: [], audience: null,
+    total: 0, reviews: [], rating: null, plans: [],
   };
 
   async componentDidMount() {
@@ -94,7 +94,6 @@ class HomePage extends Component {
     const user = this.context.user;
     // Sinh viên đã đăng nhập không vào được /employer/* (403) → dẫn sang đăng ký tài khoản nhà tuyển dụng
     const postJob = user?.role === 'EMPLOYER' ? '/employer/jobs/new' : '/register?role=EMPLOYER';
-    const audience = this.state.audience || (user?.role === 'EMPLOYER' ? 'EMPLOYER' : 'STUDENT');
     const busiest = categories.filter((c) => c.jobCount > 0).sort((a, b) => b.jobCount - a.jobCount).slice(0, 4);
     return (
       <>
@@ -223,27 +222,22 @@ class HomePage extends Component {
             <div className="gn-head">
               <h2 id="gn-who" className="gn-h2">Dành cho cả hai phía</h2>
               <p>Sinh viên tìm việc vừa lịch học, nhà tuyển dụng tìm người làm được ngay.</p>
-              <div className="gn-tabs gn-who-tabs" role="tablist" aria-label="Bạn là">
-                {[['STUDENT', 'Sinh viên'], ['EMPLOYER', 'Nhà tuyển dụng']].map(([k, label]) => (
-                  <button key={k} role="tab" aria-selected={audience === k} className="gn-tab" onClick={() => this.setState({ audience: k })}>{label}</button>
-                ))}
-              </div>
             </div>
-            <div key={audience} className="gn-who" role="tabpanel">
-              <div>
-                <h3 className="gn-who-title">{audience === 'STUDENT' ? 'Tìm việc không mất phí' : 'Tuyển sinh viên trong vài ngày'}</h3>
-                <ul className="gn-perks">
-                  {(audience === 'STUDENT' ? STUDENT_PERKS : EMPLOYER_PERKS).map((t) => <li key={t}><Check size={18} aria-hidden="true" />{t}</li>)}
-                </ul>
-                {audience === 'STUDENT'
-                  ? <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn btn-lg">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>
-                  : <Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link>}
-              </div>
-              {audience === 'STUDENT' ? (
+            {/* Hai ô xám cạnh nhau kiểu Letters: mỗi phía một nhãn, tiêu đề, lợi ích, các ô trắng bên trong và nút */}
+            <div className="gn-who">
+              <article className="gn-panel">
+                <span className="gn-pill"><GraduationCap size={18} aria-hidden="true" />Sinh viên</span>
+                <h3 className="gn-panel-title">Tìm việc không mất phí</h3>
+                <ul className="gn-perks">{STUDENT_PERKS.map((t) => <li key={t}><Check size={18} aria-hidden="true" />{t}</li>)}</ul>
                 <ol className="gn-steps">
                   {STUDENT_STEPS.map(([t, d], i) => <li key={t}><span className="gn-step-num">{i + 1}</span><div><strong>{t}</strong><span>{d}</span></div></li>)}
                 </ol>
-              ) : (
+                <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn btn-lg">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>
+              </article>
+              <article className="gn-panel">
+                <span className="gn-pill"><Building2 size={18} aria-hidden="true" />Nhà tuyển dụng</span>
+                <h3 className="gn-panel-title">Tuyển sinh viên trong vài ngày</h3>
+                <ul className="gn-perks">{EMPLOYER_PERKS.map((t) => <li key={t}><Check size={18} aria-hidden="true" />{t}</li>)}</ul>
                 <div className="gn-plans">
                   <div className="gn-plan">
                     <span className="gn-plan-name">Miễn phí</span>
@@ -258,7 +252,8 @@ class HomePage extends Component {
                     </div>
                   ))}
                 </div>
-              )}
+                <Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link>
+              </article>
             </div>
           </section>
 
