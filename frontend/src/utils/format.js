@@ -37,3 +37,19 @@ export const homeOf = (role) => ({ STUDENT: '/student', EMPLOYER: '/employer', A
 export const WASHES = ['wash-powder', 'wash-lavender', 'wash-mint', 'wash-solar'];
 // Nền minh họa (Scene) và ô số liệu: tông pastel nhạt quanh màu xanh thương hiệu
 export const PANEL_BG = ['#e3f5ea', '#e6effd', '#fff1d6', '#fde6ee', '#ece7fd', '#e2f4f4'];
+
+// Ca làm theo buổi: ô = ngày * 3 + buổi (ngày 0 = T2 … 6 = CN; buổi 0 sáng, 1 chiều, 2 tối), giống Job.shifts ở backend
+export const DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+export const DAY_NAMES = ['thứ 2', 'thứ 3', 'thứ 4', 'thứ 5', 'thứ 6', 'thứ 7', 'chủ nhật'];
+export const PERIODS = ['Sáng', 'Chiều', 'Tối'];
+// [2, 5, 8, 11, 14, 17, 18] → "Tối T2–T7, Sáng CN": gom theo buổi, ngày liền nhau viết gọn bằng gạch nối
+export const describeShifts = (shifts = []) => PERIODS.map((p, pi) => {
+  const days = shifts.filter((i) => i % 3 === pi).map((i) => Math.floor(i / 3));
+  if (!days.length) return null;
+  const runs = [];
+  for (const d of days) {
+    const last = runs[runs.length - 1];
+    if (last && d === last[1] + 1) last[1] = d; else runs.push([d, d]);
+  }
+  return `${p} ${runs.map(([a, b]) => (b - a >= 2 ? `${DAYS[a]}–${DAYS[b]}` : b > a ? `${DAYS[a]}, ${DAYS[b]}` : DAYS[a])).join(', ')}`;
+}).filter(Boolean).join('; ');

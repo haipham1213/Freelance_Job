@@ -114,6 +114,31 @@ test('business rule sau rà soát', async (t) => {
     assert.ok((await User.findById(emp._id)).employer.premiumUntil > new Date());
   });
 
+  await t.test('Lọc theo lịch học: giữ việc còn ca rảnh hoặc linh hoạt, hợp nhiều ca lên trước', async () => {
+    await closeAll();
+    const post = async (title, shifts) => (await api('POST', '/jobs', { ...body, title, shifts }, 'emp')).body.data.job;
+    const evenings = await post('Phục vụ tối thứ 2 đến thứ 6', [2, 5, 8, 11, 14]); // tối T2–T6
+    const mornings = await post('Phục vụ sáng thứ 2 và thứ 4', [0, 6]); // sáng T2, T4: trùng hết giờ học
+    const flexible = await post('Viết bài online làm tại nhà', []);
+    const weekend = await post('Phục vụ chiều thứ 7, chủ nhật', [16, 19]);
+
+    // Bận sáng T2–T6 và tối T6
+    const busy = '0,3,6,9,12,14';
+    const r = (await api('GET', `/jobs?busy=${busy}`)).body.data;
+    const ids = r.map((j) => j._id);
+    assert.ok(!ids.includes(mornings._id), 'việc trùng hết giờ học bị loại');
+    assert.deepEqual(ids, [evenings._id, weekend._id, flexible._id], 'hợp 4 ca, rồi 2 ca, linh hoạt cuối');
+    assert.deepEqual([r[0].fit, r[0].shiftCount], [4, 5]);
+
+    // busy rỗng = chưa bận buổi nào: mọi việc đều hiện
+    assert.equal((await api('GET', '/jobs?busy=')).body.data.length, 4);
+
+    // Sinh viên lưu lịch: ô sai bị bỏ, trùng bị gộp
+    const saved = await api('PUT', '/students/me/schedule', { busySlots: [3, 0, 3] }, 'sv1');
+    assert.deepEqual(saved.body.data.busySlots, [0, 3]);
+    assert.equal((await api('PUT', '/students/me/schedule', { busySlots: [21] }, 'sv1')).status, 400);
+  });
+
   await t.test('V3 / khóa tài khoản: tin OPEN của Employer bị đóng, đơn PENDING bị từ chối', async () => {
     await closeAll();
     const job = await newJob();

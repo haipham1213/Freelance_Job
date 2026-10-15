@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import crypto from 'node:crypto';
 import AppError from './AppError.js';
 
+// Danh sách ô buổi (0–20, xem Job.shifts) từ mảng hoặc chuỗi "0,3,14": bỏ ô sai, bỏ trùng, sắp xếp
+export const slotList = (v) => [...new Set((Array.isArray(v) ? v : String(v ?? '').split(',').filter(Boolean)).map(Number))]
+  .filter((n) => Number.isInteger(n) && n >= 0 && n <= 20).sort((a, b) => a - b);
+
 export const ok = (res, data, meta, status = 200) =>
   res.status(status).json(meta ? { success: true, data, meta } : { success: true, data });
 

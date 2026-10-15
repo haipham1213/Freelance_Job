@@ -30,7 +30,7 @@
 .adm-search { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 360px; height: 38px; padding: 0 12px; border-radius: var(--radius-ctl); box-shadow: inset 0 0 0 1px var(--stone-border); color: var(--muted); }
 .adm-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 3px var(--aqua-mist); }
 .adm-search input { border: 0; outline: none; background: transparent; width: 100%; color: var(--ink); font-size: 14px; }
-.adm-search input::placeholder { color: #888889; }
+.adm-search input::placeholder { color: var(--placeholder); }
 .adm-month { width: auto; padding: 7px 12px; font-size: 14px; }
 
 .adm-table-card { padding: 0; overflow: hidden; }

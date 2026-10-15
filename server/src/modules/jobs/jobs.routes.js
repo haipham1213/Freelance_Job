@@ -6,7 +6,7 @@ import User from '../../models/User.js';
 import Category from '../../models/Category.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid, unaccent, escapeRegex } from '../../utils/http.js';
+import { ok, paging, oid, unaccent, escapeRegex, slotList } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, optionalAuth, authorize, requireVerified } from '../../middlewares/auth.js';
 import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending } from './jobs.service.js';
@@ -28,6 +28,7 @@ const jobBody = z.object({
   salaryMin: z.coerce.number().positive('Lương phải lớn hơn 0'),
   salaryMax: z.coerce.number().positive('Lương phải lớn hơn 0'),
   schedule: z.string().trim().max(200).optional(),
+  shifts: z.array(z.number().int().min(0).max(20)).max(21).optional().transform((v) => v && slotList(v)),
   startDate: z.coerce.date('Ngày bắt đầu không hợp lệ'),
   endDate: z.coerce.date().optional().nullable(),
   slots: z.coerce.number().int().min(1, 'Số chỗ 1–50').max(50, 'Số chỗ 1–50'),
@@ -57,10 +58,19 @@ router.get('/jobs', async (req, res) => {
   if (q.salaryType) match.salaryType = q.salaryType;
   if (q.salaryMin) match.salaryMax = { $gte: Number(q.salaryMin) };
   if (q.salaryMax) match.salaryMin = { $lte: Number(q.salaryMax) };
+  // Lọc theo lịch học (busy = các ô buổi bận): giữ việc còn ít nhất 1 ca rảnh hoặc không có ca cố định (linh hoạt);
+  // xếp việc hợp nhiều ca lên trước, việc linh hoạt xuống sau. fit/shiftCount trả về để hiện "Hợp 3/5 ca"
+  const busy = q.busy !== undefined ? slotList(q.busy) : null;
+  const bySchedule = busy ? [
+    { $addFields: { shiftCount: { $size: { $ifNull: ['$shifts', []] } }, fit: { $size: { $setDifference: [{ $ifNull: ['$shifts', []] }, busy] } } } },
+    { $match: { $or: [{ shiftCount: 0 }, { fit: { $gt: 0 } }] } },
+    { $addFields: { flexible: { $eq: ['$shiftCount', 0] } } },
+  ] : [];
   const [r] = await Job.aggregate([
     { $match: match },
+    ...bySchedule,
     { $addFields: { isFeatured: { $gt: ['$featuredUntil', new Date()] } } },
-    { $sort: { isFeatured: -1, createdAt: -1 } },
+    { $sort: busy ? { flexible: 1, fit: -1, isFeatured: -1, createdAt: -1 } : { isFeatured: -1, createdAt: -1 } },
     { $project: { searchText: 0, description: 0, requirements: 0 } },
     { $facet: { items: [{ $skip: skip }, { $limit: limit }], total: [{ $count: 'n' }] } },
   ]);

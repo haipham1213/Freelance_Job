@@ -39,6 +39,10 @@ const EMPLOYER_PERKS = [
   'Đủ người thì tin tự đóng, đơn còn lại được báo từ chối',
 ];
 
+// Thời khóa biểu minh họa trong khung điện thoại: h = giờ học, w = ca làm thêm, . = trống
+const DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const WEEK = [['Sáng', 'hhhhh.'], ['Chiều', 'h.h.hw'], ['Tối', 'w.w.w.']];
+
 // Tab lọc theo salaryType của API-20
 const TABS = [['', 'Tất cả'], ['HOURLY', 'Theo giờ'], ['DAILY', 'Theo ngày'], ['PROJECT', 'Theo dự án']];
 const FAQ = [
@@ -94,29 +98,68 @@ class HomePage extends Component {
     const busiest = categories.filter((c) => c.jobCount > 0).sort((a, b) => b.jobCount - a.jobCount).slice(0, 4);
     return (
       <>
-        <section className="gn-hero">
-          <h1 className="gn-title">Việc part-time vừa với lịch học</h1>
-          <p className="gn-sub">Lương, ca làm và đánh giá thật hiện rõ trước khi bạn nộp đơn. Không phí, không đặt cọc.</p>
-          <form className="hx-search gn-search" onSubmit={this.search} role="search">
-            <label className="hx-field hx-q">
-              <Search size={18} aria-hidden="true" />
-              <input value={q} onChange={this.set('q')} placeholder="Vị trí hoặc kỹ năng" aria-label="Từ khóa" />
-            </label>
-            <Dropdown className="hx-field" value={categoryId} onChange={this.set('categoryId')} ariaLabel="Ngành nghề" placeholder="Ngành nghề" searchable
-              options={categories.map((c) => ({ value: c._id, label: c.name, icon: categoryIcon(c.name), count: c.jobCount }))} />
-            <Dropdown className="hx-field" value={city} onChange={this.set('city')} ariaLabel="Thành phố" placeholder="Địa điểm"
-              options={locations.map((l) => ({ value: l.city, label: l.city, icon: MapPin }))} />
-            <button className="btn btn-lg">Tìm việc</button>
-          </form>
-          {busiest.length > 0 && (
-            <p className="gn-chips">
-              <span>Đang tuyển nhiều:</span>
-              {busiest.map((c) => {
-                const Icon = categoryIcon(c.name);
-                return <Link key={c._id} to={`/jobs?categoryId=${c._id}`} className="gn-chip"><Icon size={15} aria-hidden="true" />{c.name}<span>{c.jobCount}</span></Link>;
-              })}
-            </p>
-          )}
+        {/* Hero kiểu Revolut: bầu trời phủ kín màn hình, khung điện thoại hiện một tin thật. Khi cuộn (desktop),
+            hero được ghim lại, bầu trời thu dần vào khung điện thoại, chữ mờ đi và câu kết hiện lên (CSS scroll-driven) */}
+        <section className="rv-hero" aria-labelledby="rv-title">
+          <div className="rv-stage">
+            <div className="rv-sky" aria-hidden="true" />
+            <div className="container rv-inner">
+              <div className="rv-copy">
+                <h1 id="rv-title" className="rv-title">Việc part-time vừa với lịch học</h1>
+                <p className="rv-sub">Lương, ca làm và đánh giá thật hiện rõ trước khi bạn nộp đơn. Không phí, không đặt cọc.</p>
+                <form className="hx-search rv-search" onSubmit={this.search} role="search">
+                  <label className="hx-field hx-q">
+                    <Search size={18} aria-hidden="true" />
+                    <input value={q} onChange={this.set('q')} placeholder="Vị trí hoặc kỹ năng" aria-label="Từ khóa" />
+                  </label>
+                  <Dropdown className="hx-field" value={categoryId} onChange={this.set('categoryId')} ariaLabel="Ngành nghề" placeholder="Ngành nghề" searchable
+                    options={categories.map((c) => ({ value: c._id, label: c.name, icon: categoryIcon(c.name), count: c.jobCount }))} />
+                  <Dropdown className="hx-field" value={city} onChange={this.set('city')} ariaLabel="Thành phố" placeholder="Địa điểm"
+                    options={locations.map((l) => ({ value: l.city, label: l.city, icon: MapPin }))} />
+                  <button className="btn btn-lg">Tìm việc</button>
+                </form>
+                {busiest.length > 0 && (
+                  <p className="gn-chips rv-chips">
+                    <span>Đang tuyển nhiều:</span>
+                    {busiest.map((c) => {
+                      const Icon = categoryIcon(c.name);
+                      return <Link key={c._id} to={`/jobs?categoryId=${c._id}`} className="gn-chip"><Icon size={15} aria-hidden="true" />{c.name}<span>{c.jobCount}</span></Link>;
+                    })}
+                  </p>
+                )}
+              </div>
+              <p className="rv-after">Mỗi tin đều ghi rõ lương, ca làm và địa điểm. Bạn biết mình nhận gì trước khi nộp đơn.</p>
+            </div>
+
+            {/* Khung điện thoại: thời khóa biểu một tuần, giờ học mờ, ca làm thêm xanh lấp vào chỗ trống. Bấm vào là sang danh sách việc */}
+            <Link to="/jobs#lich-hoc" className="rv-phone" aria-label="Xem danh sách việc làm part-time">
+              <span className="rv-week-head">
+                <strong>Tuần của bạn</strong>
+                <span>Học xong, đi làm. Không trùng giờ.</span>
+              </span>
+              <span className="rv-week" aria-hidden="true">
+                <span />
+                {DAYS.map((d) => <span key={d} className="rv-day">{d}</span>)}
+                {WEEK.map(([slot, cells]) => (
+                  <React.Fragment key={slot}>
+                    <span className="rv-slot">{slot}</span>
+                    {[...cells].map((c, i) => <span key={i} className={`rv-cell rv-${c}`} style={c === 'w' ? { '--i': i } : undefined} />)}
+                  </React.Fragment>
+                ))}
+              </span>
+              <span className="rv-legend" aria-hidden="true">
+                <span><i className="rv-cell rv-h" />Giờ học</span>
+                <span><i className="rv-cell rv-w" />Ca làm thêm</span>
+              </span>
+              <span className="rv-phone-btn">Tìm ca hợp lịch</span>
+              <ul className="rv-badges">
+                <li><Ban size={18} aria-hidden="true" />Không phí, không đặt cọc</li>
+                <li><Lock size={18} aria-hidden="true" />Liên hệ chỉ mở khi được nhận</li>
+              </ul>
+            </Link>
+            <span className="rv-float rv-float-1" aria-hidden="true"><Check size={16} />Ca làm không trùng giờ học</span>
+            <span className="rv-float rv-float-2" aria-hidden="true"><Check size={16} />Lương ghi rõ trên từng tin</span>
+          </div>
         </section>
 
         <div className="container">

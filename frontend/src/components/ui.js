@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { ArrowLeft, Building2, Check, ChevronDown, Inbox, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { APP_STATUS, JOB_STATUS, PAY_STATUS } from '../utils/format';
+import { APP_STATUS, JOB_STATUS, PAY_STATUS, DAYS, DAY_NAMES, PERIODS } from '../utils/format';
 
 export const Spinner = () => <div className="spinner" role="status" aria-label="Đang tải" />;
 
@@ -36,6 +36,38 @@ export const Avatar = ({ src, name = '?', size }) =>
 export const CompanyLogo = ({ src, name = '' }) => (
   <div className="logo-box">{src ? <img src={src} alt={name} /> : <Building2 size={22} />}</div>
 );
+
+// Lưới 7 ngày × 3 buổi để tô lịch học (tone="busy") hoặc ca làm (tone="work"). Bấm tên ngày / tên buổi để chọn cả cột / cả hàng
+export const ShiftGrid = ({ value, onChange, tone = 'work', label }) => {
+  const on = new Set(value);
+  const word = tone === 'busy' ? 'Học' : 'Làm';
+  const toggle = (cells) => {
+    const all = cells.every((c) => on.has(c));
+    cells.forEach((c) => (all ? on.delete(c) : on.add(c)));
+    onChange([...on].sort((a, b) => a - b));
+  };
+  return (
+    <div className={`shift-grid shift-${tone}`} role="group" aria-label={label}>
+      <span />
+      {DAYS.map((d, di) => (
+        <button key={d} type="button" className="shift-head" onClick={() => toggle([0, 1, 2].map((p) => di * 3 + p))} aria-label={`Chọn cả ngày ${DAY_NAMES[di]}`}>{d}</button>
+      ))}
+      {PERIODS.map((p, pi) => (
+        <React.Fragment key={p}>
+          <button type="button" className="shift-head shift-row" onClick={() => toggle(DAYS.map((_, di) => di * 3 + pi))} aria-label={`Chọn mọi buổi ${p.toLowerCase()}`}>{p}</button>
+          {DAYS.map((_, di) => {
+            const i = di * 3 + pi;
+            return (
+              <button key={i} type="button" className="shift-cell" aria-pressed={on.has(i)} aria-label={`${p} ${DAY_NAMES[di]}`} onClick={() => toggle([i])}>
+                {on.has(i) && word}
+              </button>
+            );
+          })}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+};
 
 export const Field = ({ label, error, children }) => (
   <label className="field">

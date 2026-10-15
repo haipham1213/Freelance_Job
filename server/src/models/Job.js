@@ -18,6 +18,8 @@ const jobSchema = new Schema(
     salaryMin: { type: Number, required: true },
     salaryMax: { type: Number, required: true },
     schedule: String,
+    // Ca làm theo buổi: chỉ số ô = ngày * 3 + buổi (ngày 0 = T2 … 6 = CN; buổi 0 sáng, 1 chiều, 2 tối). Rỗng = linh hoạt
+    shifts: { type: [Number], default: undefined },
     startDate: { type: Date, required: true },
     endDate: Date,
     slots: { type: Number, required: true },

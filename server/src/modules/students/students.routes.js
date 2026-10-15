@@ -4,7 +4,7 @@ import User from '../../models/User.js';
 import Job from '../../models/Job.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid } from '../../utils/http.js';
+import { ok, paging, oid, slotList } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { rawFile, saveUpload } from '../../utils/files.js';
@@ -44,6 +44,15 @@ router.put('/students/me', ...student,
     Object.assign(u.student, s);
     await u.save();
     ok(res, { profile: u.toPublic(), completion: completion(u) });
+  });
+
+// Lịch học dùng cho bộ lọc "Hợp lịch học" ở trang Tìm việc
+router.put('/students/me/schedule', ...student,
+  validate(z.object({ busySlots: z.array(z.number().int().min(0).max(20)).max(21) })),
+  async (req, res) => {
+    req.user.student.busySlots = slotList(req.body.busySlots);
+    await req.user.save();
+    ok(res, { busySlots: req.user.student.busySlots });
   });
 
 // API-13: BR-10 PDF ≤ 5 MB; đơn cũ giữ link CV cũ (BR-13) vì file cũ không bị xóa

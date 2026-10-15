@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { api, fieldErrors } from '../../api';
-import { Spinner, Field, Alert, Modal, BackLink } from '../../components/ui';
+import { Spinner, Field, Alert, Modal, BackLink, ShiftGrid } from '../../components/ui';
 import { toInputDate } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
-const EMPTY = { title: '', description: '', requirements: '', categoryId: '', city: '', district: '', address: '', salaryType: 'HOURLY', salaryMin: '', salaryMax: '', schedule: '', startDate: toInputDate(new Date()), endDate: '', slots: 1 };
+const EMPTY = { title: '', description: '', requirements: '', categoryId: '', city: '', district: '', address: '', salaryType: 'HOURLY', salaryMin: '', salaryMax: '', schedule: '', shifts: [], startDate: toInputDate(new Date()), endDate: '', slots: 1 };
 
 // SCR-E03 / FR-JOB-01, FR-JOB-02
 class JobFormPage extends Component {
@@ -22,6 +22,7 @@ class JobFormPage extends Component {
       form.startDate = toInputDate(job.startDate);
       form.endDate = toInputDate(job.endDate);
       form.categoryId = String(job.categoryId);
+      form.shifts = job.shifts || [];
       locked = job.acceptedCount > 0;
     }
     this.setState({ form, categories: cats, locked });
@@ -94,8 +95,14 @@ class JobFormPage extends Component {
               {input('salaryMax', 'Lương đến (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
               {input('startDate', 'Ngày bắt đầu *', { type: 'date', required: true, disabled: locked, min: this.isEdit() ? undefined : toInputDate(new Date()) })}
               {input('endDate', 'Ngày kết thúc', { type: 'date', min: form.startDate })}
-              {input('schedule', 'Ca làm', { maxLength: 200, placeholder: '18h-22h, T2-T6' })}
+              {input('schedule', 'Giờ làm cụ thể', { maxLength: 200, placeholder: '18h–22h' })}
             </div>
+          </section>
+          <section className="emp-form-sec">
+            <div><h2>Ca làm trong tuần</h2><p className="muted small">Chọn các buổi cần người. Sinh viên lọc việc theo lịch học sẽ thấy tin khi còn ít nhất một buổi rảnh. Bỏ trống nếu giờ làm linh hoạt hoặc làm online.</p></div>
+            <Field label="Buổi làm" error={errors.shifts}>
+              <ShiftGrid tone="work" value={form.shifts} onChange={(v) => this.setState({ form: { ...form, shifts: v } })} label="Ca làm trong tuần" />
+            </Field>
           </section>
           <section className="emp-form-sec">
             <div><h2>Địa điểm</h2><p className="muted small">Nơi sinh viên đến làm việc.</p></div>
