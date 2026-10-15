@@ -9,7 +9,7 @@ import withRouter from '../utils/withRouter';
 
 const LINKS = {
   GUEST: [['/', 'Trang chủ'], ['/jobs', 'Tìm việc']],
-  STUDENT: [['/', 'Trang chủ'], ['/student', 'Tổng quan'], ['/jobs', 'Tìm việc'], ['/student/applications', 'Đơn của tôi'], ['/student/saved-jobs', 'Đã lưu']],
+  STUDENT: [['/', 'Trang chủ'], ['/jobs', 'Tìm việc'], ['/student/applications', 'Đơn của tôi'], ['/student/saved-jobs', 'Đã lưu']],
   EMPLOYER: [['/', 'Trang chủ'], ['/employer', 'Dashboard'], ['/employer/jobs', 'Tin tuyển dụng'], ['/employer/jobs/new', 'Đăng tin'], ['/employer/premium', 'Premium']],
 };
 

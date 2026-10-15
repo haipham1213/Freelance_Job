@@ -8,7 +8,8 @@ import JobTile from '../../components/JobTile';
 import { categoryIcon } from '../../components/Illustrations';
 import ReportModal from '../../components/ReportModal';
 import ErrorPage from './ErrorPage';
-import { date, salary, timeAgo, describeShifts, jobStatusOf } from '../../utils/format';
+import { date, salary, timeAgo, jobStatusOf } from '../../utils/format';
+import { shiftText } from '../../components/JobRow';
 import withRouter from '../../utils/withRouter';
 
 class ApplyModal extends Component {
@@ -123,7 +124,7 @@ class JobDetailPage extends Component {
     const daysLeft = Math.max(0, Math.ceil((new Date(job.expiresAt) - Date.now()) / DAY));
     const Icon = categoryIcon(category?.name);
     const facts = [
-      [Clock, 'Ca làm', describeShifts(job.shifts) || job.schedule ? <>{describeShifts(job.shifts)}{job.shifts?.length > 0 && job.schedule && <br />}{job.schedule && <span className={job.shifts?.length ? 'muted' : ''}>{job.schedule}</span>}</> : 'Thỏa thuận khi phỏng vấn'],
+      [Clock, 'Ca làm', shiftText(job) || 'Thỏa thuận khi phỏng vấn'],
       [MapPin, 'Địa điểm', [job.address, job.district, job.city].filter(Boolean).join(', ')],
       [CalendarDays, 'Thời gian', `Từ ${date(job.startDate)}${job.endDate ? ` đến ${date(job.endDate)}` : ''}`],
       [Users, 'Số chỗ', job.remainingSlots > 0 ? `Còn ${job.remainingSlots}/${job.slots} chỗ` : 'Đã đủ người'],

@@ -42,14 +42,16 @@ export const PANEL_BG = ['#e3f5ea', '#e6effd', '#fff1d6', '#fde6ee', '#ece7fd', 
 export const DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 export const DAY_NAMES = ['thứ 2', 'thứ 3', 'thứ 4', 'thứ 5', 'thứ 6', 'thứ 7', 'chủ nhật'];
 export const PERIODS = ['Sáng', 'Chiều', 'Tối'];
-// [2, 5, 8, 11, 14, 17, 18] → "Tối T2–T7, Sáng CN": gom theo buổi, ngày liền nhau viết gọn bằng gạch nối
-export const describeShifts = (shifts = []) => PERIODS.map((p, pi) => {
-  const days = shifts.filter((i) => i % 3 === pi).map((i) => Math.floor(i / 3));
+// Ca làm tách theo buổi: [{ period: 0, label: 'Sáng', days: 'T2, T4, T6' }, …]; ngày liền nhau viết gọn bằng gạch nối
+export const shiftParts = (shifts = []) => PERIODS.map((label, period) => {
+  const days = shifts.filter((i) => i % 3 === period).map((i) => Math.floor(i / 3));
   if (!days.length) return null;
   const runs = [];
   for (const d of days) {
     const last = runs[runs.length - 1];
     if (last && d === last[1] + 1) last[1] = d; else runs.push([d, d]);
   }
-  return `${p} ${runs.map(([a, b]) => (b - a >= 2 ? `${DAYS[a]}–${DAYS[b]}` : b > a ? `${DAYS[a]}, ${DAYS[b]}` : DAYS[a])).join(', ')}`;
-}).filter(Boolean).join('; ');
+  return { period, label, days: runs.map(([a, b]) => (b - a >= 2 ? `${DAYS[a]}–${DAYS[b]}` : b > a ? `${DAYS[a]}, ${DAYS[b]}` : DAYS[a])).join(', ') };
+}).filter(Boolean);
+// [2, 5, 8, 11, 14, 17, 18] → "Tối T2–T7, Sáng CN"
+export const describeShifts = (shifts = []) => shiftParts(shifts).map((p) => `${p.label} ${p.days}`).join('; ');

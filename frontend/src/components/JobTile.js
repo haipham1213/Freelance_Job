@@ -9,7 +9,7 @@ import { categoryIcon } from './Illustrations';
 const JobTile = ({ job: j, category, badge }) => (
   <Link to={`/jobs/${j._id}`} className={`jt ${badge && j.isFeatured ? 'jt-hot' : ''}`}>
     <span className="jt-logo">
-      {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" />
+      {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="64" height="64" loading="lazy" />
         : React.createElement(categoryIcon(category), { className: 'jt-ico', 'aria-hidden': true })}
     </span>
     <span className="jt-body">
@@ -17,7 +17,7 @@ const JobTile = ({ job: j, category, badge }) => (
       <span className="jt-company">{j.companySnapshot?.name}</span>
       <span className="jt-chips">
         <span className="jt-chip jt-salary">{salary(j)}</span>
-        <span className="jt-chip ico-row"><MapPin size={13} />{j.city || j.district}</span>
+        <span className="jt-chip ico-row"><MapPin size={13} aria-hidden="true" />{j.city || j.district}</span>
         <span className="jt-time">{timeAgo(j.createdAt)}</span>
       </span>
     </span>

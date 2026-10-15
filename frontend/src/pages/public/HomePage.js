@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import { Ban, Building2, CalendarClock, Check, GraduationCap, Lock, MapPin, Plus, Search, Star, X } from 'lucide-react';
+import { Ban, Building2, CalendarClock, CalendarDays, Check, GraduationCap, Lock, MapPin, Plus, Search, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Dropdown, Spinner } from '../../components/ui';
+import { Dropdown, Spinner, Stars } from '../../components/ui';
 import { categoryIcon } from '../../components/Illustrations';
-import JobTile from '../../components/JobTile';
+import JobRow, { loadSavedIds, saveToggler } from '../../components/JobRow';
 import withRouter from '../../utils/withRouter';
 import { money, salary } from '../../utils/format';
 import { AuthContext } from '../../context/AuthContext';
@@ -25,29 +25,23 @@ const COMPARE = [
   ['Tin đã cũ', 'Bài cũ vẫn trôi, gọi mới biết đủ người', 'Tin tự ẩn khi hết hạn hoặc đủ người'],
 ];
 
-const STUDENT_PERKS = [
-  'Tìm theo ngành, khu vực và mức lương, gõ không dấu vẫn ra',
-  'Một CV PDF dùng lại cho mọi đơn ứng tuyển',
-  'Theo dõi trạng thái đơn, có thông báo khi được nhận hoặc bị từ chối',
-  'Lưu tối đa 100 việc để xem lại sau',
-];
 const STUDENT_STEPS = [['Tạo hồ sơ', 'Điền trường, ngành, kỹ năng và tải CV'], ['Ứng tuyển', 'Nộp đơn kèm thư giới thiệu ngắn'], ['Đi làm', 'Được nhận thì thấy liên hệ, xong việc thì đánh giá']];
-const EMPLOYER_PERKS = [
-  'Đăng 3 tin miễn phí, mỗi tin hiển thị 14 ngày',
-  'Nhận hồ sơ có sẵn CV và điểm đánh giá của sinh viên',
-  'Duyệt, từ chối và xác nhận kết quả ngay trên một trang',
-  'Đủ người thì tin tự đóng, đơn còn lại được báo từ chối',
-];
+const EMPLOYER_STEPS = [['Đăng tin', 'Mô tả việc, mức lương và chọn ca làm trong tuần'], ['Duyệt hồ sơ', 'Xem CV và điểm đánh giá, nhận hoặc từ chối'], ['Xác nhận kết quả', 'Xong việc thì xác nhận và đánh giá sinh viên']];
 
 // Thời khóa biểu minh họa trong khung điện thoại: h = giờ học, w = ca làm thêm, . = trống
 const DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const WEEK = [['Sáng', 'hhhhh.'], ['Chiều', 'h.h.hw'], ['Tối', 'w.w.w.']];
 
-// Tab lọc theo salaryType của API-20
-const TABS = [['', 'Tất cả'], ['HOURLY', 'Theo giờ'], ['DAILY', 'Theo ngày'], ['PROJECT', 'Theo dự án']];
+// Tab "Ca làm tuần này" theo buổi (ô = ngày * 3 + buổi, xem Job.shifts). Lọc bằng tham số busy của API-20:
+// coi mọi ô ngoài tab là bận, API giữ việc còn ít nhất một ca trong tab (và việc linh hoạt, xếp cuối)
+const ALL_SLOTS = [...Array(21).keys()];
+const PERIOD = (p) => [0, 1, 2, 3, 4, 5, 6].map((d) => d * 3 + p);
+const TABS = [['all', 'Tất cả', null], ['morning', 'Buổi sáng', PERIOD(0)], ['afternoon', 'Buổi chiều', PERIOD(1)], ['evening', 'Buổi tối', PERIOD(2)], ['weekend', 'Cuối tuần', [15, 16, 17, 18, 19, 20]]];
+const HOME_JOBS = 6;
+const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const FAQ = [
   ['Ứng tuyển có mất phí không?', 'Hoàn toàn miễn phí với sinh viên. Nhà tuyển dụng không được thu bất kỳ khoản phí nào của bạn.'],
-  ['Bị yêu cầu đặt cọc hoặc đóng phí thì làm gì?', 'Đừng chuyển tiền. Bấm "Báo cáo tin này" ở trang chi tiết việc và chọn lý do "Lừa đảo / thu phí". Quản trị viên xử lý theo 3 bậc: cảnh cáo, ẩn tin hoặc khóa tài khoản.'],
+  ['Bị yêu cầu đặt cọc hoặc đóng phí thì làm gì?', 'Đừng chuyển tiền. Bấm “Báo cáo tin này” ở trang chi tiết việc và chọn lý do “Lừa đảo / thu phí”. Quản trị viên xử lý theo 3 bậc: cảnh cáo, ẩn tin hoặc khóa tài khoản.'],
   ['Tôi cần chuẩn bị gì để ứng tuyển?', 'Đăng ký bằng email trường, điền hồ sơ và tải lên một CV PDF. CV này được dùng lại cho mọi đơn ứng tuyển.'],
   ['Làm sao biết nhà tuyển dụng đáng tin?', 'Mỗi nhà tuyển dụng có trang công khai với điểm đánh giá từ những sinh viên đã từng làm việc ở đó.'],
   ['Nhà tuyển dụng đăng tin thế nào?', 'Mỗi tài khoản được đăng tối đa 3 tin miễn phí. Gói Premium nâng lên 20 tin, mỗi tin hiển thị 30 ngày và được ghim Nổi bật.'],
@@ -56,13 +50,14 @@ const FAQ = [
 class HomePage extends Component {
   static contextType = AuthContext;
   state = {
-    q: '', categoryId: '', city: '', categories: [], locations: [], jobs: null, tab: '',
-    total: 0, reviews: [], rating: null, plans: [],
+    q: '', categoryId: '', city: '', categories: [], locations: [], jobs: null, tab: 'all', loading: false,
+    total: 0, reviews: [], rating: null, plans: [], savedIds: new Set(),
   };
 
   async componentDidMount() {
+    this.syncSaved();
     const [c, l, j, p] = await Promise.all([
-      api.get('/categories'), api.get('/jobs/locations'), api.get('/jobs?limit=9'), api.get('/plans').catch(() => ({ data: [] })),
+      api.get('/categories'), api.get('/jobs/locations'), api.get(`/jobs?limit=${HOME_JOBS}`), api.get('/plans').catch(() => ({ data: [] })),
     ]);
     this.setState({ categories: c.data, locations: l.data, jobs: j.data, total: j.meta?.total || j.data.length, plans: p.data });
     // Lời chứng thực thật: đánh giá của các nhà tuyển dụng đang đăng tin; điểm tính trên đúng những đánh giá đã tải
@@ -74,10 +69,38 @@ class HomePage extends Component {
     });
   }
 
+  componentDidUpdate() { this.syncSaved(); }
+
+  // Tin đã lưu của sinh viên để tô tim trên thẻ việc
+  syncSaved = () => {
+    const u = this.context.user;
+    const key = u?.role === 'STUDENT' ? u._id : null;
+    if (key === this.savedFor) return;
+    this.savedFor = key;
+    if (key) loadSavedIds().then((savedIds) => this.setState({ savedIds }));
+  };
+
+  toggleSave = saveToggler(this);
+
+  // Giữ danh sách cũ (làm mờ) trong lúc tải tab mới để trang không giật
   loadTab = async (tab) => {
-    this.setState({ tab, jobs: null });
-    const r = await api.get(`/jobs${qs({ limit: 9, salaryType: tab })}`);
-    if (this.state.tab === tab) this.setState({ jobs: r.data });
+    this.setState({ tab, loading: true });
+    const cells = TABS.find(([k]) => k === tab)[2];
+    const busy = cells && ALL_SLOTS.filter((i) => !cells.includes(i)).join(',');
+    const r = await api.get(`/jobs${qs({ limit: HOME_JOBS, busy })}`);
+    // fit/shiftCount ở đây tính theo tab chứ không theo lịch học của người xem → bỏ để không hiện nhãn "Hợp x/y ca"
+    if (this.state.tab === tab) this.setState({ jobs: r.data.map(({ fit, shiftCount, ...j }) => j), loading: false });
+  };
+
+  // Tab theo mẫu WAI-ARIA: mũi tên trái/phải chuyển tab, Home/End về đầu/cuối
+  tabKey = (e) => {
+    const i = TABS.findIndex(([k]) => k === this.state.tab);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const n = (next + TABS.length) % TABS.length;
+    document.getElementById(`gn-tab-${TABS[n][0]}`)?.focus();
+    this.loadTab(TABS[n][0]);
   };
 
   search = (e) => {
@@ -89,12 +112,14 @@ class HomePage extends Component {
   set = (k) => (e) => this.setState({ [k]: e.target.value });
 
   render() {
-    const { q, categoryId, city, categories, locations, jobs, tab, total, reviews, rating, plans } = this.state;
+    const { q, categoryId, city, categories, locations, jobs, tab, loading, total, reviews, rating, plans } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const user = this.context.user;
     // Sinh viên đã đăng nhập không vào được /employer/* (403) → dẫn sang đăng ký tài khoản nhà tuyển dụng
     const postJob = user?.role === 'EMPLOYER' ? '/employer/jobs/new' : '/register?role=EMPLOYER';
-    const busiest = categories.filter((c) => c.jobCount > 0).sort((a, b) => b.jobCount - a.jobCount).slice(0, 4);
+    // Ngành đang có tin, nhiều tin xếp trước (dùng cho chip ở hero và hàng ngành ②)
+    const hiring = categories.filter((c) => c.jobCount > 0).sort((a, b) => b.jobCount - a.jobCount);
+    const busiest = hiring.slice(0, 4);
     return (
       <>
         {/* Hero kiểu Revolut: bầu trời phủ kín màn hình, khung điện thoại hiện một tin thật. Khi cuộn (desktop),
@@ -162,29 +187,61 @@ class HomePage extends Component {
         </section>
 
         <div className="container">
+          {/* ① Ca làm tuần này: lọc theo buổi, nối tiếp khung "Tuần của bạn" ở hero */}
           <section className="gn-sec" aria-labelledby="gn-jobs">
-            <div className="gn-head">
-              <h2 id="gn-jobs" className="gn-h2">Việc đang tuyển</h2>
-              <p>{total ? `${total} tin đang mở` : 'Tin mới nhất'} từ quán cà phê, trung tâm gia sư và cửa hàng gần trường.</p>
-              <div className="gn-tabs" role="tablist" aria-label="Hình thức trả lương">
-                {TABS.map(([key, label]) => (
-                  <button key={key} role="tab" aria-selected={tab === key} className="gn-tab" onClick={() => this.loadTab(key)}>{label}</button>
-                ))}
+            <div className="gn-head gn-head-row">
+              <div>
+                <h2 id="gn-jobs" className="gn-h2">Ca làm tuần này</h2>
+                <p>{total ? `${total} tin đang mở` : 'Tin mới nhất'} từ quán cà phê, trung tâm gia sư và cửa hàng gần trường.</p>
               </div>
+              <Link to="/jobs#lich-hoc" className="btn btn-ghost"><CalendarDays size={18} aria-hidden="true" />Lọc theo lịch học của bạn</Link>
             </div>
-            {!jobs ? <Spinner /> : !jobs.length ? (
-              <div className="gn-empty">
-                <p>{tab ? 'Chưa có việc nào trả lương theo hình thức này. Thử tab khác nhé.' : 'Chưa có tin tuyển dụng nào đang mở.'}</p>
-                {!tab && user?.role !== 'STUDENT' && <Link to={postJob} className="gn-link">Đăng tin tuyển dụng đầu tiên</Link>}
-              </div>
-            ) : (
-              <div className="gn-head">
-                <div className="jobs-grid" style={{ textAlign: 'left' }}>{jobs.map((j) => <JobTile key={j._id} job={j} category={catName[j.categoryId]} badge />)}</div>
-                <Link to={`/jobs${qs({ salaryType: tab })}`} className="gn-link gn-more">Xem tất cả việc làm →</Link>
-              </div>
-            )}
+            <div className="gn-tabs gn-tabs-left" role="tablist" aria-label="Buổi làm" onKeyDown={this.tabKey}>
+              {TABS.map(([key, label]) => (
+                <button key={key} id={`gn-tab-${key}`} role="tab" aria-selected={tab === key} aria-controls="gn-jobs-panel" tabIndex={tab === key ? 0 : -1}
+                  className="gn-tab" onClick={() => this.loadTab(key)}>{label}</button>
+              ))}
+            </div>
+            <div id="gn-jobs-panel" role="tabpanel" aria-labelledby={`gn-tab-${tab}`} aria-busy={loading}>
+              {!jobs ? <Spinner /> : !jobs.length ? (
+                <div className="gn-empty">
+                  <p>{tab !== 'all' ? 'Chưa có ca nào vào buổi này. Thử buổi khác nhé.' : 'Chưa có tin tuyển dụng nào đang mở.'}</p>
+                  {tab === 'all' && user?.role !== 'STUDENT' && <Link to={postJob} className="gn-link">Đăng tin tuyển dụng đầu tiên</Link>}
+                </div>
+              ) : (
+                <ul className={`gn-jobs ${loading ? 'is-loading' : ''}`}>
+                  {jobs.slice(0, HOME_JOBS).map((j) => <li key={j._id}>
+                    <JobRow job={j} category={catName[j.categoryId]} badge={false} saved={this.state.savedIds.has(j._id)}
+                      onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined} saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${j._id}`)}`} />
+                  </li>)}
+                </ul>
+              )}
+            </div>
+            <Link to="/jobs" className="gn-link gn-more">Xem tất cả {total || ''} việc làm</Link>
           </section>
 
+          {/* ② Theo ngành: một hàng cuộn ngang, chỉ ngành đang có tin, nhiều tin xếp trước */}
+          {hiring.length > 0 && (
+            <section className="gn-sec-tight" aria-labelledby="gn-cats">
+              <h2 id="gn-cats" className="gn-h3">Lương theo ngành</h2>
+              <ul className="gn-cats">
+                {hiring.map((c) => {
+                  const Icon = categoryIcon(c.name);
+                  return (
+                    <li key={c._id}>
+                      <Link to={`/jobs?categoryId=${c._id}`} className="gn-cat">
+                        <Icon size={20} aria-hidden="true" />
+                        <span className="gn-cat-text">
+                          <strong>{c.name}</strong>
+                          <span><span className="gn-pay">{salary(c.pay)}</span> {c.jobCount} việc</span>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
         </div>
 
         <section className="gn-safe" aria-labelledby="gn-safe">
@@ -218,89 +275,58 @@ class HomePage extends Component {
         </section>
 
         <div className="container">
+          {/* ④ Hai phía: mỗi ô một nhãn, tiêu đề, 3 bước, một dòng chi phí và một nút */}
           <section className="gn-sec" aria-labelledby="gn-who">
             <div className="gn-head">
               <h2 id="gn-who" className="gn-h2">Dành cho cả hai phía</h2>
               <p>Sinh viên tìm việc vừa lịch học, nhà tuyển dụng tìm người làm được ngay.</p>
             </div>
-            {/* Hai ô xám cạnh nhau kiểu Letters: mỗi phía một nhãn, tiêu đề, lợi ích, các ô trắng bên trong và nút */}
             <div className="gn-who">
-              <article className="gn-panel">
-                <span className="gn-pill"><GraduationCap size={18} aria-hidden="true" />Sinh viên</span>
-                <h3 className="gn-panel-title">Tìm việc không mất phí</h3>
-                <ul className="gn-perks">{STUDENT_PERKS.map((t) => <li key={t}><Check size={18} aria-hidden="true" />{t}</li>)}</ul>
-                <ol className="gn-steps">
-                  {STUDENT_STEPS.map(([t, d], i) => <li key={t}><span className="gn-step-num">{i + 1}</span><div><strong>{t}</strong><span>{d}</span></div></li>)}
-                </ol>
-                <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn btn-lg">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>
-              </article>
-              <article className="gn-panel">
-                <span className="gn-pill"><Building2 size={18} aria-hidden="true" />Nhà tuyển dụng</span>
-                <h3 className="gn-panel-title">Tuyển sinh viên trong vài ngày</h3>
-                <ul className="gn-perks">{EMPLOYER_PERKS.map((t) => <li key={t}><Check size={18} aria-hidden="true" />{t}</li>)}</ul>
-                <div className="gn-plans">
-                  <div className="gn-plan">
-                    <span className="gn-plan-name">Miễn phí</span>
-                    <strong className="gn-plan-price">0đ</strong>
-                    <span className="gn-plan-note">3 tin đang mở, mỗi tin 14 ngày</span>
-                  </div>
-                  {plans.map((p) => (
-                    <div key={p._id} className="gn-plan">
-                      <span className="gn-plan-name">{p.name}</span>
-                      <strong className="gn-plan-price">{money(p.price)}</strong>
-                      <span className="gn-plan-note">20 tin đang mở, mỗi tin 30 ngày, ghim Nổi bật</span>
-                    </div>
-                  ))}
-                </div>
-                <Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link>
-              </article>
+              {[
+                [GraduationCap, 'Sinh viên', 'Tìm việc không mất phí', STUDENT_STEPS, 'Miễn phí hoàn toàn cho sinh viên.',
+                  <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn btn-lg">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>],
+                [Building2, 'Nhà tuyển dụng', 'Tuyển sinh viên trong vài ngày', EMPLOYER_STEPS,
+                  `3 tin miễn phí, mỗi tin hiển thị 14 ngày.${plans.length ? ` Premium từ ${money(Math.min(...plans.map((p) => p.price)))} cho 20 tin.` : ''}`,
+                  <Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link>],
+              ].map(([Icon, who, title, steps, note, cta]) => (
+                <article key={who} className="gn-panel">
+                  <span className="gn-pill"><Icon size={18} aria-hidden="true" />{who}</span>
+                  <h3 className="gn-panel-title">{title}</h3>
+                  <ol className="gn-steps">
+                    {steps.map(([t, d], i) => <li key={t}><span className="gn-step-num">{i + 1}</span><div><strong>{t}</strong><span>{d}</span></div></li>)}
+                  </ol>
+                  <p className="gn-panel-note">{note}</p>
+                  {cta}
+                </article>
+              ))}
             </div>
           </section>
 
-          {categories.length > 0 && (
-            <section className="gn-sec" aria-labelledby="gn-cats">
-              <div className="gn-head">
-                <h2 id="gn-cats" className="gn-h2">Lương theo ngành</h2>
-                <p>Mức lương phổ biến của các tin đang mở trong từng ngành, cập nhật theo tin thật.</p>
+          {/* ⑤ Đánh giá: điểm trung bình lớn bên trái, các câu đánh giá bên phải; ít hơn 3 câu thì ẩn */}
+          {reviews.length >= 3 && rating && (
+            <section className="gn-sec gn-voices" aria-labelledby="gn-voices">
+              <div className="gn-score">
+                <h2 id="gn-voices" className="gn-h2">Sinh viên nói gì sau ca làm</h2>
+                <p className="gn-score-num">{rating1.format(rating.avg)}<span aria-hidden="true">★</span></p>
+                <p>Trung bình từ {rating.count} đánh giá gần nhất của người đã làm xong việc.</p>
               </div>
-              <ul className="gn-cats">
-                {categories.map((c) => {
-                  const Icon = categoryIcon(c.name);
-                  return (
-                    <li key={c._id}>
-                      <Link to={`/jobs?categoryId=${c._id}`} className="gn-cat">
-                        <Icon size={22} aria-hidden="true" />
-                        <strong>{c.name}</strong>
-                        {c.pay ? <span className="gn-pay">{salary(c.pay)}</span> : <span>Chưa có tin đang mở</span>}
-                        {c.jobCount > 0 && <span>{c.jobCount} việc đang tuyển</span>}
-                      </Link>
-                    </li>
-                  );
-                })}
+              <ul className="gn-quotes">
+                {reviews.map((r) => (
+                  <li key={r._id}>
+                    <figure className="gn-quote">
+                      <blockquote>“{r.comment}”</blockquote>
+                      <figcaption>
+                        <span>{r.reviewerId?.fullName || 'Sinh viên'}</span>
+                        <span role="img" aria-label={`${r.rating} trên 5 sao`}><Stars value={r.rating} /></span>
+                      </figcaption>
+                    </figure>
+                  </li>
+                ))}
               </ul>
             </section>
           )}
 
-          {reviews.length > 0 && (
-            <section className="gn-sec" aria-labelledby="gn-voices">
-              <div className="gn-head">
-                <h2 id="gn-voices" className="gn-h2">Sinh viên nói gì sau ca làm</h2>
-                {rating && <p>{rating.avg.toFixed(1).replace('.', ',')} sao trung bình từ {rating.count} đánh giá gần nhất của người đã làm xong việc.</p>}
-              </div>
-              <div className="gn-quotes">
-                {reviews.map((r) => (
-                  <figure key={r._id} className="gn-quote">
-                    <blockquote>“{r.comment}”</blockquote>
-                    <figcaption>
-                      <span>{r.reviewerId?.fullName || 'Sinh viên'}</span>
-                      <span className="gn-stars" aria-label={`${r.rating} trên 5 sao`}>{'★'.repeat(r.rating)}</span>
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
-            </section>
-          )}
-
+          {/* ⑥ FAQ một cột giữa trang */}
           <section className="gn-sec gn-faq" aria-labelledby="gn-faq">
             <h2 id="gn-faq" className="gn-h2">Câu hỏi thường gặp</h2>
             <div>
@@ -314,10 +340,21 @@ class HomePage extends Component {
           </section>
         </div>
 
-        <section className="gn-band" aria-labelledby="gn-employer">
-          <h2 id="gn-employer" className="gn-h2">Cần người cho ca làm tuần này?</h2>
-          <p>Đăng tối đa 3 tin miễn phí, nhận hồ sơ có CV sẵn và xem đánh giá thật từ những sinh viên từng làm cho bạn.</p>
-          <Link to={postJob} className="btn btn-lg gn-btn-white">Đăng tin tuyển dụng</Link>
+        {/* ⑦ Kết trang theo vai trò: sinh viên mở lịch học, nhà tuyển dụng đăng tin (nút cho nhà tuyển dụng đã có ở ④ với khách) */}
+        <section className="gn-band" aria-labelledby="gn-end">
+          {user?.role === 'EMPLOYER' ? (
+            <>
+              <h2 id="gn-end" className="gn-h2">Cần người cho ca làm tuần này?</h2>
+              <p>Đăng tin kèm ca làm trong tuần để sinh viên có lịch học phù hợp tìm thấy bạn.</p>
+              <Link to={postJob} className="btn btn-lg gn-btn-white">Đăng tin tuyển dụng</Link>
+            </>
+          ) : (
+            <>
+              <h2 id="gn-end" className="gn-h2">Tô lịch học, xem ngay ca hợp với bạn</h2>
+              <p>Đánh dấu các buổi có tiết học, JobSV chỉ hiện việc còn ca rảnh và xếp việc hợp nhiều ca nhất lên đầu.</p>
+              <Link to="/jobs#lich-hoc" className="btn btn-lg gn-btn-white">Mở lịch học</Link>
+            </>
+          )}
         </section>
       </>
     );
