@@ -4,53 +4,20 @@ import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { categoryIcon } from '../../components/Illustrations';
 import { Spinner, Empty, Pagination, Dropdown, ShiftGrid } from '../../components/ui';
-import JobRow, { FitBadge, shiftText, plainClick, loadSavedIds, saveToggler } from '../../components/JobRow';
+import JobRow, { FitBadge, MiniWeek, shiftText, plainClick, loadSavedIds, saveToggler, readWeek, WEEK_KEY } from '../../components/JobRow';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
-import { date, money, shortMoney, salary, describeShifts, DAYS, PERIODS, SALARY_TYPE } from '../../utils/format';
+import { date, money, shortMoney, salary, describeShifts, SALARY_TYPE } from '../../utils/format';
 
 const SALARY_TYPES = [['HOURLY', 'Theo giờ'], ['DAILY', 'Theo ngày'], ['PROJECT', 'Theo dự án']];
 const FILTERS = ['q', 'categoryId', 'city', 'district', 'salaryType', 'salaryMin', 'salaryMax', 'busy', 'page'];
 // Lịch học của khách lưu trên trình duyệt; sinh viên đăng nhập thì lưu vào hồ sơ (student.busySlots)
-const WEEK_KEY = 'jobsv.busySlots';
-const readWeek = () => { try { return JSON.parse(localStorage.getItem(WEEK_KEY)) || []; } catch { return []; } };
 const writeWeek = (v) => { try { localStorage.setItem(WEEK_KEY, JSON.stringify(v)); } catch { /* trình duyệt chặn lưu trữ */ } };
 const HINT_KEY = 'jobsv.hideWeekHint';
 const hintHidden = () => { try { return localStorage.getItem(HINT_KEY) === '1'; } catch { return false; } };
 const slots = (csv) => (csv ? csv.split(',').map(Number) : []);
 const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-// Lưới tuần thu nhỏ trong khung xem trước: ca làm của tin (xanh lá) chồng lên lịch học của người xem (xám),
-// ô trùng tô đỏ — liếc là biết tin có hợp lịch không
-const MiniWeek = ({ shifts, busy }) => {
-  const work = new Set(shifts);
-  const study = new Set(busy);
-  const clash = shifts.filter((i) => study.has(i)).length;
-  const summary = `Ca làm: ${describeShifts(shifts)}.${busy.length ? ` ${shifts.length - clash}/${shifts.length} ca không trùng giờ học.` : ''}`;
-  return (
-    <figure className="jx-mini">
-      <div className="jx-mini-grid" role="img" aria-label={summary}>
-        <span />
-        {DAYS.map((d) => <span key={d} className="jx-mini-day">{d}</span>)}
-        {PERIODS.map((p, pi) => (
-          <React.Fragment key={p}>
-            <span className="jx-mini-p">{p}</span>
-            {DAYS.map((_, di) => {
-              const i = di * 3 + pi;
-              const c = work.has(i) && study.has(i) ? 'x' : work.has(i) ? 'w' : study.has(i) ? 'h' : '';
-              return <span key={i} className={`jx-mini-cell ${c}`} />;
-            })}
-          </React.Fragment>
-        ))}
-      </div>
-      <figcaption>
-        <span><i className="jx-mini-cell w" />Ca làm</span>
-        {busy.length > 0 && <span><i className="jx-mini-cell h" />Giờ học</span>}
-        {clash > 0 && <span><i className="jx-mini-cell x" />Trùng giờ học</span>}
-      </figcaption>
-    </figure>
-  );
-};
 // Xem trước bên phải chỉ khi màn hình đủ rộng cho 2 cột; hẹp hơn thì bấm tin là sang trang chi tiết
 const WIDE = '(min-width: 1100px)';
 
@@ -109,7 +76,7 @@ class JobsPage extends Component {
 
   async componentDidMount() {
     // Trang hai cột cần khung rộng hơn; header, nội dung và footer cùng nới để mép thẳng hàng
-    document.body.classList.add('page-wide');
+    document.body.classList.add('page-wide', 'page-canvas');
     this.mq = window.matchMedia?.(WIDE);
     this.mq?.addEventListener?.('change', this.onWide);
     document.addEventListener('mousedown', this.outsidePay);
@@ -123,7 +90,7 @@ class JobsPage extends Component {
   }
 
   componentWillUnmount() {
-    document.body.classList.remove('page-wide');
+    document.body.classList.remove('page-wide', 'page-canvas');
     this.mq?.removeEventListener?.('change', this.onWide);
     document.removeEventListener('mousedown', this.outsidePay);
   }

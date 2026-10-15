@@ -23,10 +23,11 @@ export const JobBadge = badge(JOB_STATUS);
 export const AppBadge = badge(APP_STATUS);
 export const PayBadge = badge(PAY_STATUS);
 
+const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 export const Stars = ({ value = 0, count }) => (
   <span className="small" title={`${value}/5`}>
     <span className="stars">{'★'.repeat(Math.round(value))}<span style={{ color: 'var(--stone-border)' }}>{'★'.repeat(5 - Math.round(value))}</span></span>
-    {count !== undefined && <span className="fog"> {count ? `${Number(value).toFixed(1)} (${count})` : 'Chưa có đánh giá'}</span>}
+    {count !== undefined && <span className="fog"> {count ? `${rating1.format(value)} (${count})` : 'Chưa có đánh giá'}</span>}
   </span>
 );
 
@@ -103,18 +104,36 @@ export const Tabs = ({ items, value, onChange }) => (
   </div>
 );
 
+// Hộp thoại: focus vào ô đầu tiên khi mở, Tab/Shift+Tab vòng trong hộp, Esc để đóng, đóng xong trả focus về chỗ cũ
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 export class Modal extends Component {
-  onKey = (e) => e.key === 'Escape' && this.props.onClose();
-  componentDidMount() { document.addEventListener('keydown', this.onKey); }
-  componentWillUnmount() { document.removeEventListener('keydown', this.onKey); }
+  box = React.createRef();
+  onKey = (e) => {
+    if (e.key === 'Escape') return this.props.onClose();
+    if (e.key !== 'Tab') return;
+    const els = [...this.box.current.querySelectorAll(FOCUSABLE)];
+    const [first, last] = [els[0], els[els.length - 1]];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  componentDidMount() {
+    this.returnTo = document.activeElement;
+    document.addEventListener('keydown', this.onKey);
+    const els = [...this.box.current.querySelectorAll(FOCUSABLE)];
+    (els.find((el) => el.matches('textarea, input, select')) || els[0])?.focus();
+  }
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.onKey);
+    this.returnTo?.focus?.();
+  }
   render() {
     const { title, onClose, children } = this.props;
     return (
       <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-        <div className="modal stack-lg" role="dialog" aria-modal="true" aria-label={title}>
-          <div className="row-between">
+        <div className="modal stack-lg" role="dialog" aria-modal="true" aria-label={title} ref={this.box}>
+          <div className="modal-head">
             <h2 className="h-md">{title}</h2>
-            <button className="btn-link" onClick={onClose} aria-label="Đóng" style={{ fontSize: 24, color: 'var(--muted)', textDecoration: 'none' }}>×</button>
+            <button type="button" className="modal-x" onClick={onClose} aria-label="Đóng">×</button>
           </div>
           {children}
         </div>

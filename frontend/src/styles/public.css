@@ -50,68 +50,101 @@
   .pub-notif-time { width: 100%; padding-left: 54px; }
 }
 
-/* Chi tiết việc làm: đầu trang trên nền trắng, cột chính + khung ứng tuyển dính bên phải, thanh ứng tuyển dưới đáy trên mobile */
-.jd-head { display: flex; gap: 20px; align-items: flex-start; margin: 20px 0 32px; }
-.jd-logo { width: 84px; height: 84px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: var(--warm); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
+/* Chi tiết việc làm: nền xám xanh, nội dung trong các thẻ trắng (cùng tông trang Tìm việc); cột chính + khung ứng tuyển dính bên phải;
+   thanh ứng tuyển dưới đáy trên mobile */
+.jd { padding-top: 24px; }
+.jd-card { padding: 28px; background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.jd-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; font-size: 14px; color: var(--body); }
+.jd-back:hover { color: var(--ink); }
+/* Thẻ đầu trang */
+.jd-head { display: grid; grid-template-columns: 80px minmax(0, 1fr) auto; gap: 20px; align-items: start; margin-bottom: 20px; }
+.jd-logo { width: 80px; height: 80px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden; border-radius: 16px; background: var(--warm); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
 .jd-logo img { width: 100%; height: 100%; object-fit: cover; }
-.jd-logo-sm { width: 56px; height: 56px; border-radius: 10px; }
+.jd-logo-sm { width: 56px; height: 56px; border-radius: 12px; }
 .jd-head-main { min-width: 0; }
-.jd-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.jd-title { margin: 10px 0 8px; font-size: clamp(26px, 3.2vw, 38px); line-height: 1.12; letter-spacing: -0.04em; text-wrap: balance; }
-.jd-meta { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; color: var(--muted); }
-.jd-company { color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 4px; }
-.jd-company:hover { text-decoration-color: var(--ink); }
+.jd-title { margin: 0 0 6px; font-size: clamp(24px, 2.8vw, 32px); line-height: 1.2; letter-spacing: -0.02em; text-wrap: balance; }
+.jd-meta { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 15px; }
+.jd-meta .jt-badge { margin: 0; }
+.jd-company { color: var(--ink); font-weight: 600; }
+.jd-company:hover { color: var(--primary); }
+.jd-tags { margin: 14px 0 12px; }
+.jd-cat:hover { background: var(--primary-wash); color: var(--primary); }
+.jd-signals { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--muted); }
+.jd-signals > span { display: inline-flex; align-items: center; gap: 6px; }
+.jd-head-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; max-width: 140px; }
+.jd-copied { flex-basis: 100%; min-height: 1em; text-align: right; font-size: 12.5px; color: var(--pay); }
 
-.jd-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 40px; align-items: start; }
-.jd-facts { margin: 0; border-top: 1px solid var(--line); }
-.jd-facts div { grid-template-columns: 180px minmax(0, 1fr); padding: 14px 0; font-size: 15px; }
-.jd-facts dd { color: var(--ink); font-weight: 500; }
-.jd-h2 { margin: 36px 0 12px; font-size: 22px; letter-spacing: -0.02em; }
+.jd-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.jd-main { display: grid; gap: 20px; min-width: 0; }
+.jd-h2 { margin: 0 0 14px; font-size: 20px; letter-spacing: -0.016em; }
+.jd-h2-next { margin-top: 28px; }
 .jd-text { margin: 0; white-space: pre-line; font-size: 16px; line-height: 1.7; color: var(--body); max-width: 68ch; }
+/* Ca làm và lịch học: câu kết luận có màu, lưới tuần, các mốc thời gian */
+.jd-fit { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; font-weight: 600; }
+.jd-fit svg { flex-shrink: 0; }
+.jd-fit.ok { background: var(--highlight); color: var(--pay); }
+.jd-fit.warn { background: #fff0d4; color: #8a4b00; }
+.jd-fit.bad { background: var(--alert-wash); color: var(--alert); }
+.jd-fit.info { background: var(--primary-wash); color: var(--ink); font-weight: 500; }
+.jd-fit.info svg { color: var(--primary); }
+.jd-fit a { color: var(--primary); font-weight: 600; }
+.jd-card .jx-mini { margin-bottom: 20px; }
+.jd-when { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+.jd-when dt { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.jd-when dd { margin: 4px 0 0; font-size: 15px; font-weight: 500; color: var(--ink); }
 .jd-muted { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; color: var(--muted); }
-.jd-company-card { display: flex; gap: 16px; align-items: flex-start; padding: 20px; border: 1px solid var(--line); border-radius: 10px; }
+.jd-company-card { display: flex; gap: 16px; align-items: flex-start; }
 .jd-company-body { min-width: 0; display: grid; gap: 8px; }
-.jd-company-name { font-size: 18px; font-weight: 700; letter-spacing: -0.016em; color: var(--ink); }
+.jd-company-name { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.016em; }
+.jd-company-name a { color: var(--ink); }
+.jd-company-name a:hover { color: var(--primary); }
 .jd-company-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .jd-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 15px; }
 
 /* Khung ứng tuyển dính khi cuộn */
 .jd-aside { position: sticky; top: 92px; }
-.jd-apply { padding: 24px; background: #fff; border: 1px solid var(--stone-border); border-radius: 12px; display: grid; gap: 12px; }
+.jd-apply { display: grid; gap: 12px; padding: 24px; }
 .jd-apply-label { font-size: 13px; color: var(--muted); }
-.jd-pay { margin-top: -6px; font-size: 26px; letter-spacing: -0.03em; }
+.jd-pay { margin-top: -6px; font-size: 28px; letter-spacing: -0.02em; color: var(--pay); font-variant-numeric: tabular-nums; }
 .jd-apply-meta { margin: 0 0 4px; font-size: 14px; color: var(--body); }
 .jd-actions { display: grid; gap: 10px; }
 .jd-actions .chip { margin-left: 6px; }
 .jd-note { margin: 0; font-size: 13.5px; color: var(--muted); }
 .jd-promises { list-style: none; margin: 8px 0 0; padding: 14px 0 0; border-top: 1px solid var(--line); display: grid; gap: 10px; }
 .jd-promises li { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; color: var(--body); }
-.jd-promises svg { flex-shrink: 0; margin-top: 1px; color: var(--ink); }
+.jd-promises svg { flex-shrink: 0; margin-top: 1px; color: var(--primary); }
 .jd-report { justify-self: start; display: inline-flex; align-items: center; gap: 6px; padding: 0; background: none; border: 0; font-size: 13px; color: var(--muted); cursor: pointer; }
 .jd-report:hover { color: var(--alert); }
+/* Hộp ứng tuyển: CV sẽ gửi */
+.jd-cv { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; padding: 12px 14px; background: var(--primary-wash); border-radius: 10px; font-size: 14.5px; }
+.jd-cv svg { color: var(--primary); }
+.jd-cv a { margin-left: auto; color: var(--primary); font-weight: 600; }
 
-.jd-similar { margin-top: 56px; padding-top: 8px; border-top: 1px solid var(--line); }
+.jd-similar { margin-top: 48px; }
 .jd-similar .row-between { align-items: baseline; }
-.jd-similar .jd-h2 { margin: 28px 0 0; }
+.jd-similar .jd-h2 { margin: 0; }
 
 /* Thanh ứng tuyển dưới đáy (chỉ mobile/tablet) */
 .jd-bar { display: none; }
 @media (max-width: 960px) {
-  .jd-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .jd-grid { grid-template-columns: minmax(0, 1fr); }
   .jd-aside { position: static; order: -1; }
   .jd-has-bar .jd-apply > .btn, .jd-has-bar .jd-apply > .jd-actions { display: none; }
   .jd-has-bar { padding-bottom: 112px; }
   .jd-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: flex; align-items: center; gap: 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -1px 0 var(--line); }
   .jd-bar-pay { display: flex; flex-direction: column; flex-shrink: 0; font-weight: 700; font-size: 14px; white-space: nowrap; }
   .jd-bar-pay small { font-weight: 400; font-size: 12px; color: var(--muted); }
-  .jd-bar-actions { flex: 1; display: flex; gap: 8px; justify-content: flex-end; }
-  .jd-bar-actions { min-width: 0; }
-  .jd-bar-actions .btn-lg { padding: 11px 14px; font-size: 15px; width: auto; flex: 1; max-width: 260px; }
-  .jd-icon-btn { width: 44px; height: 44px; padding: 0; }
+  /* Nút co lại được để không tràn khỏi màn hình */
+  .jd-bar-actions { flex: 1; min-width: 0; display: flex; gap: 8px; justify-content: flex-end; }
+  .jd-bar .btn-lg { min-width: 0; padding: 11px 14px; font-size: 15px; width: auto; flex: 1; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .jd-icon-btn { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; }
 }
 @media (max-width: 640px) {
-  .jd-head { gap: 14px; margin-bottom: 24px; }
-  .jd-logo { width: 60px; height: 60px; }
-  .jd-facts div { grid-template-columns: 128px minmax(0, 1fr); }
+  .jd-card { padding: 20px 16px; }
+  .jd-head { grid-template-columns: 56px minmax(0, 1fr); gap: 14px; }
+  .jd-logo { width: 56px; height: 56px; border-radius: 12px; }
+  .jd-head-actions { grid-column: 1 / -1; justify-content: flex-start; max-width: none; }
+  .jd-copied { flex-basis: auto; text-align: left; }
+  .jd-when { grid-template-columns: minmax(0, 1fr); }
   .jd-company-card { flex-direction: column; }
 }

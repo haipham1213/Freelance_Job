@@ -204,7 +204,12 @@ a.accent:hover { text-decoration: underline; text-underline-offset: 3px; }
 .tab:not(.active):hover { color: var(--ink); }
 
 /* Modal: viền thay bóng */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(29, 34, 38, .5); display: grid; place-items: center; padding: 16px; z-index: 50; animation: fade .2s; }
+/* Đầu hộp thoại: tiêu đề dài thì xuống dòng, nút đóng luôn ở góc phải */
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.modal-head .h-md { min-width: 0; }
+.modal-x { flex-shrink: 0; width: 36px; height: 36px; margin: -6px -8px 0 0; display: grid; place-items: center; background: none; border: 0; border-radius: 999px; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; }
+.modal-x:hover { background: var(--sand); color: var(--ink); }
+.modal-backdrop { overscroll-behavior: contain; position: fixed; inset: 0; background: rgba(29, 34, 38, .5); display: grid; place-items: center; padding: 16px; z-index: 50; animation: fade .2s; }
 .modal { background: var(--white); border-radius: var(--radius); padding: 28px; width: min(520px, 100%); max-height: 90vh; overflow: auto; box-shadow: inset 0 0 0 1px var(--stone-border); animation: rise .25s cubic-bezier(.16, 1, .3, 1); }
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
@@ -338,8 +343,8 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--line); border-radiu
 /* Trang chủ */
 .gn-hl { background: var(--highlight); color: var(--pay); }
 /* Hero trên dải nền ngà (Warm Off-White), tách khỏi danh sách việc trắng bên dưới */
-/* Trang Tìm việc: nền xám xanh rất nhạt để thẻ trắng nổi lên, dải tìm kiếm chuyển dần từ xanh nhạt xuống nền trang */
-body.page-wide { background: #f4f6f9; }
+/* Trang Tìm việc, Chi tiết việc (body.page-canvas): nền xám xanh rất nhạt để thẻ trắng nổi lên; dải tìm kiếm chuyển dần từ xanh nhạt xuống nền trang */
+body.page-canvas { background: #f4f6f9; }
 .jx-band { background: linear-gradient(180deg, #e3eefb 0%, #f4f6f9 100%); }
 .gn-title { margin: 0 auto; max-width: 16em; font-size: clamp(38px, 5vw, 64px); font-weight: 700; line-height: 1.12; letter-spacing: -0.025em; text-wrap: balance; }
 .gn-sub { margin: 24px auto 36px; max-width: 32em; font-size: 22px; line-height: 1.6; color: var(--body); text-wrap: balance; }

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Heart, Hourglass, MapPin, Moon, Sun, Sunset, Users } from 'lucide-react';
 import { categoryIcon } from './Illustrations';
-import { describeShifts, shiftParts, salary } from '../utils/format';
+import { describeShifts, shiftParts, salary, DAYS, PERIODS } from '../utils/format';
 import { api } from '../api';
 
 // "Ca làm": có ô buổi thì ghi buổi + khung giờ lấy từ ghi chú ("Tối T2–T6, 18h–22h"), không lặp lại ngày;
@@ -22,8 +22,45 @@ export const plainClick = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !
 export const FitBadge = ({ job: j }) => (j.fit === undefined ? null
   : <span className={`jx-fit ${j.shiftCount ? '' : 'flex'}`}>{j.shiftCount ? `Hợp ${j.fit}/${j.shiftCount} ca` : 'Linh hoạt'}</span>);
 
+// Lịch học: khách lưu trên trình duyệt (key này), sinh viên đăng nhập lưu ở hồ sơ (student.busySlots)
+export const WEEK_KEY = 'jobsv.busySlots';
+export const readWeek = () => { try { return JSON.parse(localStorage.getItem(WEEK_KEY)) || []; } catch { return []; } };
+// Lịch học để so với ca làm: hồ sơ sinh viên trước, rồi trình duyệt
+export const busyOf = (user) => (user?.student?.busySlots?.length ? user.student.busySlots : readWeek());
+
+// Lưới tuần thu nhỏ trong khung xem trước: ca làm của tin (xanh lá) chồng lên lịch học của người xem (xám),
+// ô trùng tô đỏ — liếc là biết tin có hợp lịch không
+export const MiniWeek = ({ shifts, busy }) => {
+  const work = new Set(shifts);
+  const study = new Set(busy);
+  const clash = shifts.filter((i) => study.has(i)).length;
+  const summary = `Ca làm: ${describeShifts(shifts)}.${busy.length ? ` ${shifts.length - clash}/${shifts.length} ca không trùng giờ học.` : ''}`;
+  return (
+    <figure className="jx-mini">
+      <div className="jx-mini-grid" role="img" aria-label={summary}>
+        <span />
+        {DAYS.map((d) => <span key={d} className="jx-mini-day">{d}</span>)}
+        {PERIODS.map((p, pi) => (
+          <React.Fragment key={p}>
+            <span className="jx-mini-p">{p}</span>
+            {DAYS.map((_, di) => {
+              const i = di * 3 + pi;
+              const c = work.has(i) && study.has(i) ? 'x' : work.has(i) ? 'w' : study.has(i) ? 'h' : '';
+              return <span key={i} className={`jx-mini-cell ${c}`} />;
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+      <figcaption>
+        <span><i className="jx-mini-cell w" />Ca làm</span>
+        {busy.length > 0 && <span><i className="jx-mini-cell h" />Giờ học</span>}
+        {clash > 0 && <span><i className="jx-mini-cell x" />Trùng giờ học</span>}
+      </figcaption>
+    </figure>
+  );
+};
 // Icon theo buổi: sáng mặt trời, chiều hoàng hôn, tối mặt trăng — nhìn icon là biết ca sáng hay tối
-const PERIOD_ICON = [Sun, Sunset, Moon];
+export const PERIOD_ICON = [Sun, Sunset, Moon];
 const DAY = 864e5;
 
 // Tin đã lưu của sinh viên (để tô tim trên thẻ) và lưu / bỏ lưu một tin
