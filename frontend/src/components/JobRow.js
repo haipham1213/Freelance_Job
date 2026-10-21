@@ -25,6 +25,7 @@ export const FitBadge = ({ job: j }) => (j.fit === undefined ? null
 // Lịch học: khách lưu trên trình duyệt (key này), sinh viên đăng nhập lưu ở hồ sơ (student.busySlots)
 export const WEEK_KEY = 'jobsv.busySlots';
 export const readWeek = () => { try { return JSON.parse(localStorage.getItem(WEEK_KEY)) || []; } catch { return []; } };
+export const writeWeek = (v) => { try { localStorage.setItem(WEEK_KEY, JSON.stringify(v)); } catch { /* trình duyệt chặn lưu trữ */ } };
 // Lịch học để so với ca làm: hồ sơ sinh viên trước, rồi trình duyệt
 export const busyOf = (user) => (user?.student?.busySlots?.length ? user.student.busySlots : readWeek());
 

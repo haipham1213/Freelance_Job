@@ -34,6 +34,14 @@ export const sendVerifyEmail = (to, token) => {
   return trySend(to, 'Xác thực email', layout('Xác thực email của bạn', 'Link có hiệu lực trong 24 giờ.', link, 'Xác thực email'), link);
 };
 
+export const sendJobAlert = (to, job, token) => {
+  const link = `${process.env.CLIENT_URL}/jobs/${job._id}`;
+  const off = `${process.env.API_URL}/api/v1/job-alerts/unsubscribe?token=${token}`;
+  const esc = (s = '') => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const body = `${esc(job.companySnapshot?.name)} vừa đăng tin có ca làm không trùng lịch học của bạn.<br><br><a href="${off}" style="color:#93979f">Hủy nhận thông báo</a>`;
+  return trySend(to, `Việc mới: ${job.title}`, layout(esc(job.title), body, link, 'Xem tin tuyển dụng'), link);
+};
+
 export const sendResetEmail = (to, token) => {
   const link = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
   return trySend(to, 'Đặt lại mật khẩu', layout('Đặt lại mật khẩu', 'Link có hiệu lực trong 30 phút và chỉ dùng được một lần.', link, 'Đặt lại mật khẩu'), link);

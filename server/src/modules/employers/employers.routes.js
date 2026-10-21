@@ -99,6 +99,18 @@ router.get('/employers/me/payments', ...employer, async (req, res) => {
   ok(res, items, { page, limit, total });
 });
 
+// Nhà tuyển dụng đang có tin mở, nhiều tin xếp trước (dải logo ở trang chủ)
+router.get('/employers/hiring', async (req, res) => {
+  const rows = await Job.aggregate([
+    { $match: await visibleMatch() },
+    { $sort: { createdAt: -1 } },
+    { $group: { _id: '$employerId', jobs: { $sum: 1 }, company: { $first: '$companySnapshot' } } },
+    { $sort: { jobs: -1, 'company.name': 1 } },
+    { $limit: Math.min(24, Number(req.query.limit) || 12) },
+  ]);
+  ok(res, rows.map((r) => ({ _id: r._id, name: r.company?.name, logoUrl: r.company?.logoUrl, city: r.company?.city, jobs: r.jobs })));
+});
+
 // API-18: trang công khai
 router.get('/employers/:id', async (req, res) => {
   const u = await User.findOne({ _id: oid(req.params.id), role: 'EMPLOYER' });

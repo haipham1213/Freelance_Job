@@ -4,15 +4,13 @@ import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { categoryIcon } from '../../components/Illustrations';
 import { Spinner, Empty, Pagination, Dropdown, ShiftGrid } from '../../components/ui';
-import JobRow, { FitBadge, MiniWeek, shiftText, plainClick, loadSavedIds, saveToggler, readWeek, WEEK_KEY } from '../../components/JobRow';
+import JobRow, { FitBadge, MiniWeek, shiftText, plainClick, loadSavedIds, saveToggler, readWeek, writeWeek } from '../../components/JobRow';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 import { date, money, shortMoney, salary, describeShifts, SALARY_TYPE } from '../../utils/format';
 
 const SALARY_TYPES = [['HOURLY', 'Theo giờ'], ['DAILY', 'Theo ngày'], ['PROJECT', 'Theo dự án']];
 const FILTERS = ['q', 'categoryId', 'city', 'district', 'salaryType', 'salaryMin', 'salaryMax', 'busy', 'page'];
-// Lịch học của khách lưu trên trình duyệt; sinh viên đăng nhập thì lưu vào hồ sơ (student.busySlots)
-const writeWeek = (v) => { try { localStorage.setItem(WEEK_KEY, JSON.stringify(v)); } catch { /* trình duyệt chặn lưu trữ */ } };
 const HINT_KEY = 'jobsv.hideWeekHint';
 const hintHidden = () => { try { return localStorage.getItem(HINT_KEY) === '1'; } catch { return false; } };
 const slots = (csv) => (csv ? csv.split(',').map(Number) : []);

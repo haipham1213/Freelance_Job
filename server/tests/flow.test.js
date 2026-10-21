@@ -6,6 +6,8 @@ import app from '../src/app.js';
 import User from '../src/models/User.js';
 import Category from '../src/models/Category.js';
 import Job from '../src/models/Job.js';
+import JobAlert from '../src/models/JobAlert.js';
+import { alertsFor } from '../src/modules/alerts/alerts.routes.js';
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_ACCESS_SECRET ||= 'test-secret';
@@ -77,6 +79,27 @@ test('luồng chính và các business rule quan trọng', async () => {
   await api('POST', '/jobs', jobBody, 'emp');
   assert.equal((await api('POST', '/jobs', jobBody, 'emp')).body.error.code, 'QUOTA_EXCEEDED');
 
+  // Trang chủ: nhà tuyển dụng đang tuyển, số tin theo khu vực
+  const hiringRow = (await api('GET', '/employers/hiring')).body.data[0];
+  assert.deepEqual([String(hiringRow._id), hiringRow.jobs], [String(emp._id), 3]);
+  const loc = (await api('GET', '/jobs/locations')).body.data.find((l) => l.city === jobBody.city);
+  assert.equal(loc.total, 3);
+
+  // Email việc mới: gửi cho người có ít nhất một ca của tin không trùng giờ học; gửi lại cùng email chỉ cập nhật lịch
+  assert.equal((await api('POST', '/job-alerts', { email: 'bad' })).status, 400);
+  await api('POST', '/job-alerts', { email: 'Ban@test.vn', busySlots: [0] });
+  await api('POST', '/job-alerts', { email: 'ban@test.vn', busySlots: [0, 3] });
+  await api('POST', '/job-alerts', { email: 'ranh@test.vn', busySlots: [] });
+  assert.equal(await JobAlert.countDocuments(), 2);
+  const to = async (job) => (await alertsFor(job)).map((a) => a.email).sort();
+  assert.deepEqual(await to({ shifts: [0, 3] }), ['ranh@test.vn']);
+  assert.deepEqual(await to({ shifts: [0, 6] }), ['ban@test.vn', 'ranh@test.vn']);
+  assert.deepEqual(await to({}), ['ban@test.vn', 'ranh@test.vn']);
+  const { token } = await JobAlert.findOne({ email: 'ranh@test.vn' });
+  const off = await fetch(`${base}/job-alerts/unsubscribe?token=${token}`, { redirect: 'manual' });
+  assert.equal(off.status, 302);
+  assert.equal(await JobAlert.exists({ email: 'ranh@test.vn' }), null);
+
   // Khoảng lương phổ biến theo ngành (3 tin cùng 25k–30k/giờ)
   const catRow = (await api('GET', '/categories')).body.data.find((c) => c.slug === 'phuc-vu');
   assert.deepEqual([catRow.jobCount, catRow.pay], [3, { salaryType: 'HOURLY', salaryMin: 25000, salaryMax: 30000 }]);
@@ -119,6 +142,9 @@ test('luồng chính và các business rule quan trọng', async () => {
   await api('POST', `/applications/${a2._id}/reviews`, { rating: 3 }, 'sv2');
   const empPublic = (await api('GET', `/employers/${emp._id}`)).body.data.employer;
   assert.deepEqual([empPublic.ratingAvg, empPublic.ratingCount], [4, 2]);
+  // Đánh giá gần đây ở trang chủ: chỉ câu có nội dung, kèm tên việc; điểm trung bình tính trên mọi đánh giá của sinh viên
+  const recent = (await api('GET', '/reviews/recent')).body;
+  assert.deepEqual([recent.data.length, recent.data[0].jobId.title, recent.meta.ratingCount, recent.meta.ratingAvg], [1, job.title, 2, 4]);
 
   // Báo cáo + admin xử lý V3 → khóa, request kế tiếp bị chặn (BR-06)
   assert.equal((await api('POST', '/reports', { targetType: 'USER', targetId: s1._id, reason: 'OTHER' }, 'sv1')).status, 400);

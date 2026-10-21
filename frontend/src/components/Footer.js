@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 const GROUPS = [
   ['Dành cho sinh viên', [['/jobs', 'Tìm việc'], ['/register', 'Tạo hồ sơ'], ['/student/saved-jobs', 'Việc đã lưu']]],
   ['Dành cho nhà tuyển dụng', [['/register?role=EMPLOYER', 'Đăng ký tuyển dụng'], ['/employer/jobs/new', 'Đăng tin'], ['/employer/premium', 'Gói Premium']]],
-  ['Về JobSV', [[null, 'Chuyên đề tốt nghiệp 2'], [null, 'Trường ĐH Văn Lang']]],
+  ['Hỗ trợ', [['/#hoi-dap', 'Hỏi đáp'], ['/dieu-khoan#bao-cao', 'Báo cáo lừa đảo'], ['/dieu-khoan', 'Điều khoản sử dụng'], ['/quyen-rieng-tu', 'Quyền riêng tư']]],
 ];
 
 const Footer = () => (

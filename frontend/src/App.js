@@ -11,6 +11,7 @@ import JobDetailPage from './pages/public/JobDetailPage';
 import EmployerPublicPage from './pages/public/EmployerPublicPage';
 import NotificationsPage from './pages/public/NotificationsPage';
 import ErrorPage from './pages/public/ErrorPage';
+import { TermsPage, PrivacyPage } from './pages/public/LegalPages';
 import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage, ChangePasswordPage } from './pages/public/AuthPages';
 import ApplicationDetailPage from './pages/shared/ApplicationDetailPage';
 import StudentHomePage from './pages/student/StudentHomePage';
@@ -57,6 +58,8 @@ class App extends Component {
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/dieu-khoan" element={<TermsPage />} />
+              <Route path="/quyen-rieng-tu" element={<PrivacyPage />} />
 
               <Route element={<RequireRole />}>
                 <Route path="/notifications" element={<NotificationsPage />} />

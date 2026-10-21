@@ -11,6 +11,7 @@ import { validate } from '../../middlewares/validate.js';
 import { authenticate, optionalAuth, authorize, requireVerified } from '../../middlewares/auth.js';
 import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending } from './jobs.service.js';
 
+import { notifyAlerts } from '../alerts/alerts.routes.js';
 const router = Router();
 
 const today = () => new Date(new Date().toDateString());
@@ -77,12 +78,16 @@ router.get('/jobs', async (req, res) => {
   ok(res, r.items, { page, limit, total: r.total[0]?.n || 0 });
 });
 
-// Thành phố/quận đang có Job để làm bộ lọc
+// Thành phố/quận đang có Job để làm bộ lọc; counts = số tin theo quận, total = số tin cả thành phố (mục "Việc theo khu vực" ở trang chủ)
 router.get('/jobs/locations', async (req, res) => {
-  const rows = await Job.aggregate([{ $match: await visibleMatch() }, { $group: { _id: { city: '$city', district: '$district' } } }]);
+  const rows = await Job.aggregate([{ $match: await visibleMatch() }, { $group: { _id: { city: '$city', district: '$district' }, n: { $sum: 1 } } }]);
   const map = {};
-  for (const { _id } of rows) (map[_id.city] ||= new Set()).add(_id.district);
-  ok(res, Object.entries(map).sort().map(([city, d]) => ({ city, districts: [...d].filter(Boolean).sort() })));
+  for (const { _id, n } of rows) {
+    const c = (map[_id.city] ||= { districts: new Set(), counts: {}, total: 0 });
+    c.total += n;
+    if (_id.district) { c.districts.add(_id.district); c.counts[_id.district] = n; }
+  }
+  ok(res, Object.entries(map).sort().map(([city, c]) => ({ city, districts: [...c.districts].sort(), counts: c.counts, total: c.total })));
 });
 
 // API-21
@@ -120,6 +125,7 @@ router.post('/jobs', authenticate, authorize('EMPLOYER'), requireVerified, valid
     expiresAt: expiryFor(req.user),
     featuredUntil: req.user.isPremium() ? req.user.employer.premiumUntil : undefined,
   });
+  notifyAlerts(job).catch((e) => console.warn(`[alerts] ${e.message}`));
   ok(res, { job }, null, 201);
 });
 

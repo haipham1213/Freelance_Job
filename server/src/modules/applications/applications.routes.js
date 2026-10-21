@@ -210,6 +210,17 @@ router.post('/applications/:id/reviews', authenticate, authorize('STUDENT', 'EMP
     ok(res, { review }, null, 201);
   });
 
+// Đánh giá gần đây của sinh viên về nhà tuyển dụng (trang chủ): kèm tên việc + công ty, và điểm trung bình trên mọi đánh giá đang hiện
+router.get('/reviews/recent', async (req, res) => {
+  const filter = { reviewerRole: 'STUDENT', isHidden: false };
+  const [items, [agg]] = await Promise.all([
+    Review.find({ ...filter, comment: { $nin: [null, ''] } }).sort('-createdAt').limit(Math.min(6, Number(req.query.limit) || 3))
+      .populate('reviewerId', 'fullName avatarUrl').populate('jobId', 'title companySnapshot'),
+    Review.aggregate([{ $match: filter }, { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }]),
+  ]);
+  ok(res, items, { ratingAvg: agg?.avg ?? null, ratingCount: agg?.count ?? 0 });
+});
+
 // API-40
 router.get('/users/:id/reviews', async (req, res) => {
   const { page, limit, skip } = paging(req.query);
