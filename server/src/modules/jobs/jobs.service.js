@@ -5,8 +5,9 @@ import AppError from '../../utils/AppError.js';
 import { notify } from '../../utils/notify.js';
 import { DAY } from '../../utils/http.js';
 
-export const FREE_QUOTA = 3;
-export const PREMIUM_QUOTA = 20;
+// BR-15, BR-16: số tin đang mở tối đa và số ngày hiển thị mỗi tin theo gói (frontend đọc qua meta của GET /plans)
+export const TIERS = { free: { quota: 3, days: 14 }, premium: { quota: 20, days: 30 } };
+const tierOf = (employer) => TIERS[employer.isPremium() ? 'premium' : 'free'];
 
 // BR-22: Guest/Student chỉ thấy Job OPEN, còn hạn, không bị ẩn/xóa, của Employer không bị khóa
 export const visibleMatch = async () => ({
@@ -21,7 +22,7 @@ export const isVisible = async (job) => !!job && (await Job.exists({ _id: job._i
 // BR-15: đếm Job OPEN còn hạn
 export const quotaOf = async (employer) => {
   const used = await Job.countDocuments({ employerId: employer._id, status: 'OPEN', expiresAt: { $gt: new Date() }, deletedAt: null });
-  return { used, limit: employer.isPremium() ? PREMIUM_QUOTA : FREE_QUOTA };
+  return { used, limit: tierOf(employer).quota };
 };
 
 export const assertQuota = async (employer) => {
@@ -29,8 +30,8 @@ export const assertQuota = async (employer) => {
   if (q.used >= q.limit) throw new AppError(403, 'QUOTA_EXCEEDED', `Bạn đã dùng hết ${q.limit} tin đang mở. Nâng cấp Premium để đăng thêm.`, q);
 };
 
-// BR-16: 14 ngày (Free) hoặc 30 ngày (Premium) theo gói tại lúc đăng
-export const expiryFor = (employer) => new Date(Date.now() + (employer.isPremium() ? 30 : 14) * DAY);
+// BR-16: số ngày theo gói tại lúc đăng
+export const expiryFor = (employer) => new Date(Date.now() + tierOf(employer).days * DAY);
 
 export const findOwnJob = async (id, user) => {
   const job = await Job.findOne({ _id: id, deletedAt: null });

@@ -11,11 +11,12 @@ import { authenticate, authorize, requireVerified } from '../../middlewares/auth
 import { notify } from '../../utils/notify.js';
 import { buildPaymentUrl, verifyQuery, isConfigured } from './vnpay.js';
 import { extendPremium } from './payments.service.js';
+import { TIERS } from '../jobs/jobs.service.js';
 
 const router = Router();
 
 // API-45
-router.get('/plans', async (req, res) => ok(res, await Plan.find({ isActive: true }).sort('price')));
+router.get('/plans', async (req, res) => ok(res, await Plan.find({ isActive: true }).sort('price'), { tiers: TIERS }));
 
 // API-46: BR-35 số tiền lấy từ DB, không nhận từ client
 router.post('/payments', authenticate, authorize('EMPLOYER'), requireVerified, validate(z.object({ planCode: z.string() })), async (req, res) => {

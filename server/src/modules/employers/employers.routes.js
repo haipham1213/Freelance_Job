@@ -10,7 +10,7 @@ import { ok, paging, oid } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { rawFile, saveUpload } from '../../utils/files.js';
-import { quotaOf, visibleMatch } from '../jobs/jobs.service.js';
+import { quotaOf, TIERS, visibleMatch } from '../jobs/jobs.service.js';
 
 const router = Router();
 const employer = [authenticate, authorize('EMPLOYER')];
@@ -88,7 +88,7 @@ router.get('/employers/me/stats', ...employer, async (req, res) => {
     Application.find({ employerId: id, status: 'PENDING' }).sort('-createdAt').limit(5).populate('studentId', 'fullName avatarUrl ratingAvg'),
   ]);
   const toMap = (rows) => Object.fromEntries(rows.map((r) => [r._id, r.n]));
-  ok(res, { ...(await profile(req.user)), jobs: toMap(jobs), applications: toMap(apps), recentPending: recent });
+  ok(res, { ...(await profile(req.user)), jobs: toMap(jobs), applications: toMap(apps), recentPending: recent, tiers: TIERS });
 });
 
 // API-49

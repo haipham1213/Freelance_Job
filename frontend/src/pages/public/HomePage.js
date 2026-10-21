@@ -10,11 +10,12 @@ import { money, salary } from '../../utils/format';
 import { AuthContext } from '../../context/AuthContext';
 
 // Bốn cam kết an toàn, mỗi cam kết là một business rule backend đang chặn
-const PROMISES = [
+// t = meta.tiers của GET /plans (null khi chưa tải xong hoặc lỗi)
+const promises = (t) => [
   [Ban, 'Không phí, không đặt cọc', 'Nhà tuyển dụng không được thu tiền của sinh viên. Tin đòi đặt cọc bị ẩn, tài khoản lừa đảo bị khóa.'],
   [Lock, 'Liên hệ chỉ mở khi được nhận', 'Số điện thoại và email của hai bên chỉ hiện khi đơn đã được nhận, không lộ cho người lạ.'],
   [Star, 'Đánh giá từ người đã làm', 'Chỉ đơn đã hoàn thành mới được đánh giá, mỗi bên một lần trong 14 ngày.'],
-  [CalendarClock, 'Tin luôn còn hiệu lực', 'Tin tự hết hạn sau 14 ngày (30 ngày với Premium). Tin đã đủ người không còn hiện.'],
+  [CalendarClock, 'Tin luôn còn hiệu lực', `Tin tự hết hạn${t ? ` sau ${t.free.days} ngày (${t.premium.days} ngày với Premium)` : ''}. Tin đã đủ người không còn hiện.`],
 ];
 
 // Bảng so sánh với cách tìm việc qua group mạng xã hội; mỗi dòng ứng với một cam kết bên trái
@@ -39,27 +40,27 @@ const PERIOD = (p) => [0, 1, 2, 3, 4, 5, 6].map((d) => d * 3 + p);
 const TABS = [['all', 'Tất cả', null], ['morning', 'Buổi sáng', PERIOD(0)], ['afternoon', 'Buổi chiều', PERIOD(1)], ['evening', 'Buổi tối', PERIOD(2)], ['weekend', 'Cuối tuần', [15, 16, 17, 18, 19, 20]]];
 const HOME_JOBS = 6;
 const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const FAQ = [
+const faq = (t) => [
   ['Ứng tuyển có mất phí không?', 'Hoàn toàn miễn phí với sinh viên. Nhà tuyển dụng không được thu bất kỳ khoản phí nào của bạn.'],
   ['Bị yêu cầu đặt cọc hoặc đóng phí thì làm gì?', 'Đừng chuyển tiền. Bấm “Báo cáo tin này” ở trang chi tiết việc và chọn lý do “Lừa đảo / thu phí”. Quản trị viên xử lý theo 3 bậc: cảnh cáo, ẩn tin hoặc khóa tài khoản.'],
   ['Tôi cần chuẩn bị gì để ứng tuyển?', 'Đăng ký bằng email trường, điền hồ sơ và tải lên một CV PDF. CV này được dùng lại cho mọi đơn ứng tuyển.'],
   ['Làm sao biết nhà tuyển dụng đáng tin?', 'Mỗi nhà tuyển dụng có trang công khai với điểm đánh giá từ những sinh viên đã từng làm việc ở đó.'],
-  ['Nhà tuyển dụng đăng tin thế nào?', 'Mỗi tài khoản được đăng tối đa 3 tin miễn phí. Gói Premium nâng lên 20 tin, mỗi tin hiển thị 30 ngày và được ghim Nổi bật.'],
-];
+  t && ['Nhà tuyển dụng đăng tin thế nào?', `Mỗi tài khoản được đăng tối đa ${t.free.quota} tin miễn phí. Gói Premium nâng lên ${t.premium.quota} tin, mỗi tin hiển thị ${t.premium.days} ngày và được ghim Nổi bật.`],
+].filter(Boolean);
 
 class HomePage extends Component {
   static contextType = AuthContext;
   state = {
     q: '', categoryId: '', city: '', categories: [], locations: [], jobs: null, tab: 'all', loading: false,
-    total: 0, reviews: [], rating: null, plans: [], savedIds: new Set(),
+    total: 0, reviews: [], rating: null, plans: [], tiers: null, savedIds: new Set(),
   };
 
   async componentDidMount() {
     this.syncSaved();
     const [c, l, j, p] = await Promise.all([
-      api.get('/categories'), api.get('/jobs/locations'), api.get(`/jobs?limit=${HOME_JOBS}`), api.get('/plans').catch(() => ({ data: [] })),
+      api.get('/categories'), api.get('/jobs/locations'), api.get(`/jobs?limit=${HOME_JOBS}`), api.get('/plans').catch(() => ({ data: [], meta: {} })),
     ]);
-    this.setState({ categories: c.data, locations: l.data, jobs: j.data, total: j.meta?.total || j.data.length, plans: p.data });
+    this.setState({ categories: c.data, locations: l.data, jobs: j.data, total: j.meta?.total || j.data.length, plans: p.data, tiers: p.meta?.tiers || null });
     // Lời chứng thực thật: đánh giá của các nhà tuyển dụng đang đăng tin; điểm tính trên đúng những đánh giá đã tải
     const ids = [...new Set(j.data.map((x) => x.employerId))].slice(0, 6);
     const rs = (await Promise.all(ids.map((id) => api.get(`/users/${id}/reviews?limit=3`).catch(() => ({ data: [] }))))).flatMap((r) => r.data);
@@ -112,7 +113,7 @@ class HomePage extends Component {
   set = (k) => (e) => this.setState({ [k]: e.target.value });
 
   render() {
-    const { q, categoryId, city, categories, locations, jobs, tab, loading, total, reviews, rating, plans } = this.state;
+    const { q, categoryId, city, categories, locations, jobs, tab, loading, total, reviews, rating, plans, tiers } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const user = this.context.user;
     // Sinh viên đã đăng nhập không vào được /employer/* (403) → dẫn sang đăng ký tài khoản nhà tuyển dụng
@@ -250,7 +251,7 @@ class HomePage extends Component {
               <h2 id="gn-safe" className="gn-h2">An toàn là mặc định</h2>
               <p className="gn-safe-lede">Làm thêm qua group mạng xã hội dễ gặp tin đòi đặt cọc hay đóng phí đồng phục. Trên JobSV, những điều dưới đây được hệ thống chặn sẵn.</p>
               <dl className="gn-promises">
-                {PROMISES.map(([Icon, title, text]) => (
+                {promises(tiers).map(([Icon, title, text]) => (
                   <div key={title}>
                     <dt><Icon size={20} aria-hidden="true" />{title}</dt>
                     <dd>{text}</dd>
@@ -286,7 +287,7 @@ class HomePage extends Component {
                 [GraduationCap, 'Sinh viên', 'Tìm việc không mất phí', STUDENT_STEPS, 'Miễn phí hoàn toàn cho sinh viên.',
                   <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn btn-lg">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>],
                 [Building2, 'Nhà tuyển dụng', 'Tuyển sinh viên trong vài ngày', EMPLOYER_STEPS,
-                  `3 tin miễn phí, mỗi tin hiển thị 14 ngày.${plans.length ? ` Premium từ ${money(Math.min(...plans.map((p) => p.price)))} cho 20 tin.` : ''}`,
+                  tiers ? `${tiers.free.quota} tin miễn phí, mỗi tin hiển thị ${tiers.free.days} ngày.${plans.length ? ` Premium từ ${money(Math.min(...plans.map((p) => p.price)))} cho ${tiers.premium.quota} tin.` : ''}` : '',
                   <Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link>],
               ].map(([Icon, who, title, steps, note, cta]) => (
                 <article key={who} className="gn-panel">
@@ -330,7 +331,7 @@ class HomePage extends Component {
           <section className="gn-sec gn-faq" aria-labelledby="gn-faq">
             <h2 id="gn-faq" className="gn-h2">Câu hỏi thường gặp</h2>
             <div>
-              {FAQ.map(([question, answer]) => (
+              {faq(tiers).map(([question, answer]) => (
                 <details key={question}>
                   <summary>{question}<Plus size={20} aria-hidden="true" /></summary>
                   <p>{answer}</p>

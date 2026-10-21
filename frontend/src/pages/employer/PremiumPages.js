@@ -7,9 +7,9 @@ import { Spinner, Alert, PayBadge, Empty, Pagination } from '../../components/ui
 import { money, date, dateTime } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
-const COMPARE = [
-  ['Số tin đang mở cùng lúc', '3', '20'],
-  ['Thời gian hiển thị mỗi tin', '14 ngày', '30 ngày'],
+const compare = ({ free, premium }) => [
+  ['Số tin đang mở cùng lúc', `${free.quota}`, `${premium.quota}`],
+  ['Thời gian hiển thị mỗi tin', `${free.days} ngày`, `${premium.days} ngày`],
   ['Ghim “Nổi bật” đầu kết quả tìm kiếm', 'Không', true],
   ['Huy hiệu Premium trên trang công ty', 'Không', true],
 ];
@@ -17,8 +17,11 @@ const COMPARE = [
 // SCR-E08 / FR-PAY-01, FR-PAY-03
 export class PremiumPage extends Component {
   static contextType = AuthContext;
-  state = { plans: null, error: '', busy: '' };
-  async componentDidMount() { this.setState({ plans: (await api.get('/plans')).data }); }
+  state = { plans: null, tiers: null, error: '', busy: '' };
+  async componentDidMount() {
+    const r = await api.get('/plans');
+    this.setState({ plans: r.data, tiers: r.meta.tiers });
+  }
   buy = async (code) => {
     this.setState({ busy: code, error: '' });
     try {
@@ -29,9 +32,10 @@ export class PremiumPage extends Component {
     }
   };
   render() {
-    const { plans, error, busy } = this.state;
+    const { plans, tiers, error, busy } = this.state;
     const user = this.context.user;
     if (!plans) return <Spinner />;
+    const COMPARE = compare(tiers);
     return (
       <div className="container page stack-lg">
         <div className="stack emp-premium-head">

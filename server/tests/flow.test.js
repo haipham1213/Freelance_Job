@@ -56,6 +56,10 @@ test('luồng chính và các business rule quan trọng', async () => {
   assert.equal((await api('POST', '/auth/register', { fullName: 'X Y', email: 'b@test.vn', password: 'abcdefgh', role: 'STUDENT' })).status, 400);
   assert.equal((await api('POST', '/auth/login', { email: 'emp@test.vn', password: 'sai123456' })).status, 401);
 
+  // Frontend đọc giới hạn gói từ API, không tự ghi số
+  assert.deepEqual((await api('GET', '/plans')).body.meta.tiers, { free: { quota: 3, days: 14 }, premium: { quota: 20, days: 30 } });
+  assert.equal((await api('GET', '/employers/me/stats', null, 'emp')).body.data.tiers.free.quota, 3);
+
   const jobBody = {
     title: 'Nhân viên phục vụ ca tối', description: 'Phục vụ khách, dọn bàn, hỗ trợ quầy pha chế. Môi trường thân thiện, có đào tạo.',
     categoryId: String(cat._id), city: 'TP.HCM', district: 'Quận 1', salaryType: 'HOURLY', salaryMin: 25000, salaryMax: 30000,

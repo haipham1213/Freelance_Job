@@ -12,7 +12,7 @@ export default class EmployerHomePage extends Component {
   render() {
     const { data } = this.state;
     if (!data) return <Spinner />;
-    const { jobs, applications: apps, quota, isPremium, premiumUntil, company, recentPending, user } = data;
+    const { jobs, applications: apps, quota, isPremium, premiumUntil, company, recentPending, user, tiers: { free, premium } } = data;
     const hasCompany = company?.name && company?.address && company?.phone;
     const h = new Date().getHours();
     const hello = h < 11 ? 'Chào buổi sáng' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
@@ -77,7 +77,7 @@ export default class EmployerHomePage extends Component {
             <span className={`chip ${isPremium ? 'chip-featured' : ''}`}>{isPremium ? '★ Premium' : 'Gói miễn phí'}</span>
             <h2 className="h-md">{isPremium ? 'Bạn đang dùng Premium' : 'Tuyển nhanh hơn với Premium'}</h2>
             <p className="muted small">
-              {isPremium ? `Hiệu lực đến ${date(premiumUntil)}. Tin của bạn được ghim Nổi bật và hiển thị 30 ngày.` : 'Tối đa 3 tin đang mở, mỗi tin hiển thị 14 ngày. Premium: 20 tin, 30 ngày, ghim Nổi bật.'}
+              {isPremium ? `Hiệu lực đến ${date(premiumUntil)}. Tin của bạn được ghim Nổi bật và hiển thị ${premium.days} ngày.` : `Tối đa ${free.quota} tin đang mở, mỗi tin hiển thị ${free.days} ngày. Premium: ${premium.quota} tin, ${premium.days} ngày, ghim Nổi bật.`}
             </p>
             <Link to="/employer/premium" className="btn btn-block">{isPremium ? 'Gia hạn' : 'Nâng cấp Premium'}</Link>
           </aside>
