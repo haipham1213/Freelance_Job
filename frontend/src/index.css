@@ -1,4 +1,4 @@
-/* Hệ màu JobSV theo kiểu LinkedIn / Indeed: xanh dương tin cậy cho nút chính và link, lương chữ xanh lá trên nền
+/* Hệ màu UniShift theo kiểu LinkedIn / Indeed: xanh dương tin cậy cho nút chính và link, lương chữ xanh lá trên nền
    xanh lá nhạt (tiền = xanh lá, quen mắt người tìm việc), chữ gần đen trung tính, nền dải xanh xám rất nhạt.
    Bố cục giữ theo docs/DESIGN: viền thay cho bóng, bo 10px, một font Be Vietnam Pro. Đỏ chỉ cho lỗi và thao tác nguy hiểm. */
 :root {
@@ -152,8 +152,9 @@ a.accent:hover { text-decoration: underline; text-underline-offset: 3px; }
 .nav { position: sticky; top: 0; z-index: 20; background: var(--white); box-shadow: 0 1px 0 var(--line); }
 .nav-inner { display: flex; align-items: center; gap: 32px; height: 68px; }
 .logo { font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.025em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
-/* Logo: khung viền bo góc chứa icon cặp tài liệu, vạch cyan là điểm nhấn duy nhất */
-.logo-mark { width: 30px; height: 30px; border-radius: 9px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a66c2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='7' width='18' height='13' rx='2'/%3E%3Cpath d='M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2'/%3E%3Cpath d='M3 13h18' stroke='%2357d2ee'/%3E%3C/svg%3E") center / 17px no-repeat; box-shadow: inset 0 0 0 1.5px #d6d6d6; }
+/* Logo UniShift (thiết kế trên Canva, vẽ lại thành SVG): chữ U tách đôi, mũi tên Shift ở giữa; chữ "Shift" màu xanh lá của ca làm */
+.logo-mark { width: 28px; height: 34px; flex-shrink: 0; background: url("./assets/logo.svg") center / contain no-repeat; }
+.logo-shift { color: #1f9d4a; }
 .nav-links { display: flex; gap: 4px; flex: 1; }
 .nav-link { color: var(--ink); font-size: 16px; font-weight: 500; padding: 8px 12px; border-radius: var(--radius-ctl); }
 .nav-link:hover { background: var(--sand); }
@@ -426,9 +427,6 @@ body.page-canvas { background: #f4f6f9; }
 .sh-shifts { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13.5px; color: var(--body); }
 .sh-shifts li { display: inline-flex; align-items: center; gap: 5px; }
 .sh-shifts b { font-weight: 600; color: var(--ink); }
-.sh-shifts .jr-p0 svg { color: #d97706; }
-.sh-shifts .jr-p1 svg { color: #ea580c; }
-.sh-shifts .jr-p2 svg { color: #4f46e5; }
 .sh-flex { margin: 8px 0 0; font-size: 13.5px; color: var(--body); }
 
 .sh-more { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 24px; }
@@ -567,7 +565,7 @@ body.page-canvas { background: #f4f6f9; }
 .gn-promises { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 32px; margin: 36px 0 0; }
 .gn-promises dt { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
 .gn-promises dd { margin: 8px 0 0; font-size: 15px; line-height: 1.5; color: var(--body); }
-/* Bảng so sánh: cột JobSV chữ đen + dấu tích, cột group chữ xám + dấu chéo */
+/* Bảng so sánh: cột UniShift chữ đen + dấu tích, cột group chữ xám + dấu chéo */
 .gn-compare { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--stone-border); border-radius: 10px; overflow: hidden; font-size: 14px; line-height: 1.45; }
 .gn-compare th, .gn-compare td { padding: 16px 18px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); }
 .gn-compare thead th { border-top: 0; font-size: 13px; font-weight: 500; color: var(--muted); }
@@ -701,24 +699,47 @@ body.page-canvas { background: #f4f6f9; }
 
 .jx-split.wide { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 28px; align-items: start; }
 .jx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.jx-row { position: relative; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; grid-template-areas: 'logo head save' 'logo tags tags' 'foot foot foot';
-  column-gap: 16px; padding: 18px 20px 0; background: #fff; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); transition: border-color .15s, box-shadow .15s; }
-.jx-row:hover { border-color: #c7d3e3; box-shadow: 0 8px 24px rgba(16, 24, 40, .08); }
-.jx-row.on { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
-.jx-row .jx-logo { grid-area: logo; width: 56px; height: 56px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); }
-.jr-head { grid-area: head; min-width: 0; }
-.jr-title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.35; }
+/* Thẻ việc: logo trái; tên + công ty/quận; lương to; dải 7 ngày có ca + buổi; dòng tín hiệu phụ ngăn bằng đường mảnh */
+.jx-row { position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; grid-template-areas: 'logo head save' '. pay pay' '. sched sched' 'foot foot foot';
+  column-gap: 14px; padding: 18px 18px 0; background: #fff; border: 1px solid var(--line); border-radius: 16px; color: var(--ink);
+  transition: border-color .2s, box-shadow .2s, transform .2s cubic-bezier(.16, 1, .3, 1); }
+.jx-row:hover { border-color: #c7d3e3; box-shadow: 0 10px 28px -14px rgba(10, 102, 194, .3); transform: translateY(-1px); }
+.jx-row.on { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary), 0 10px 28px -14px rgba(10, 102, 194, .3); transform: none; }
+.jx-row .jx-logo { grid-area: logo; width: 48px; height: 48px; border-radius: 12px; background: var(--warm); box-shadow: inset 0 0 0 1px var(--line); }
+.jr-head { grid-area: head; min-width: 0; align-self: center; }
+.jr-title { margin: 0; font-size: 16.5px; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty; }
 /* Link tên việc phủ cả thẻ để bấm đâu cũng mở; nút tim nằm trên lớp phủ */
 .jr-link { color: var(--ink); }
-.jr-link::after { content: ''; position: absolute; inset: 0; border-radius: 14px; }
+.jr-link::after { content: ''; position: absolute; inset: 0; border-radius: 16px; }
 .jr-link:focus-visible { outline: none; }
 .jr-link:focus-visible::after { outline: 2px solid var(--link); outline-offset: 2px; }
 .jx-row:hover .jr-link { color: var(--primary); }
-.jr-company { display: block; margin-top: 3px; font-size: 14px; color: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jr-save { grid-area: save; position: relative; z-index: 1; align-self: start; width: 40px; height: 40px; display: grid; place-items: center; background: #fff; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); cursor: pointer; }
+.jr-company { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; margin: 4px 0 0; font-size: 14px; color: var(--muted); min-width: 0; }
+.jr-company > span:first-child { color: var(--body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.jr-where { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.jr-save { grid-area: save; position: relative; z-index: 1; align-self: start; width: 38px; height: 38px; display: grid; place-items: center; background: #fff; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); cursor: pointer; transition: color .15s, border-color .15s, transform .1s; }
 .jr-save:hover { border-color: #e11d48; color: #e11d48; }
+.jr-save:active { transform: scale(.94); }
 .jr-save.on { border-color: #fecdd3; background: #fff1f2; color: #e11d48; }
-/* Nhãn tròn: lương, địa điểm, ca làm theo buổi */
+
+.jr-salary { grid-area: pay; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--pay); font-variant-numeric: tabular-nums; }
+.jr-salary .jt-badge { margin: 0; font-size: 11.5px; letter-spacing: 0; }
+.jr-new { padding: 1px 8px; background: var(--primary-wash); border-radius: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0; color: var(--primary-dark); }
+
+/* Dải 7 ngày: ngày có ít nhất một ca tô xanh lá (màu tiền/ca làm), ngày trống chỉ là chữ mờ */
+.jr-sched { grid-area: sched; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 10px 0 16px; }
+.jr-days { list-style: none; margin: 0; padding: 0; display: flex; gap: 3px; }
+.jr-days li { min-width: 26px; padding: 3px 0; border-radius: 6px; font-size: 11.5px; font-weight: 600; text-align: center; color: var(--placeholder); background: var(--warm); }
+.jr-days li.on { background: var(--highlight); color: var(--pay); box-shadow: inset 0 0 0 1px var(--highlight-dark); }
+.jr-periods { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.jr-periods > span { display: inline-flex; align-items: center; gap: 5px; }
+.jr-p0 svg { color: #d97706; }
+.jr-p1 svg { color: #ea580c; }
+.jr-p2 svg { color: #4f46e5; }
+.jr-flex { gap: 6px; font-size: 13.5px; color: var(--body); }
+.jr-flex svg { color: var(--muted); }
+
+/* Nhãn viên thuốc (trang chi tiết việc) */
 .jr-tags { grid-area: tags; list-style: none; margin: 12px 0 16px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .jr-tag { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; background: #f2f4f7; border-radius: 999px; font-size: 13.5px; font-weight: 500; color: var(--ink); white-space: nowrap; }
 .jr-tag svg { flex-shrink: 0; color: var(--muted); }
@@ -727,17 +748,12 @@ body.page-canvas { background: #f4f6f9; }
 .jr-tag.jr-p0 svg { color: #d97706; }
 .jr-tag.jr-p1 svg { color: #ea580c; }
 .jr-tag.jr-p2 svg { color: #4f46e5; }
-/* Chân thẻ: tín hiệu để quyết định nhanh */
-.jr-foot { grid-area: foot; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin: 0 -20px; padding: 10px 20px; background: #f8fafc; border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; font-size: 13px; color: var(--muted); }
-.jr-foot > span { display: inline-flex; align-items: center; gap: 6px; }
+.jr-foot { grid-area: foot; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 11px 0 13px; border-top: 1px solid #eef0f3; font-size: 13px; color: var(--muted); }
+.jr-foot > span { display: inline-flex; align-items: center; gap: 5px; }
+.jr-foot .jx-fit { padding: 2px 8px; border-radius: 6px; background: var(--primary); color: #fff; font-size: 12.5px; font-weight: 700; }
+.jr-foot .jx-fit.flex { background: var(--sand); color: var(--body); }
 .jr-urgent { color: var(--alert); font-weight: 600; }
 .jr-urgent svg { color: var(--alert); }
-.jr-end { margin-left: auto; gap: 8px; }
-.jr-end:empty { display: none; }
-.jr-end .jt-badge { margin: 0; }
-.jr-new { padding: 1px 8px; background: var(--primary); border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #fff; }
-.jx-row:hover { border-color: var(--stone-border); }
-.jx-row.on { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); background: #fff; }
 .jx-logo { width: 52px; height: 52px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden; border-radius: 10px; background: var(--warm); color: var(--ink); }
 .jx-logo img { width: 100%; height: 100%; object-fit: cover; }
 .jx-logo-lg { width: 64px; height: 64px; }
@@ -788,10 +804,11 @@ body.page-canvas { background: #f4f6f9; }
   .jx-week-btn > span { max-width: 200px; }
   .jx-pop-body { width: min(280px, calc(100vw - 32px)); }
   /* Thẻ việc trên mobile: logo nhỏ lại, nhãn và chân thẻ trải hết chiều ngang */
-  .jx-row { grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: 'logo head save' 'tags tags tags' 'foot foot foot'; padding: 16px 16px 0; column-gap: 12px; }
-  .jx-row .jx-logo { width: 44px; height: 44px; }
+  .jx-row { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: 'logo head save' 'pay pay pay' 'sched sched sched' 'foot foot foot'; padding: 14px 14px 0; column-gap: 12px; }
+  .jx-row .jx-logo { width: 40px; height: 40px; border-radius: 10px; }
   .jr-title { font-size: 16px; }
-  .jr-foot { margin: 0 -16px; padding: 10px 16px; }
+  .jr-days li { min-width: 0; flex: 1; }
+  .jr-days { flex: 1 1 100%; }
 }
 
 /* Hero trang chủ kiểu Revolut: bầu trời xanh phủ kín, khung điện thoại viền trắng hiện một tin thật */
@@ -952,7 +969,7 @@ body.page-canvas { background: #f4f6f9; }
 .foot-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 32px; padding-top: 40px; padding-bottom: 32px; }
 .foot-brand p { margin: 10px 0 12px; max-width: 320px; color: #b0b7bf; }
 .footer .logo { color: #fff; }
-.footer .logo-mark { background-color: #fff; }
+.footer .logo-shift { color: #3fd68a; }
 .foot-col { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
 .foot-col strong { color: #fff; margin-bottom: 4px; }
 .foot-col a, .foot-col span { color: #b0b7bf; }

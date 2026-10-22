@@ -63,7 +63,7 @@ export const PrivacyPage = () => (
       'Mỗi email đều có link hủy nhận. Hủy xong, đăng ký của bạn bị xóa.',
     ]],
     ['thanh-toan', 'Thanh toán', [
-      'Thanh toán Premium được xử lý tại cổng VNPay. JobSV không nhận và không lưu thông tin thẻ.',
+      'Thanh toán Premium được xử lý tại cổng VNPay. UniShift không nhận và không lưu thông tin thẻ.',
     ]],
   ]} />
 );

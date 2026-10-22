@@ -18,7 +18,7 @@ class AdminLayout extends Component {
     return (
       <div className="admin-shell">
         <aside className="sidebar">
-          <Link to="/" className="logo adm-logo"><span className="logo-mark" />jobsv <span className="chip tiny">Admin</span></Link>
+          <Link to="/" className="logo adm-logo"><span className="logo-mark" aria-hidden="true" /><span>Uni<span className="logo-shift">Shift</span></span> <span className="chip tiny">Admin</span></Link>
           {MENU.map(([to, Icon, label]) => (
             <NavLink key={to} to={to} end className="side-link"><Icon size={18} className="adm-ico" aria-hidden="true" />{label}</NavLink>
           ))}

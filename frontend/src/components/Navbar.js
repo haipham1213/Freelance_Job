@@ -127,7 +127,7 @@ class Navbar extends Component {
       )}
       <header className="nav">
         <div className="container nav-inner">
-          <Link to="/" className="logo"><span className="logo-mark" />jobsv</Link>
+          <Link to="/" className="logo" aria-label="UniShift, về trang chủ"><span className="logo-mark" aria-hidden="true" /><span>Uni<span className="logo-shift">Shift</span></span></Link>
           <nav className={`nav-links ${this.state.open ? 'open' : ''}`}>
             {links.map(([to, label]) => <NavLink key={to} to={to} end className="nav-link">{label}</NavLink>)}
           </nav>

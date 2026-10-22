@@ -77,24 +77,29 @@ export const saveToggler = (comp) => async (id, saved) => {
   await (saved ? api.del : api.put)(`/students/me/saved-jobs/${id}`).catch(() => flip(saved));
 };
 
-// Thẻ việc kiểu sàn tuyển dụng (trang Tìm việc, trang chủ). Cả thẻ bấm được nhờ link tên việc phủ toàn thẻ (::after),
-// nút tim nằm trên lớp đó. Chân thẻ là tín hiệu để quyết định nhanh: hợp lịch, số ứng viên, chỗ còn lại, hạn nộp, tin mới.
-// Lưu tin: sinh viên truyền onSave + saved; khách truyền saveHref (dẫn đi đăng nhập); nhà tuyển dụng không truyền gì.
+// Thẻ việc (trang Tìm việc, việc tương tự). Đọc từ trên xuống theo thứ tự sinh viên quyết định: việc gì ở đâu, lương bao nhiêu,
+// làm ngày nào buổi nào (dải 7 ngày, ngày có ca tô xanh), rồi các tín hiệu phụ trên một dòng mảnh. Cả thẻ bấm được nhờ link tên việc
+// phủ toàn thẻ (::after), nút tim nằm trên lớp đó. Lưu tin: sinh viên truyền onSave + saved; khách truyền saveHref; nhà tuyển dụng không truyền gì.
 const JobRow = ({ job: j, category, on, onClick, badge = true, saved, onSave, saveHref }) => {
   const Icon = categoryIcon(category);
   const left = j.slots - (j.acceptedCount || 0);
   const daysLeft = Math.ceil((new Date(j.expiresAt) - Date.now()) / DAY);
   const isNew = Date.now() - new Date(j.createdAt) < 2 * DAY;
+  const featured = badge && j.isFeatured;
+  const workDays = new Set((j.shifts || []).map((i) => Math.floor(i / 3)));
   return (
     <article className={`jx-row ${on ? 'on' : ''}`}>
       <span className="jx-logo">
-        {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="56" height="56" loading="lazy" /> : <Icon size={22} aria-hidden="true" />}
+        {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="48" height="48" loading="lazy" /> : <Icon size={22} aria-hidden="true" />}
       </span>
       <div className="jr-head">
         <h3 className="jr-title">
           <Link to={`/jobs/${j._id}`} className="jr-link" aria-current={on ? 'true' : undefined} onClick={onClick}>{j.title}</Link>
         </h3>
-        <span className="jr-company">{j.companySnapshot?.name}</span>
+        <p className="jr-company">
+          <span>{j.companySnapshot?.name}</span>
+          <span className="jr-where"><MapPin size={13} aria-hidden="true" />{j.district || j.city}</span>
+        </p>
       </div>
       {onSave ? (
         <button type="button" className={`jr-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={saved ? 'Bỏ lưu tin' : 'Lưu tin'} onClick={() => onSave(j._id, saved)}>
@@ -103,25 +108,21 @@ const JobRow = ({ job: j, category, on, onClick, badge = true, saved, onSave, sa
       ) : saveHref && (
         <Link to={saveHref} className="jr-save" aria-label="Đăng nhập để lưu tin"><Heart size={18} aria-hidden="true" /></Link>
       )}
-      <ul className="jr-tags">
-        <li className="jr-tag jr-pay">{salary(j)}</li>
-        <li className="jr-tag"><MapPin size={14} aria-hidden="true" />{j.district || j.city}</li>
-        {j.shifts?.length > 0
-          ? shiftParts(j.shifts).map((p) => {
-            const PIcon = PERIOD_ICON[p.period];
-            return <li key={p.period} className={`jr-tag jr-p${p.period}`}><PIcon size={15} aria-hidden="true" /><b>{p.label}</b>{p.days}</li>;
-          })
-          : j.schedule && <li className="jr-tag"><Clock size={14} aria-hidden="true" />{j.schedule}</li>}
-      </ul>
+      <p className="jr-salary">{salary(j)}{featured && <span className="jt-badge">Nổi bật</span>}{isNew && <span className="jr-new">Mới</span>}</p>
+      {j.shifts?.length > 0 ? (
+        <div className="jr-sched">
+          <ol className="jr-days" aria-hidden="true">{DAYS.map((d, i) => <li key={d} className={workDays.has(i) ? 'on' : ''}>{d}</li>)}</ol>
+          <span className="jr-periods" aria-hidden="true">
+            {shiftParts(j.shifts).map((p) => { const PIcon = PERIOD_ICON[p.period]; return <span key={p.period} className={`jr-p${p.period}`}><PIcon size={15} />{p.label}</span>; })}
+          </span>
+          <span className="sr-only">Ca làm: {shiftText(j)}</span>
+        </div>
+      ) : j.schedule && <p className="jr-sched jr-flex"><Clock size={15} aria-hidden="true" />{j.schedule}</p>}
       <div className="jr-foot">
         <FitBadge job={j} />
         <span><Users size={14} aria-hidden="true" />{j.applicationCount ? `${j.applicationCount} ứng viên` : 'Ứng tuyển đầu tiên'}</span>
         <span>{left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'}</span>
         <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={14} aria-hidden="true" />{daysLeft <= 0 ? 'Hết hạn hôm nay' : `Còn ${daysLeft} ngày`}</span>
-        <span className="jr-end">
-          {isNew && <span className="jr-new">Mới</span>}
-          {badge && j.isFeatured && <span className="jt-badge">Nổi bật</span>}
-        </span>
       </div>
     </article>
   );

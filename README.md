@@ -1,4 +1,4 @@
-# JobSV – Marketplace việc làm part-time cho sinh viên
+# UniShift – Marketplace việc làm part-time cho sinh viên
 
 Đồ án Chuyên đề tốt nghiệp 2. Tài liệu: `docs/` (kế hoạch, SRS, backlog, thiết kế giao diện).
 

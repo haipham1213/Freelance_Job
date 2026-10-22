@@ -12,7 +12,7 @@ const Footer = () => (
   <footer className="footer">
     <div className="container foot-grid">
       <div className="foot-brand">
-        <Link to="/" className="logo"><span className="logo-mark" />jobsv</Link>
+        <Link to="/" className="logo" aria-label="UniShift, về trang chủ"><span className="logo-mark" aria-hidden="true" /><span>Uni<span className="logo-shift">Shift</span></span></Link>
         <p className="muted small">Việc làm part-time an toàn, minh bạch cho sinh viên. Lương và ca làm công khai trước khi ứng tuyển.</p>
       </div>
       {GROUPS.map(([title, links]) => (
@@ -23,7 +23,7 @@ const Footer = () => (
       ))}
     </div>
     <div className="foot-bar">
-      <div className="container">© {new Date().getFullYear()} JobSV. Đồ án Chuyên đề tốt nghiệp 2, Trường ĐH Văn Lang.</div>
+      <div className="container">© {new Date().getFullYear()} UniShift. Đồ án Chuyên đề tốt nghiệp 2, Trường ĐH Văn Lang.</div>
     </div>
   </footer>
 );

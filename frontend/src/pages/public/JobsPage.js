@@ -215,7 +215,7 @@ class JobsPage extends Component {
               <button className="btn btn-lg">Tìm việc</button>
             </form>
 
-            {/* Hàng bộ lọc cùng một kiểu nút; lịch học đứng đầu vì là bộ lọc đặc trưng của JobSV */}
+            {/* Hàng bộ lọc cùng một kiểu nút; lịch học đứng đầu vì là bộ lọc đặc trưng của UniShift */}
             <div className="jx-filters" aria-label="Bộ lọc">
               <button type="button" className={`jx-fbtn jx-week-btn ${form.busy ? 'on' : ''}`} aria-expanded={!!week} aria-controls="jx-week"
                 onClick={() => (week ? this.setState({ week: null }) : this.openWeek())}>

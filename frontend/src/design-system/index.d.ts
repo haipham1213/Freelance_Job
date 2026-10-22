@@ -170,7 +170,7 @@ export interface JobCardProps {
 /** Thẻ tin tuyển dụng trắng viền mảnh: logo, tiêu đề, công ty, lương, địa điểm, ca làm. Bấm mở /jobs/:id. Cần nằm trong Router. */
 export declare const JobCard: (props: JobCardProps) => JSX.Element;
 
-/** Chân trang 4 cột với logo JobSV và các link. Cần nằm trong Router. */
+/** Chân trang 4 cột với logo UniShift và các link. Cần nằm trong Router. */
 export declare const Footer: () => JSX.Element;
 
 /** Cụm minh họa trái của hero: hoa mặt vuông, sao, tim, đồng xu. Đặt absolute hai bên tiêu đề, class `hero-illo left`. */

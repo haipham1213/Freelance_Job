@@ -140,7 +140,7 @@ const ForYou = ({ user, data, catName, save }) => {
           {!data.jobs.length ? <p className="muted">Chưa có việc nào còn ca rảnh so với lịch học của bạn.</p> : (
             <ol className="sh-list">{data.jobs.map((j, i) => <ShiftRow key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} i={i} />)}</ol>
           )}
-          {!busy.length && <p className="fy-hint">Tô các buổi có tiết học để JobSV chỉ gợi ý việc không trùng giờ. <Link to="/jobs#lich-hoc" className="gn-link">Tô lịch học</Link></p>}
+          {!busy.length && <p className="fy-hint">Tô các buổi có tiết học để UniShift chỉ gợi ý việc không trùng giờ. <Link to="/jobs#lich-hoc" className="gn-link">Tô lịch học</Link></p>}
         </div>
       </div>
     </section>
@@ -387,7 +387,7 @@ class HomePage extends Component {
           {/* ③ Nhà tuyển dụng đang có tin mở: logo + tên + số tin, bấm vào sang trang công ty */}
           {employers.length > 0 && (
             <section className="gn-sec-tight" aria-labelledby="gn-emp">
-              <h2 id="gn-emp" className="gn-h3">Đang tuyển trên JobSV</h2>
+              <h2 id="gn-emp" className="gn-h3">Đang tuyển trên UniShift</h2>
               <ul className="em-grid">
                 {employers.map((e) => (
                   <li key={e._id}>
@@ -423,7 +423,7 @@ class HomePage extends Component {
           <div className="container gn-safe-grid">
             <div>
               <h2 id="gn-safe" className="gn-h2">An toàn là mặc định</h2>
-              <p className="gn-safe-lede">Làm thêm qua group mạng xã hội dễ gặp tin đòi đặt cọc hay đóng phí đồng phục. Trên JobSV, những điều dưới đây được hệ thống chặn sẵn.</p>
+              <p className="gn-safe-lede">Làm thêm qua group mạng xã hội dễ gặp tin đòi đặt cọc hay đóng phí đồng phục. Trên UniShift, những điều dưới đây được hệ thống chặn sẵn.</p>
               <dl className="gn-promises">
                 {promises(tiers).map(([Icon, title, text]) => (
                   <div key={title}>
@@ -434,14 +434,14 @@ class HomePage extends Component {
               </dl>
             </div>
             <table className="gn-compare">
-              <caption className="sr-only">So sánh tìm việc qua group mạng xã hội và qua JobSV</caption>
-              <thead><tr><th scope="col">Tình huống</th><th scope="col">Group mạng xã hội</th><th scope="col">JobSV</th></tr></thead>
+              <caption className="sr-only">So sánh tìm việc qua group mạng xã hội và qua UniShift</caption>
+              <thead><tr><th scope="col">Tình huống</th><th scope="col">Group mạng xã hội</th><th scope="col">UniShift</th></tr></thead>
               <tbody>
-                {COMPARE.map(([when, group, jobsv]) => (
+                {COMPARE.map(([when, group, ours]) => (
                   <tr key={when}>
                     <th scope="row">{when}</th>
                     <td className="gn-compare-no" data-label="Group mạng xã hội"><X size={16} aria-hidden="true" />{group}</td>
-                    <td className="gn-compare-yes" data-label="JobSV"><Check size={16} aria-hidden="true" />{jobsv}</td>
+                    <td className="gn-compare-yes" data-label="UniShift"><Check size={16} aria-hidden="true" />{ours}</td>
                   </tr>
                 ))}
               </tbody>
@@ -526,7 +526,7 @@ class HomePage extends Component {
           ) : (
             <>
               <h2 id="gn-end" className="gn-h2">Nhận việc mới hợp lịch qua email</h2>
-              <p>{busyOf(user).length ? `Khi có tin còn ca rảnh so với lịch học bạn đã tô (bận ${describeShifts(busyOf(user))}), JobSV gửi email cho bạn.` : 'Có tin mới là JobSV gửi email cho bạn. Tô lịch học ở trang Tìm việc để chỉ nhận việc không trùng giờ.'} Hủy bất cứ lúc nào.</p>
+              <p>{busyOf(user).length ? `Khi có tin còn ca rảnh so với lịch học bạn đã tô (bận ${describeShifts(busyOf(user))}), UniShift gửi email cho bạn.` : 'Có tin mới là UniShift gửi email cho bạn. Tô lịch học ở trang Tìm việc để chỉ nhận việc không trùng giờ.'} Hủy bất cứ lúc nào.</p>
               {alertState === 'done' ? (
                 <p className="al-done" role="status"><Bell size={18} aria-hidden="true" />Đã đăng ký. Việc mới sẽ được gửi tới {alertEmail}.</p>
               ) : (
