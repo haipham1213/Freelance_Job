@@ -26,6 +26,7 @@ export default class EmployerHomePage extends Component {
       <div className="container page stack-lg">
         <header className="emp-head" style={{ marginBottom: 0 }}>
           <div>
+            <span className="eyebrow eyebrow-dot">Nhà tuyển dụng</span>
             <h1 className="display">{hello}, {user.fullName.trim().split(' ').pop()}</h1>
             <p className="muted">{company?.name ? `Quản lý tuyển dụng của ${company.name}` : 'Hoàn thiện hồ sơ công ty để bắt đầu tuyển người.'}</p>
           </div>

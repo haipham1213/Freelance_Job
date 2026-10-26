@@ -31,6 +31,7 @@ export default class MyJobsPage extends Component {
       <div className="container page">
         <header className="emp-head" style={{ marginBottom: 16 }}>
           <div>
+            <span className="eyebrow eyebrow-dot">Nhà tuyển dụng</span>
             <h1 className="display">Tin tuyển dụng</h1>
             <p className="muted">{meta ? `${meta.total} tin. ` : ''}Theo dõi ứng viên, sửa, đóng hoặc mở lại tin.</p>
           </div>

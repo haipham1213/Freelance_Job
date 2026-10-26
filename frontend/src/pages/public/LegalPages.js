@@ -7,16 +7,30 @@ const Legal = ({ title, updated, sections }) => {
   // Link từ footer kiểu /dieu-khoan#bao-cao: cuộn tới mục sau khi trang hiện ra
   useEffect(() => { if (hash) document.getElementById(hash.slice(1))?.scrollIntoView(); }, [hash]);
   return (
-    <div className="container page lg-page">
-      <h1 className="display">{title}</h1>
-      <p className="muted">Cập nhật lần cuối: {updated}</p>
-      {sections.map(([id, h, items]) => (
-        <section key={id} id={id} className="lg-sec">
-          <h2 className="h-md">{h}</h2>
-          <ul>{items.map((t) => <li key={t}>{t}</li>)}</ul>
-        </section>
-      ))}
-      <p className="muted small">Có câu hỏi? Xem <Link to="/#hoi-dap" className="accent">Hỏi đáp</Link> ở trang chủ.</p>
+    <div className="container page">
+      <header className="pub-page-head pub-legal-head">
+        <div>
+          <span className="eyebrow">Pháp lý</span>
+          <h1 className="display">{title}</h1>
+        </div>
+        <p className="fog small">Cập nhật lần cuối: {updated}</p>
+      </header>
+      {/* Mục lục dính bên trái, các mục đánh số bên phải ngăn bằng vạch mảnh */}
+      <div className="pub-legal">
+        <nav className="pub-legal-toc" aria-label="Mục lục">
+          {sections.map(([id, h]) => <a key={id} href={`#${id}`}>{h}</a>)}
+        </nav>
+        <div>
+          {sections.map(([id, h, items], i) => (
+            <section key={id} id={id} className="pub-legal-sec">
+              <span className="pub-legal-num">{String(i + 1).padStart(2, '0')}</span>
+              <h2 className="pub-legal-h">{h}</h2>
+              <ul>{items.map((t) => <li key={t}>{t}</li>)}</ul>
+            </section>
+          ))}
+          <p className="muted small pub-legal-foot">Có câu hỏi? Xem <Link to="/#hoi-dap" className="text-link">Hỏi đáp</Link> ở trang chủ.</p>
+        </div>
+      </div>
     </div>
   );
 };

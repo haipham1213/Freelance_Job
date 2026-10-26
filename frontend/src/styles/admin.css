@@ -1,21 +1,24 @@
-/* Admin console (DESIGN Goodnotes): dày thông tin, viền mảnh thay bóng, đơn sắc; cyan chỉ cho nút chính */
+/* Cùng scope với index.css để thứ tự khai báo quyết định khi trùng độ ưu tiên (hero nằm ngoài, xem hero.css) */
+@scope (:root) to (.rv-hero) {
+
+/* Admin console: thanh bên abyss, nội dung trên nền obsidian; bảng nằm trong thẻ mint (.card), số liệu trên thẻ abyss */
 .adm-logo { padding: 0 8px 18px; font-size: 22px; }
 .adm-logo .chip { margin-left: 2px; }
 .adm-ico { flex-shrink: 0; }
-.adm-side-foot { margin-top: 24px; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.adm-side-foot { margin-top: 24px; background: var(--sand); border-radius: var(--radius); box-shadow: var(--hairline); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .adm-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .admin-main { background: var(--page-bg); }
 .admin-main .adm-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-.adm-title { font-size: clamp(26px, 3vw, 32px); line-height: 1.15; letter-spacing: -0.035em; }
+.adm-title { font-size: clamp(28px, 3vw, 40px); line-height: 1.1; letter-spacing: -0.03em; }
 .adm-sub { margin: 6px 0 0; font-size: 15px; color: var(--muted); }
 
 .adm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.adm-stat { display: flex; gap: 14px; align-items: flex-start; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 20px; color: var(--ink); }
-.adm-stat-link:hover { box-shadow: inset 0 0 0 1px var(--ink); }
-.adm-stat-ico { width: 40px; height: 40px; border-radius: var(--radius-ctl); background: var(--warm); color: var(--ink); display: grid; place-items: center; flex-shrink: 0; }
-.adm-stat-label { font-size: 14px; color: var(--body); font-weight: 500; }
-.adm-stat-num { font-size: 32px; font-weight: 700; letter-spacing: -0.035em; color: var(--ink); line-height: 1.15; margin: 2px 0; }
+.adm-stat { display: flex; gap: 16px; align-items: flex-start; background: var(--white); border-radius: var(--radius); box-shadow: var(--hairline); padding: 24px; color: var(--ink); }
+.adm-stat-link:hover { box-shadow: inset 0 0 0 1px var(--neon); }
+.adm-stat-ico { width: 40px; height: 40px; border-radius: 999px; background: var(--sand); color: var(--neon); display: grid; place-items: center; flex-shrink: 0; }
+.adm-stat-label { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+.adm-stat-num { font-size: 44px; font-weight: 500; letter-spacing: -0.04em; color: var(--ink); line-height: 1; margin: 12px 0 8px; font-variant-numeric: tabular-nums; }
 
 .adm-chart { padding: 24px; }
 .adm-chart .bar-chart { height: 200px; margin-top: 12px; }
@@ -27,22 +30,21 @@
 /* Thanh công cụ: tìm kiếm + select + tab, nằm thẳng trên bảng, không khung */
 .adm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .adm-toolbar-end { margin-left: auto; gap: 12px; }
-.adm-search { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 360px; height: 38px; padding: 0 12px; border-radius: var(--radius-ctl); box-shadow: inset 0 0 0 1px var(--stone-border); color: var(--muted); }
+.adm-search { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 360px; height: 40px; padding: 0 16px; background: #fff; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--stone-border); color: var(--muted); }
 .adm-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 3px var(--aqua-mist); }
 .adm-search input { border: 0; outline: none; background: transparent; width: 100%; color: var(--ink); font-size: 14px; }
 .adm-search input::placeholder { color: var(--placeholder); }
-.adm-month { width: auto; padding: 7px 12px; font-size: 14px; }
 
 .adm-table-card { padding: 0; overflow: hidden; }
 .adm-table-card .table th { padding: 10px 14px; font-size: 13px; }
 .adm-table-card .table td { padding: 10px 14px; }
 .adm-add { margin: 0 0 12px; }
 .adm-add .input { box-shadow: none; }
-.adm-cat-img { width: 40px; height: 40px; border-radius: var(--radius-ctl); object-fit: cover; }
+.adm-cat-img { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; }
 .adm-plan { gap: 0; }
 .adm-plan-on { box-shadow: inset 0 0 0 1px var(--stone-border); }
 /* Thao tác nguy hiểm trong bảng: nút viền đỏ nhạt, chữ đỏ */
-.btn-ghost.adm-danger { color: var(--alert); box-shadow: inset 0 0 0 1px #eba7a3; }
+.btn-ghost.adm-danger { color: var(--alert); box-shadow: inset 0 0 0 1.5px var(--alert); }
 .btn-ghost.adm-danger:hover { background: var(--alert-wash); }
 .adm-warn { color: var(--alert); }
 
@@ -59,7 +61,9 @@
   .adm-table-card .table td { white-space: nowrap; }
   .adm-stats { gap: 12px; }
   .adm-stat { flex-direction: column; gap: 8px; padding: 16px; }
-  .adm-toolbar .tabs { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+  .adm-stat-num { font-size: 32px; }
   .adm-toolbar .tab { flex-shrink: 0; white-space: nowrap; }
   .adm-add { flex-direction: row; }
+}
+
 }

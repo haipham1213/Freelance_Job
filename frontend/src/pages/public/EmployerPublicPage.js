@@ -9,6 +9,8 @@ import ErrorPage from './ErrorPage';
 import { date, timeAgo } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
+const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
 // SCR-C06 / FR-PRO-04
 class EmployerPublicPage extends Component {
   static contextType = AuthContext;
@@ -31,45 +33,48 @@ class EmployerPublicPage extends Component {
     const user = this.context.user;
     return (
       <div className="container page">
-        <header className="card">
-          <div className="pub-company-body">
-            <div className="pub-logo-lg">
-              {c.logoUrl ? <img src={c.logoUrl} alt="" /> : (c.name || employer.fullName || '?')[0]}
-            </div>
-            <div className="stack" style={{ minWidth: 0, flex: 1 }}>
-              <div className="row">
-                <h1 className="display">{c.name || employer.fullName}</h1>
-                {employer.isPremium && <span className="chip chip-featured">★ Premium</span>}
-              </div>
-              <Stars value={employer.ratingAvg} count={employer.ratingCount} />
-              <div className="job-meta">
-                {c.address && <span className="ico-row"><MapPin size={16} />{[c.address, c.district, c.city].filter(Boolean).join(', ')}</span>}
-                {c.website && <a href={c.website} target="_blank" rel="noreferrer" className="ico-row accent"><Globe size={16} />{c.website}</a>}
-                <span>Tham gia {date(employer.createdAt)}</span>
-              </div>
-            </div>
-            {user && user.role !== 'ADMIN' && String(user._id) !== String(employer._id) && (
-              <button className="btn-link small ico-row" style={{ color: 'var(--muted)' }} onClick={() => this.setState({ report: true })}><Flag size={14} />Báo cáo</button>
-            )}
+        {/* Đầu trang trên nền tối: logo, tên, địa chỉ; dưới là hàng số liệu chia vạch dọc */}
+        <header className="pub-co-head">
+          <div className="pub-logo-lg">
+            {c.logoUrl ? <img src={c.logoUrl} alt="" /> : (c.name || employer.fullName || '?')[0]}
           </div>
+          <div className="pub-co-main">
+            {employer.isPremium && <span className="chip chip-featured">★ Premium</span>}
+            <h1 className="display">{c.name || employer.fullName}</h1>
+            <div className="pub-co-meta">
+              {c.address && <span className="ico-row"><MapPin size={16} aria-hidden="true" />{[c.address, c.district, c.city].filter(Boolean).join(', ')}</span>}
+              {c.website && <a href={c.website} target="_blank" rel="noreferrer" className="ico-row text-link"><Globe size={16} aria-hidden="true" />{c.website}</a>}
+            </div>
+          </div>
+          {user && user.role !== 'ADMIN' && String(user._id) !== String(employer._id) && (
+            <button className="btn btn-ghost btn-sm" onClick={() => this.setState({ report: true })}><Flag size={14} aria-hidden="true" />Báo cáo</button>
+          )}
         </header>
 
+        <dl className="stat-row pub-co-stats">
+          <div><dt className="pub-co-stat-label">Đang tuyển</dt><dd className="stat-num">{openJobs.length}</dd></div>
+          <div><dt className="pub-co-stat-label">Đánh giá</dt><dd className="stat-num">{employer.ratingCount ? rating1.format(employer.ratingAvg) : '–'}</dd><dd className="stat-label">{employer.ratingCount ? `${employer.ratingCount} đánh giá` : 'Chưa có đánh giá'}</dd></div>
+          <div><dt className="pub-co-stat-label">Tham gia</dt><dd className="stat-num pub-co-date">{date(employer.createdAt)}</dd></div>
+        </dl>
+
         {c.description && (
-          <section className="card section">
-            <h2 className="pub-sec" style={{ marginTop: 0 }}>Giới thiệu công ty</h2>
-            <p className="pre muted" style={{ margin: 0 }}>{c.description}</p>
+          <section className="pub-row" aria-labelledby="pub-about">
+            <h2 id="pub-about" className="pub-row-label">Giới thiệu công ty</h2>
+            <p className="pre pub-row-text">{c.description}</p>
           </section>
         )}
 
-        <section className="section">
-          <h2 className="h-lg">Đang tuyển ({openJobs.length})</h2>
+        <section className="pub-sec-block" aria-labelledby="pub-open">
+          <span className="eyebrow">Việc làm</span>
+          <h2 id="pub-open" className="display">Đang tuyển ({openJobs.length})</h2>
           {openJobs.length ? (
             <div className="jobs-grid">{openJobs.map((j) => <JobTile key={j._id} job={j} badge />)}</div>
-          ) : <div className="card" style={{ marginTop: 16 }}><Empty title="Chưa có tin đang tuyển" /></div>}
+          ) : <div className="card" style={{ marginTop: 24 }}><Empty title="Chưa có tin đang tuyển" /></div>}
         </section>
 
-        <section className="section">
-          <h2 className="h-lg">Đánh giá từ sinh viên</h2>
+        <section className="pub-sec-block" aria-labelledby="pub-reviews">
+          <span className="eyebrow">Đánh giá</span>
+          <h2 id="pub-reviews" className="display">Đánh giá từ sinh viên</h2>
           {!reviews.length && <p className="muted" style={{ marginTop: 16 }}>Chưa có đánh giá nào.</p>}
           <div className="pub-grid">
             {reviews.map((r) => (

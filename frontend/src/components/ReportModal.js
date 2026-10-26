@@ -31,7 +31,7 @@ export default class ReportModal extends Component {
         <form className="stack" onSubmit={this.submit}>
           <div className="stack" role="radiogroup" aria-label="Lý do">
             {Object.entries(REPORT_REASONS).map(([k, v]) => (
-              <label key={k} className="row" style={{ gap: 8, cursor: 'pointer' }}>
+              <label key={k} className="radio-row">
                 <input type="radio" name="reason" checked={this.state.reason === k} onChange={() => this.setState({ reason: k })} /> {v}
               </label>
             ))}

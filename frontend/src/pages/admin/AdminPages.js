@@ -5,10 +5,17 @@ import { api, qs } from '../../api';
 import { Spinner, Empty, Pagination, Tabs, Alert, ReasonModal, JobBadge, PayBadge, Stars, Field, Modal } from '../../components/ui';
 import { money, shortMoney, date, dateTime, ROLE, REPORT_REASONS, jobStatusOf } from '../../utils/format';
 
+// 12 tháng gần nhất dạng YYYY-MM cho bộ lọc giao dịch
+const MONTHS = Array.from({ length: 12 }, (_, i) => {
+  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+});
+
 // Tiêu đề trang quản trị: gọn, tiêu đề + mô tả một dòng + hành động bên phải
 const Head = ({ title, sub, children }) => (
   <div className="adm-head">
     <div style={{ flex: 1, minWidth: 0 }}>
+      <span className="eyebrow eyebrow-dot">Quản trị</span>
       <h1 className="adm-title">{title}</h1>
       {sub && <p className="muted adm-sub">{sub}</p>}
     </div>
@@ -478,7 +485,10 @@ export class AdminPaymentsPage extends ListPage {
           <div className="adm-toolbar">
             <Tabs items={[['', 'Tất cả'], ['SUCCESS', 'Thành công'], ['PENDING', 'Đang xử lý'], ['FAILED', 'Thất bại']]} value={f.status || ''} onChange={(status) => this.filter({ status })} />
             <div className="row adm-toolbar-end">
-              <input className="input adm-month" type="month" value={f.month || ''} onChange={(e) => this.filter({ month: e.target.value })} aria-label="Lọc theo tháng" />
+              <select className="pill-select" value={f.month || ''} onChange={(e) => this.filter({ month: e.target.value })} aria-label="Lọc theo tháng">
+                <option value="">Mọi tháng</option>
+                {MONTHS.map((m) => <option key={m} value={m}>Tháng {+m.slice(5)}/{m.slice(0, 4)}</option>)}
+              </select>
               {meta && <span className="muted">Doanh thu: <strong>{money(meta.revenue)}</strong></span>}
             </div>
           </div>

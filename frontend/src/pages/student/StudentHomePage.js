@@ -33,6 +33,7 @@ export default class StudentHomePage extends Component {
       <div className="container page">
         <header className="stu-head">
           <div className="stu-head-text">
+            <span className="eyebrow eyebrow-dot">Sinh viên</span>
             <h1 className="display">{greeting()}, {u.fullName.trim().split(' ').pop()}</h1>
             <p className="muted">Hôm nay bạn muốn tìm ca làm nào?</p>
           </div>

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { ArrowLeft, Building2, Check, ChevronDown, Inbox, Search } from 'lucide-react';
+import { ArrowLeft, Building2, Check, ChevronDown, Inbox, Search, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { APP_STATUS, JOB_STATUS, PAY_STATUS, DAYS, DAY_NAMES, PERIODS } from '../utils/format';
 
@@ -133,7 +133,7 @@ export class Modal extends Component {
         <div className="modal stack-lg" role="dialog" aria-modal="true" aria-label={title} ref={this.box}>
           <div className="modal-head">
             <h2 className="h-md">{title}</h2>
-            <button type="button" className="modal-x" onClick={onClose} aria-label="Đóng">×</button>
+            <button type="button" className="modal-x" onClick={onClose} aria-label="Đóng"><X size={20} aria-hidden="true" /></button>
           </div>
           {children}
         </div>

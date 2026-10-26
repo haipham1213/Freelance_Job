@@ -21,6 +21,7 @@ export default class ApplicationsPage extends Component {
       <div className="container page">
         <header className="stu-head">
           <div className="stu-head-text">
+            <span className="eyebrow eyebrow-dot">Sinh viên</span>
             <h1 className="display">Việc làm đã ứng tuyển</h1>
             <p className="muted">Theo dõi trạng thái mọi đơn ứng tuyển ở một nơi.</p>
           </div>

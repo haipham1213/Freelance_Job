@@ -23,24 +23,24 @@ class NotificationsPage extends Component {
   render() {
     const { items, meta, filter } = this.state;
     return (
-      <div className="container page" style={{ maxWidth: 860 }}>
-        <div className="row-between">
+      <div className="container page pub-notifs-page">
+        <div className="pub-page-head">
           <h1 className="display">Thông báo</h1>
           <button className="btn btn-ghost btn-sm" onClick={this.readAll}>Đánh dấu tất cả đã đọc</button>
         </div>
-        <div style={{ margin: '16px 0' }}>
+        <div className="pub-notifs-tabs">
           <Tabs items={[['', 'Tất cả'], ['false', 'Chưa đọc']]} value={filter} onChange={(f) => this.setState({ filter: f, items: null }, () => this.load(1))} />
         </div>
         {!items ? <Spinner /> : !items.length ? <div className="card"><Empty title="Không có thông báo" /></div> : (
-          <div className="stack">
+          <div className="pub-notifs">
             {items.map((n) => (
               <button key={n._id} className={`pub-notif ${n.isRead ? '' : 'unread'}`} onClick={() => this.open(n)}>
                 <span className="pub-notif-icon" aria-hidden="true">{React.createElement(ICON[n.type] || Bell, { size: 22 })}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="pub-notif-body">
                   <div className="pub-notif-title">{n.title}</div>
-                  <div className="muted small">{n.message}</div>
+                  <div className="pub-notif-msg">{n.message}</div>
                 </div>
-                <span className="fog tiny pub-notif-time">{dateTime(n.createdAt)}</span>
+                <span className="pub-notif-time">{dateTime(n.createdAt)}</span>
               </button>
             ))}
           </div>

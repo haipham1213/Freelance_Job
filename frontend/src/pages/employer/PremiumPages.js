@@ -39,20 +39,22 @@ export class PremiumPage extends Component {
     return (
       <div className="container page stack-lg">
         <div className="stack emp-premium-head">
+          <span className="eyebrow eyebrow-dot">Gói dịch vụ</span>
           <h1 className="display">Nâng cấp Premium</h1>
-          <p className="muted">Tuyển nhanh hơn với nhiều tin hơn và vị trí nổi bật.</p>
+          <p className="lede muted">Tuyển nhanh hơn với nhiều tin hơn và vị trí nổi bật.</p>
           {user.isPremium && <Alert type="ok">Bạn đang là Premium đến {date(user.employer?.premiumUntil)}. Mua thêm sẽ cộng dồn thời hạn.</Alert>}
           {!user.emailVerified && <Alert type="warn">Cần xác thực email trước khi thanh toán.</Alert>}
         </div>
         <Alert>{error}</Alert>
         <div className="emp-plans">
           {plans.map((p, i) => (
-            <div key={p._id} className={`emp-plan ${i > 0 ? 'emp-plan-best' : ''}`}>
+            <div key={p._id} className={`emp-plan ${i > 0 ? 'panel' : ''}`}>
               {i > 0 && <span className="chip chip-featured emp-plan-tag">Tiết kiệm hơn</span>}
               <h2 className="h-md">{p.name}</h2>
               <div className="emp-price">{money(p.price)}</div>
               <div className="small muted">{p.durationDays} ngày, khoảng {money(Math.round(p.price / p.durationDays))}/ngày</div>
-              <ul className="emp-perks">{COMPARE.map(([k, , b]) => <li key={k}>{b === true ? k : `${k}: ${b}`}</li>)}</ul>
+              <div className="eyebrow emp-perks-label">Bao gồm</div>
+              <ul className="emp-perks">{COMPARE.map(([k, , b]) => <li key={k}><Check size={16} aria-hidden="true" />{b === true ? k : `${k}: ${b}`}</li>)}</ul>
               <button className={`btn btn-block ${i > 0 ? '' : 'btn-ghost'}`} disabled={!!busy || !user.emailVerified} onClick={() => this.buy(p.code)}>{busy === p.code ? 'Đang chuyển sang VNPay…' : 'Thanh toán qua VNPay'}</button>
             </div>
           ))}
@@ -134,6 +136,7 @@ export class PaymentsPage extends Component {
       <div className="container page">
         <header className="emp-head">
           <div>
+            <span className="eyebrow eyebrow-dot">Nhà tuyển dụng</span>
             <h1 className="display">Lịch sử giao dịch</h1>
             <p className="muted">Các lần thanh toán gói Premium qua VNPay.</p>
           </div>

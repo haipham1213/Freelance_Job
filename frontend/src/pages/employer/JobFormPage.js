@@ -56,12 +56,13 @@ class JobFormPage extends Component {
         <BackLink to="/employer/jobs">Tin tuyển dụng</BackLink>
         <header className="emp-head" style={{ marginTop: 16 }}>
           <div>
+            <span className="eyebrow eyebrow-dot">Nhà tuyển dụng</span>
             <h1 className="display">{this.isEdit() ? 'Sửa tin tuyển dụng' : 'Đăng tin tuyển dụng'}</h1>
             <p className="muted">Mô tả rõ ràng, lương minh bạch giúp tin của bạn nhận nhiều ứng viên hơn.</p>
           </div>
         </header>
         {locked && <div style={{ marginBottom: 16 }}><Alert type="warn">Tin đã nhận người: không sửa được lương, địa điểm, ngày bắt đầu; số chỗ không được nhỏ hơn số người đã nhận.</Alert></div>}
-        <form onSubmit={this.submit}>
+        <form className="panel emp-form" onSubmit={this.submit}>
           <section className="emp-form-sec">
             <div><h2>Thông tin chung</h2><p className="muted small">Tiêu đề, danh mục và mô tả công việc.</p></div>
             <div className="stack-lg">

@@ -7,20 +7,19 @@ import { Field, Alert, Spinner } from '../../components/ui';
 import { homeOf } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
-// Bố cục chia đôi: card form + panel nền ngà liệt kê lợi ích
+// Bố cục chia đôi kiểu hero saucelabs: bên trái lời giới thiệu và lợi ích ngay trên nền tối, bên phải thẻ form mint bo 40
 const PERKS = ['Lương và ca làm công khai trước khi nộp', 'Một CV dùng cho mọi đơn ứng tuyển', 'Đánh giá hai chiều sau mỗi công việc'];
 const Shell = ({ title, subtitle, children }) => (
-  <div className="container page">
-    <div className="card pub-auth">
-      <div className="pub-auth-form">
-        <h1 className="display">{title}</h1>
-        {subtitle && <p className="muted" style={{ marginTop: 8 }}>{subtitle}</p>}
-        <div className="stack" style={{ marginTop: 24 }}>{children}</div>
-      </div>
-      <div className="pub-auth-art" aria-hidden="true">
-        <strong className="h-md">Việc part-time an toàn cho sinh viên</strong>
-        <ul>{PERKS.map((p) => <li key={p} className="ico-row"><Check size={18} />{p}</li>)}</ul>
-      </div>
+  <div className="container page pub-auth">
+    <div className="pub-auth-art" aria-hidden="true">
+      <span className="eyebrow eyebrow-dot">UniShift</span>
+      <strong className="display">Việc part-time an toàn cho sinh viên</strong>
+      <ul>{PERKS.map((p) => <li key={p}><Check size={16} />{p}</li>)}</ul>
+    </div>
+    <div className="panel pub-auth-form">
+      <h1 className="pub-auth-title">{title}</h1>
+      {subtitle && <p className="muted pub-auth-sub">{subtitle}</p>}
+      <div className="stack-lg pub-auth-body">{children}</div>
     </div>
   </div>
 );
@@ -95,14 +94,15 @@ class Register extends FormPage {
     return (
       <Shell title="Tạo tài khoản" subtitle="Miễn phí cho sinh viên và nhà tuyển dụng">
         <form className="stack" onSubmit={this.submit}>
-          <div className="grid-2" role="radiogroup" aria-label="Vai trò">
-            {[['STUDENT', GraduationCap, 'Sinh viên', 'Tìm việc làm thêm'], ['EMPLOYER', Store, 'Nhà tuyển dụng', 'Đăng tin tuyển người']].map(([v, Ico, t, d]) => (
+          <div className="tabs pub-role-tabs" role="radiogroup" aria-label="Vai trò">
+            {[['STUDENT', GraduationCap, 'Sinh viên'], ['EMPLOYER', Store, 'Nhà tuyển dụng']].map(([v, Ico, t]) => (
               <button type="button" key={v} role="radio" aria-checked={role === v} onClick={() => this.setState({ form: { ...this.state.form, role: v } })}
-                className={`pub-role ${role === v ? 'active' : ''}`}>
-                <Ico size={28} strokeWidth={1.75} /><div>{t}</div><div className="fog tiny">{d}</div>
+                className={`tab ${role === v ? 'active' : ''}`}>
+                <Ico size={16} />{t}
               </button>
             ))}
           </div>
+          <p className="fog tiny pub-role-note">{role === 'EMPLOYER' ? 'Nhà tuyển dụng: đăng tin tuyển người' : 'Sinh viên: tìm việc làm thêm'}</p>
           {this.input('fullName', role === 'EMPLOYER' ? 'Họ tên người liên hệ' : 'Họ và tên', { required: true, minLength: 2, maxLength: 100 })}
           {this.input('email', 'Email', { type: 'email', required: true, autoComplete: 'email' })}
           {this.input('password', 'Mật khẩu (8-64 ký tự, có chữ và số)', { type: 'password', required: true, minLength: 8, maxLength: 64, autoComplete: 'new-password' })}

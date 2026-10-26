@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { CalendarClock, CalendarDays, ChevronDown, Clock, Heart, Hourglass, MapPin, Search, Users, Wallet, X } from 'lucide-react';
+import { CalendarClock, CalendarDays, ChevronDown, Clock, Heart, Hourglass, MapPin, Search, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { categoryIcon } from '../../components/Illustrations';
@@ -24,7 +24,6 @@ const Preview = ({ job: j, detail, catName, busy, user, saved, onSave }) => {
   const Icon = categoryIcon(catName[j.categoryId]);
   const left = j.slots - (j.acceptedCount || 0);
   const facts = [
-    [Wallet, 'Mức lương', <span className="hl">{salary(j)}</span>],
     [Clock, 'Ca làm', shiftText(j) || 'Thỏa thuận khi phỏng vấn'],
     [MapPin, 'Địa điểm', [j.address, j.district, j.city].filter(Boolean).join(', ')],
     [CalendarClock, 'Bắt đầu', date(j.startDate)],
@@ -38,12 +37,15 @@ const Preview = ({ job: j, detail, catName, busy, user, saved, onSave }) => {
         <div className="jx-preview-head">
           <span className="jx-logo jx-logo-lg">{j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="64" height="64" /> : <Icon size={26} aria-hidden="true" />}</span>
           <div>
+            {catName[j.categoryId] && <span className="eyebrow-chip">{catName[j.categoryId]}</span>}
             <h2>{j.title}</h2>
             <FitBadge job={j} />
             <Link to={`/employers/${j.employerId}`} className="jx-company">{j.companySnapshot?.name}</Link>
             {detail?.employer?.ratingCount > 0 && <span className="jx-rating"> ★ {rating1.format(detail.employer.ratingAvg)} ({detail.employer.ratingCount})</span>}
           </div>
         </div>
+        {/* Lương đặt to như giá ở thẻ gói: con số là thứ sinh viên so đầu tiên */}
+        <p className="jx-preview-pay"><span>Mức lương</span><strong>{salary(j)}</strong></p>
         <div className="jx-preview-actions">
           <Link to={`/jobs/${j._id}`} className="btn btn-lg jx-apply">Xem chi tiết và ứng tuyển</Link>
           {!user ? <Link to={`/login?next=${encodeURIComponent(`/jobs/${j._id}`)}`} className="btn btn-lg btn-ghost"><Heart size={18} aria-hidden="true" />Lưu tin</Link>
@@ -201,7 +203,7 @@ class JobsPage extends Component {
       <>
         <section className="jx-band">
           <div className="container">
-            <h1 className="jx-title">Tìm việc part-time</h1>
+            <h1 className="display jx-title">Tìm việc part-time</h1>
             <form className="hx-search jx-search" onSubmit={(e) => { e.preventDefault(); this.apply({ q: form.q }); }} role="search">
               <label className="hx-field hx-q">
                 <Search size={18} aria-hidden="true" />
@@ -282,7 +284,7 @@ class JobsPage extends Component {
           )}
 
           {!jobs ? <Spinner /> : !jobs.length ? (
-            <div className="card"><Empty title="Không có việc phù hợp">Bỏ bớt một bộ lọc ở trên, hoặc thử từ khóa ngắn hơn như “phục vụ”.</Empty></div>
+            <div className="panel"><Empty title="Không có việc phù hợp">Bỏ bớt một bộ lọc ở trên, hoặc thử từ khóa ngắn hơn như “phục vụ”.</Empty></div>
           ) : (
             <div className={`jx-split ${wide ? 'wide' : ''} ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
               <ol className="jx-list">
@@ -304,8 +306,8 @@ class JobsPage extends Component {
 
           {!user && (
             <div className="jx-cta">
-              <div><strong>Chưa thấy việc hợp ý?</strong><p>Tạo hồ sơ và tải CV một lần, có việc mới là ứng tuyển ngay.</p></div>
-              <Link to="/register" className="btn btn-ghost">Tạo hồ sơ miễn phí</Link>
+              <div><h2>Chưa thấy việc hợp ý?</h2><p>Tạo hồ sơ và tải CV một lần, có việc mới là ứng tuyển ngay.</p></div>
+              <Link to="/register" className="btn btn-dark">Tạo hồ sơ miễn phí</Link>
             </div>
           )}
         </div>

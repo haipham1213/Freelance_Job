@@ -69,6 +69,7 @@ export default class ProfilePage extends Component {
       <div className="container page">
         <header className="stu-head">
           <div className="stu-head-text">
+            <span className="eyebrow eyebrow-dot">Sinh viên</span>
             <h1 className="display">Hồ sơ & CV</h1>
             <p className="muted">Nhà tuyển dụng xem hồ sơ này khi bạn ứng tuyển.</p>
           </div>

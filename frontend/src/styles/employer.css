@@ -1,16 +1,19 @@
-/* Employer pages (DESIGN Goodnotes): tiêu đề trang trên nền trắng, viền mảnh thay bóng, bo 10px, cyan chỉ cho nút chính */
+/* Cùng scope với index.css để thứ tự khai báo quyết định khi trùng độ ưu tiên (hero nằm ngoài, xem hero.css) */
+@scope (:root) to (.rv-hero) {
+
+/* Employer pages: tiêu đề trang trên nền obsidian, khối abyss viền mảnh, số liệu neon; neon chỉ cho nút chính và trạng thái chọn */
 .emp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
 .emp-head p { margin: 6px 0 0; }
-.emp-note { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--warm); box-shadow: var(--hairline); border-radius: var(--radius); padding: 14px 18px; }
+.emp-note { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--abyss); box-shadow: inset 0 0 0 1px var(--line); border-radius: var(--radius); padding: 16px 20px; }
 .emp-note p { margin: 2px 0 0; }
 
 /* Hàng số liệu: một khung viền mảnh, vạch ngăn giữa các ô */
-.emp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: var(--radius); box-shadow: var(--hairline); }
-.emp-stats a { padding: 20px 24px; display: flex; flex-direction: column; gap: 4px; }
+.emp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--abyss); border-radius: var(--radius); box-shadow: var(--hairline); overflow: hidden; }
+.emp-stats a { padding: 28px 28px 24px; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 16px; }
 .emp-stats a + a { box-shadow: inset 1px 0 0 var(--line); }
-.emp-stats a:hover { background: var(--warm); }
-.emp-stats strong { font-size: 32px; font-weight: 700; letter-spacing: -0.035em; color: var(--ink); line-height: 1.1; }
-.emp-stats span { color: var(--body); font-size: 14px; }
+.emp-stats a:hover { background: var(--sand); }
+.emp-stats strong { font-size: 56px; font-weight: 500; letter-spacing: -0.04em; color: var(--neon); line-height: 1; font-variant-numeric: tabular-nums; }
+.emp-stats span { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
 
 .emp-rows { display: grid; margin-top: 8px; }
 .emp-row { display: flex; align-items: center; gap: 12px; padding: 12px 4px; min-width: 0; }
@@ -18,15 +21,15 @@
 .emp-row:hover .h-sm { text-decoration: underline; text-underline-offset: 3px; }
 .emp-row-body { flex: 1; min-width: 0; }
 
-.emp-upsell { box-shadow: inset 0 0 0 1px var(--stone-border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.emp-upsell { background: var(--abyss); box-shadow: inset 0 0 0 1px var(--neon); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .emp-upsell p { margin: 0; }
 
 .emp-logo-card { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
 .emp-logo-card .logo-box { width: 120px; height: 120px; font-size: 44px; }
 
 .emp-jobs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.emp-job { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; border-radius: var(--radius); box-shadow: var(--hairline); padding: 16px; align-items: start; }
-.emp-job-art { border-radius: var(--radius-ctl); background: var(--warm); color: var(--ink); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; }
+.emp-job { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; background: var(--abyss); border-radius: var(--radius); box-shadow: var(--hairline); padding: 18px; align-items: start; }
+.emp-job-art { border-radius: 16px; background: var(--sand); color: var(--ink); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; }
 .emp-job-art strong { font-size: 24px; line-height: 1.1; letter-spacing: -0.03em; }
 .emp-job-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .emp-job-body .h-sm a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -36,20 +39,30 @@
 
 /* Form đăng tin: các khối có tiêu đề nhỏ, vạch ngăn mảnh */
 .emp-form-sec { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; padding: 28px 0; box-shadow: inset 0 1px 0 var(--line); }
-.emp-form-sec h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.016em; }
+.emp-form-sec h2 { font-size: 18px; font-weight: 500; letter-spacing: -0.016em; }
 .emp-form-sec h2 + p { margin: 4px 0 0; }
+.emp-form .emp-form-sec:first-child { padding-top: 0; box-shadow: none; }
+/* Ô ca làm: chưa chọn là khung nét đứt như ô trống để bấm, đã chọn tô neon kèm dấu tick obsidian */
+.emp-form .shift-cell { background: transparent; box-shadow: none; border: 1.5px dashed var(--stone-border); display: flex; align-items: center; justify-content: center; gap: 4px; }
+.emp-form .shift-cell:hover { background: var(--sand); border-color: var(--obsidian); box-shadow: none; }
+.emp-form .shift-cell[aria-pressed='true'] { border: 1.5px solid var(--neon); }
+.emp-form .shift-cell[aria-pressed='true']::before { content: ''; width: 14px; height: 14px; flex-shrink: 0; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; }
 
-.emp-premium-head { max-width: 640px; }
+.emp-premium-head { max-width: 760px; margin: 0 auto 16px; text-align: center; align-items: center; }
+.emp-premium-head .alert { align-self: stretch; text-align: left; }
+/* Bảng giá kiểu pricing: gói thường nền abyss viền mảnh, gói đề xuất là .panel mint; giá lớn, nhãn "Bao gồm" chữ hoa, danh sách tick */
 .emp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
-.emp-plan { position: relative; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--stone-border); padding: 28px; display: flex; flex-direction: column; gap: 8px; }
-.emp-plan-best { box-shadow: inset 0 0 0 1.5px var(--ink); }
-.emp-plan-tag { position: absolute; top: 24px; right: 24px; }
-.emp-price { font-weight: 700; font-size: 40px; letter-spacing: -0.042em; color: var(--ink); line-height: 1.1; margin-top: 8px; }
-.emp-perks { list-style: none; padding: 0; margin: 12px 0 16px; display: grid; gap: 10px; flex: 1; font-size: 15px; color: var(--body); }
-.emp-perks li { display: flex; gap: 8px; }
-.emp-perks li::before { content: '✓'; font-weight: 700; color: var(--ink); }
+.emp-plan { position: relative; background: var(--abyss); border-radius: 40px; box-shadow: inset 0 0 0 1px var(--line); padding: 48px; display: flex; flex-direction: column; gap: 8px; }
+.emp-plan.panel { background: var(--mint-frost); box-shadow: var(--shadow-md); }
+.emp-plan-tag { position: absolute; top: 32px; right: 32px; }
+.emp-price { font-weight: 500; font-size: 64px; letter-spacing: -0.045em; color: var(--ink); line-height: 1; margin-top: 16px; font-variant-numeric: tabular-nums; }
+.emp-perks-label { margin: 24px 0 0; padding-top: 24px; box-shadow: inset 0 1px 0 var(--line); }
+.emp-perks { list-style: none; padding: 0; margin: 4px 0 32px; display: grid; gap: 12px; flex: 1; font-size: 15px; color: var(--body); }
+.emp-perks li { display: flex; gap: 10px; }
+.emp-perks svg { flex-shrink: 0; margin-top: 3px; color: var(--neon); }
+.panel .emp-perks svg { color: var(--obsidian); }
 .emp-result-icon { width: 72px; height: 72px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; background: var(--warm); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
-.emp-result-icon.ok { background: var(--highlight); box-shadow: none; }
+.emp-result-icon.ok { background: var(--neon); color: var(--obsidian); box-shadow: none; }
 .emp-result-icon.bad { color: var(--alert); }
 
 @media (max-width: 760px) {
@@ -58,5 +71,12 @@
   .emp-stats a:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
   .emp-job { grid-template-columns: 60px minmax(0, 1fr); gap: 12px; padding: 14px; }
   .emp-plans { grid-template-columns: minmax(0, 1fr); }
+  .emp-plan { border-radius: 24px; padding: 28px 24px; }
+  .emp-plan-tag { top: 24px; right: 20px; }
+  .emp-price { font-size: 48px; }
+  .emp-stats a { padding: 20px; }
+  .emp-stats strong { font-size: 40px; }
   .emp-form-sec { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
+
 }

@@ -59,6 +59,7 @@ export default class CompanyPage extends Component {
       <div className="container page">
         <header className="emp-head">
           <div>
+            <span className="eyebrow eyebrow-dot">Nhà tuyển dụng</span>
             <h1 className="display">Hồ sơ công ty</h1>
             <p className="muted">Thông tin rõ ràng giúp sinh viên tin tưởng và ứng tuyển nhiều hơn.</p>
           </div>

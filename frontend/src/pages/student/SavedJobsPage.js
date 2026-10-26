@@ -21,6 +21,7 @@ export default class SavedJobsPage extends Component {
       <div className="container page">
         <header className="stu-head">
           <div className="stu-head-text">
+            <span className="eyebrow eyebrow-dot">Sinh viên</span>
             <h1 className="display">Việc làm đã lưu</h1>
             <p className="muted">{jobs ? `${jobs.length} việc bạn đang để mắt tới` : 'Đang tải…'}</p>
           </div>

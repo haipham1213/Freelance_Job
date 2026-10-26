@@ -110,7 +110,7 @@ class ApplicationDetailPage extends Component {
     return (
       <div className="container page">
         <BackLink to={isEmployer ? `/employer/jobs/${app.jobId}/applicants` : '/student/applications'}>{isEmployer ? 'Danh sách ứng viên' : 'Đơn của tôi'}</BackLink>
-        <header className="stu-app-hero">
+        <header className="stu-app-hero pub-app-head">
           {isEmployer ? <Avatar src={student.avatarUrl} name={student.fullName} size="lg" /> : <CompanyLogo src={employer.company?.logoUrl} name={app.jobSnapshot.companyName} />}
           <div className="stu-hero-main">
             <div className="row" style={{ gap: 10 }}>
@@ -122,9 +122,9 @@ class ApplicationDetailPage extends Component {
           </div>
           <a href={app.cvUrl} target="_blank" rel="noreferrer" className="btn btn-ghost"><FileText size={18} /> Xem CV đã nộp</a>
         </header>
-        <div className="layout-main section">
+        <div className="layout-main pub-app">
           <div className="stack-lg">
-            <div className="card stack">
+            <div className="card stack pub-app-card">
               {app.coverLetter && <div className="card-sm card-white"><div className="fog small">Thư giới thiệu</div><p className="pre">{app.coverLetter}</p></div>}
               {app.employerNote && <Alert type="ok"><strong>Hướng dẫn từ nhà tuyển dụng:</strong> {app.employerNote}</Alert>}
               {app.rejectReason && <Alert>Lý do từ chối: {app.rejectReason}</Alert>}
@@ -137,7 +137,7 @@ class ApplicationDetailPage extends Component {
                 <p className="muted">Không có thao tác nào cần làm với đơn này.</p>
               )}
             </div>
-            <div className="card">
+            <div className="card pub-app-card">
               <h2 className="h-md">Lịch sử trạng thái</h2>
               <ol className="stu-timeline">
                 {app.statusHistory.map((h, i) => (
@@ -146,7 +146,7 @@ class ApplicationDetailPage extends Component {
               </ol>
             </div>
             {(reviews.length > 0 || canReview) && (
-              <div className="card stack">
+              <div className="card stack pub-app-card">
                 <h2 className="h-md">Đánh giá</h2>
                 {reviews.map((r) => (
                   <div key={r._id} className="card-sm card-white">
@@ -163,7 +163,7 @@ class ApplicationDetailPage extends Component {
               </div>
             )}
           </div>
-          <aside className="card stack">
+          <aside className="card stack pub-app-side">
             <h2 className="h-md">{isEmployer ? 'Ứng viên' : 'Nhà tuyển dụng'}</h2>
             <div className="row" style={{ flexWrap: 'nowrap' }}>
               {isEmployer ? <Avatar src={student.avatarUrl} name={student.fullName} size="lg" /> : <CompanyLogo src={employer.company?.logoUrl} />}

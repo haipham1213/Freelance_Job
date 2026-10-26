@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
-import { ArrowRight, Ban, Bell, Bookmark, Building2, CalendarClock, CalendarDays, Check, FileText, GraduationCap, Heart, Hourglass, Lock, MapPin, Plus, Search, Star, Users, X } from 'lucide-react';
+import { ArrowRight, Ban, Bell, Building2, CalendarClock, CalendarDays, Check, Heart, Hourglass, Lock, MapPin, Plus, Search, Star, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { Alert, Dropdown, Stars } from '../../components/ui';
 import { categoryIcon } from '../../components/Illustrations';
-import { loadSavedIds, saveToggler, MiniWeek, busyOf, shiftText, PERIOD_ICON, FitBadge } from '../../components/JobRow';
+import { loadSavedIds, saveToggler, busyOf, shiftText, PERIOD_ICON, FitBadge } from '../../components/JobRow';
 import withRouter from '../../utils/withRouter';
-import { money, salary, shiftParts, describeShifts } from '../../utils/format';
+import { money, salary, shiftParts, describeShifts, DAYS as WEEKDAYS, PERIODS } from '../../utils/format';
 import { AuthContext } from '../../context/AuthContext';
 
 // Bốn cam kết an toàn, mỗi cam kết là một business rule backend đang chặn
@@ -53,7 +53,7 @@ const faq = (t) => [
   t && ['Nhà tuyển dụng đăng tin thế nào?', `Mỗi tài khoản được đăng tối đa ${t.free.quota} tin miễn phí. Gói Premium nâng lên ${t.premium.quota} tin, mỗi tin hiển thị ${t.premium.days} ngày và được ghim Nổi bật.`],
 ].filter(Boolean);
 
-// "Ca làm tuần này": tin đầu (nổi bật trước, API đã xếp) làm thẻ lớn kèm lịch ca thu nhỏ, các tin còn lại là danh sách gọn.
+// "Ca làm tuần này": lưới thẻ việc đều nhau (nổi bật trước, API đã xếp).
 // Nút lưu: sinh viên bấm lưu ngay, khách được dẫn đi đăng nhập, nhà tuyển dụng không có nút
 const DAY = 864e5;
 const SaveBtn = ({ job, saved, onSave, saveHref }) => (onSave ? (
@@ -80,26 +80,55 @@ const Shifts = ({ job }) => (job.shifts?.length ? (
   </ul>
 ) : job.schedule ? <p className="sh-flex">{job.schedule}</p> : null);
 
-const Spotlight = ({ job: j, category, busy, save }) => {
+// Tuần thu nhỏ trên thẻ việc: cùng lưới Sáng/Chiều/Tối × T2–CN như "Tuần của bạn" ở hero, ô xanh lá là ca làm.
+// focus = các ô thuộc tab buổi đang chọn; ca ngoài tab nhạt đi để thấy ngay ca nào khớp buổi bạn rảnh
+const WeekStrip = ({ shifts, focus }) => {
+  const on = new Set(shifts);
+  const lit = focus && new Set(focus);
+  return (
+    <div className="sc-week" role="img" aria-label={`Ca làm: ${describeShifts(shifts)}`}>
+      <span />
+      {WEEKDAYS.map((d) => <span key={d} className="sc-day">{d}</span>)}
+      {PERIODS.map((label, p) => (
+        <React.Fragment key={label}>
+          <span className="sc-period">{label}</span>
+          {WEEKDAYS.map((d, day) => {
+            const i = day * 3 + p;
+            return <span key={d} className={`sc-cell${on.has(i) ? ' on' : ''}${lit && !lit.has(i) ? ' dim' : ''}`} />;
+          })}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+};
+
+// Thẻ việc: công ty và khu vực ở đầu, tên việc, tuần thu nhỏ (hoặc ô giờ linh hoạt cùng chiều cao), chỗ trống, lương
+const JobCard = ({ job: j, category, save, focus }) => {
   const left = j.slots - (j.acceptedCount || 0);
   const daysLeft = Math.ceil((new Date(j.expiresAt) - Date.now()) / DAY);
   return (
-    <article className="sh-spot">
-      <div className="sh-spot-top">
-        <Logo job={j} category={category} size={56} />
-        <span className="sh-company">{j.companySnapshot?.name}{j.isFeatured && <span className="jt-badge">Nổi bật</span>}</span>
+    <li className="sc">
+      <div className="sc-head">
+        <Logo job={j} category={category} size={44} />
+        <div className="sc-org">
+          <p className="sc-company">{j.companySnapshot?.name}</p>
+          <p className="sc-where"><MapPin size={13} aria-hidden="true" />{[j.district, j.city].filter(Boolean).join(', ')}</p>
+        </div>
         <SaveBtn job={j} {...save} />
       </div>
-      <h3 className="sh-spot-title"><Link to={`/jobs/${j._id}`} className="sh-link">{j.title}</Link></h3>
-      <p className="sh-spot-pay">{salary(j)}</p>
-      <p className="sh-where"><MapPin size={15} aria-hidden="true" />{[j.district, j.city].filter(Boolean).join(', ')}</p>
-      {j.shifts?.length ? <MiniWeek shifts={j.shifts} busy={busy} /> : <Shifts job={j} />}
-      <div className="sh-spot-foot">
-        <span><Users size={15} aria-hidden="true" />{left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'}</span>
-        <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={15} aria-hidden="true" />{daysLeft <= 0 ? 'Hết hạn hôm nay' : `Còn ${daysLeft} ngày`}</span>
-        <span className="sh-go" aria-hidden="true">Xem chi tiết<ArrowRight size={16} /></span>
+      <h3 className="sc-title"><Link to={`/jobs/${j._id}`} className="sh-link">{j.title}</Link></h3>
+      {j.shifts?.length ? <WeekStrip shifts={j.shifts} focus={focus} />
+        : <p className="sc-flex"><CalendarClock size={18} aria-hidden="true" /><span><b>Giờ linh hoạt</b>{j.schedule || 'Tự sắp theo lịch học'}</span></p>}
+      <p className="sc-meta">
+        <span><Users size={14} aria-hidden="true" />{left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'}</span>
+        <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={14} aria-hidden="true" />{daysLeft <= 0 ? 'Hết hạn hôm nay' : `Còn ${daysLeft} ngày`}</span>
+        {j.isFeatured && <span className="sc-badge">Nổi bật</span>}
+      </p>
+      <div className="sc-foot">
+        <p className="sc-pay">{salary(j)}</p>
+        <span className="sc-go" aria-hidden="true">Xem ca<ArrowRight size={16} /></span>
       </div>
-    </article>
+    </li>
   );
 };
 
@@ -122,25 +151,29 @@ const ForYou = ({ user, data, catName, save }) => {
   const busy = user.student?.busySlots || [];
   const soon = data.saved.filter((j) => new Date(j.expiresAt) - Date.now() < 3 * DAY).length;
   const tiles = [
-    [FileText, 'Đơn đang chờ duyệt', data.pending, '/student/applications'],
-    [Bookmark, soon ? `Tin đã lưu, ${soon} sắp hết hạn` : 'Tin đã lưu', data.saved.length, '/student/saved-jobs'],
-    [CalendarDays, busy.length ? 'Buổi học đã tô' : 'Chưa tô lịch học', busy.length, '/jobs#lich-hoc'],
+    ['Đơn đang chờ duyệt', data.pending, '/student/applications'],
+    [soon ? `Tin đã lưu, ${soon} sắp hết hạn` : 'Tin đã lưu', data.saved.length, '/student/saved-jobs'],
+    [busy.length ? 'Buổi học đã tô' : 'Chưa tô lịch học', busy.length, '/jobs#lich-hoc'],
   ];
+  // Dải abyss: hàng số liệu neon chia vạch dọc ở trên, việc hợp lịch học (danh sách mint) ở dưới
   return (
-    <section className="gn-sec fy" aria-labelledby="fy-title">
-      <h2 id="fy-title" className="gn-h2">Dành cho bạn, {user.fullName.trim().split(' ').pop()}</h2>
-      <div className="fy-grid">
-        <ul className="fy-tiles">
-          {tiles.map(([Icon, label, n, to]) => (
-            <li key={to}><Link to={to} className="fy-tile"><Icon size={20} aria-hidden="true" /><strong>{n}</strong><span>{label}</span></Link></li>
+    <section className="gn-sec" aria-labelledby="fy-title">
+      <div className="band fy">
+        <div className="sec-head sec-head-left">
+          <span className="eyebrow eyebrow-dot">Tổng quan tuần này</span>
+          <h2 id="fy-title" className="display">Dành cho bạn, {user.fullName.trim().split(' ').pop()}</h2>
+        </div>
+        <ul className="stat-row fy-stats">
+          {tiles.map(([label, n, to]) => (
+            <li key={to}><Link to={to} className="fy-stat"><span className="stat-num">{n}</span><span className="stat-label">{label}</span></Link></li>
           ))}
         </ul>
         <div className="fy-jobs">
-          <h3 className="gn-h3">{busy.length ? 'Việc hợp lịch học của bạn' : 'Việc mới nhất'}</h3>
+          <h3 className="fy-h3">{busy.length ? 'Việc hợp lịch học của bạn' : 'Việc mới nhất'}</h3>
           {!data.jobs.length ? <p className="muted">Chưa có việc nào còn ca rảnh so với lịch học của bạn.</p> : (
             <ol className="sh-list">{data.jobs.map((j, i) => <ShiftRow key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} i={i} />)}</ol>
           )}
-          {!busy.length && <p className="fy-hint">Tô các buổi có tiết học để UniShift chỉ gợi ý việc không trùng giờ. <Link to="/jobs#lich-hoc" className="gn-link">Tô lịch học</Link></p>}
+          {!busy.length && <p className="fy-hint">Tô các buổi có tiết học để UniShift chỉ gợi ý việc không trùng giờ. <Link to="/jobs#lich-hoc" className="text-link">Tô lịch học<ArrowRight size={16} aria-hidden="true" /></Link></p>}
         </div>
       </div>
     </section>
@@ -156,6 +189,8 @@ class HomePage extends Component {
   };
 
   async componentDidMount() {
+    // Trang chủ dùng giao diện sáng kiểu saucelabs.com (home.css), các trang khác giữ nền tối
+    document.body.classList.add('page-home');
     this.syncSaved();
     const [c, l, j, p] = await Promise.all([
       api.get('/categories'), api.get('/jobs/locations'), api.get(`/jobs?limit=${HOME_JOBS}`), api.get('/plans').catch(() => ({ data: [], meta: {} })),
@@ -178,7 +213,7 @@ class HomePage extends Component {
     if (h && h !== prev.location.hash) document.getElementById(h.slice(1))?.scrollIntoView({ behavior: 'smooth' });
   }
   // StrictMode (dev) gỡ rồi gắn lại component: xóa mốc để lần gắn sau tải lại theo người dùng
-  componentWillUnmount() { this.savedFor = undefined; }
+  componentWillUnmount() { this.savedFor = undefined; document.body.classList.remove('page-home'); }
 
   // Theo người đang đăng nhập: tô tim tin đã lưu, điền sẵn email, tải mục "Dành cho bạn" của sinh viên
   syncSaved = () => {
@@ -323,185 +358,195 @@ class HomePage extends Component {
         <div className="container">
           {user?.role === 'STUDENT' && forYou && <ForYou user={user} data={forYou} catName={catName} save={save} />}
 
-          {/* ① Ca làm tuần này: lọc theo buổi, nối tiếp khung "Tuần của bạn" ở hero */}
-          <section className="gn-sec" aria-labelledby="gn-jobs">
-            <div className="sh-head">
+          {/* Câu chuyện trang chủ tiếp nối lời hứa của hero, mỗi mục một bước:
+              Tìm ca trống → Chọn chỗ gần → Biết trước lương → Nơi bạn sẽ làm → Nộp đơn yên tâm → Sau ca làm → Tuần sau (dải cuối).
+              Hai phía và hỏi đáp nằm ngoài mạch, đặt sau như phụ lục */}
+          {/* Tìm ca trống: tab theo buổi ứng với các hàng Sáng/Chiều/Tối trong lưới "Tuần của bạn" ở hero */}
+          <section className="gn-sec sc-sec" aria-labelledby="gn-jobs">
+            <div className="sc-top">
               <div>
-                <h2 id="gn-jobs" className="gn-h2">Ca làm tuần này</h2>
-                <p>{total ? `${total} tin đang mở` : 'Tin mới nhất'} từ quán cà phê, trung tâm gia sư và cửa hàng gần trường.</p>
+                <h2 id="gn-jobs" className="sc-h2">Ca làm lấp vào giờ trống</h2>
+                <p className="sc-lede">{total ? `${total} tin đang mở` : 'Tin mới nhất'} từ quán cà phê, trung tâm gia sư và cửa hàng gần trường. Chọn buổi bạn rảnh để xem ca khớp giờ.</p>
               </div>
-              <div className="sh-seg" role="tablist" aria-label="Buổi làm" onKeyDown={this.tabKey}>
+              <div className="sc-tabs" role="tablist" aria-label="Buổi làm" onKeyDown={this.tabKey}>
                 {TABS.map(([key, label]) => (
                   <button key={key} id={`gn-tab-${key}`} role="tab" aria-selected={tab === key} aria-controls="gn-jobs-panel" tabIndex={tab === key ? 0 : -1}
-                    className="sh-seg-btn" onClick={() => this.loadTab(key)}>{label}</button>
+                    className="sc-tab" onClick={() => this.loadTab(key)}>{label}</button>
                 ))}
               </div>
             </div>
             <div id="gn-jobs-panel" role="tabpanel" aria-labelledby={`gn-tab-${tab}`} aria-busy={loading}>
               {!jobs ? (
-                <div className="sh-board" aria-hidden="true"><div className="sh-spot sh-sk" /><div className="sh-list">{[0, 1, 2, 3].map((i) => <div key={i} className="sh-row sh-sk" />)}</div></div>
+                <ul className="sc-grid" aria-hidden="true">{[0, 1, 2].map((i) => <li key={i} className="sc sc-sk" />)}</ul>
               ) : !jobs.length ? (
                 <div className="gn-empty">
                   <p>{tab !== 'all' ? 'Chưa có ca nào vào buổi này. Thử buổi khác nhé.' : 'Chưa có tin tuyển dụng nào đang mở.'}</p>
-                  {tab === 'all' && user?.role !== 'STUDENT' && <Link to={postJob} className="gn-link">Đăng tin tuyển dụng đầu tiên</Link>}
+                  {tab === 'all' && user?.role !== 'STUDENT' && <Link to={postJob} className="text-link">Đăng tin tuyển dụng đầu tiên<ArrowRight size={16} aria-hidden="true" /></Link>}
                 </div>
-              ) : (() => {
-                const [first, ...rest] = jobs.slice(0, HOME_JOBS);
-                return (
-                  <div key={jobs.map((j) => j._id).join()} className={`sh-board ${rest.length ? '' : 'solo'} ${loading ? 'is-loading' : ''}`}>
-                    <Spotlight job={first} category={catName[first.categoryId]} busy={busyOf(user)} save={save(first)} />
-                    {rest.length > 0 && <ol className="sh-list">{rest.map((j, i) => <ShiftRow key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} i={i} />)}</ol>}
-                  </div>
-                );
-              })()}
+              ) : (
+                <ol className={`sc-grid ${loading ? 'is-loading' : ''}`}>
+                  {jobs.slice(0, HOME_JOBS).map((j) => <JobCard key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} focus={TABS.find(([key]) => key === tab)[2]} />)}
+                </ol>
+              )}
             </div>
-            <div className="sh-more">
+            <div className="sc-more">
               <Link to="/jobs" className="btn btn-ghost">Xem tất cả {total || ''} việc làm<ArrowRight size={18} aria-hidden="true" /></Link>
-              <Link to="/jobs#lich-hoc" className="gn-link sh-cal"><CalendarDays size={18} aria-hidden="true" />Tô lịch học</Link>
+              <Link to="/jobs#lich-hoc" className="text-link"><CalendarDays size={18} aria-hidden="true" />Tô lịch học của bạn</Link>
             </div>
           </section>
 
-          {/* ② Theo ngành: một hàng cuộn ngang, chỉ ngành đang có tin, nhiều tin xếp trước */}
-          {hiring.length > 0 && (
-            <section className="gn-sec-tight" aria-labelledby="gn-cats">
-              <h2 id="gn-cats" className="gn-h3">Lương theo ngành</h2>
-              <ul className="gn-cats">
-                {hiring.map((c) => {
-                  const Icon = categoryIcon(c.name);
-                  return (
-                    <li key={c._id}>
-                      <Link to={`/jobs?categoryId=${c._id}`} className="gn-cat">
-                        <Icon size={20} aria-hidden="true" />
-                        <span className="gn-cat-text">
-                          <strong>{c.name}</strong>
-                          <span><span className="gn-pay">{salary(c.pay)}</span> {c.jobCount} việc</span>
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {/* ③ Nhà tuyển dụng đang có tin mở: logo + tên + số tin, bấm vào sang trang công ty */}
-          {employers.length > 0 && (
-            <section className="gn-sec-tight" aria-labelledby="gn-emp">
-              <h2 id="gn-emp" className="gn-h3">Đang tuyển trên UniShift</h2>
-              <ul className="em-grid">
-                {employers.map((e) => (
-                  <li key={e._id}>
-                    <Link to={`/employers/${e._id}`} className="em-tile">
-                      <span className="jx-logo">{e.logoUrl ? <img src={e.logoUrl} alt="" width="48" height="48" loading="lazy" /> : <Building2 size={20} aria-hidden="true" />}</span>
-                      <span className="em-text"><strong>{e.name}</strong><span>{e.jobs} tin đang mở</span></span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* ④ Việc theo khu vực: thành phố nhiều tin trước, mỗi quận một link lọc sẵn */}
+          {/* Chọn chỗ gần: hàng cột chia vạch dọc, mỗi thành phố một số tin lớn và các quận lọc sẵn */}
           {areas.length > 0 && (
-            <section className="gn-sec-tight" aria-labelledby="gn-area">
-              <h2 id="gn-area" className="gn-h3">Việc theo khu vực</h2>
+            <section className="gn-sec" aria-labelledby="gn-area">
+              <div className="sec-head sec-head-left">
+                <h2 id="gn-area" className="display">Gần trường, khỏi chạy xa</h2>
+                <p className="lede">Học xong là đi làm được ngay. Chọn quận gần trường để không mất giờ đi lại giữa hai ca.</p>
+              </div>
               <div className="ar-grid">
                 {areas.map((l) => (
                   <div key={l.city} className="ar-city">
-                    <Link to={`/jobs${qs({ city: l.city })}`} className="ar-name"><MapPin size={16} aria-hidden="true" />{l.city}<span>{l.total} việc</span></Link>
+                    <h3 className="ar-name">{l.city}</h3>
+                    <p className="ar-total"><strong>{l.total}</strong> việc đang mở</p>
                     {l.districts.length > 0 && (
                       <ul>{l.districts.map((d) => <li key={d}><Link to={`/jobs${qs({ city: l.city, district: d })}`}>{d}<span>{l.counts?.[d]}</span></Link></li>)}</ul>
                     )}
+                    <Link to={`/jobs${qs({ city: l.city })}`} className="text-link">Xem việc tại {l.city}<ArrowRight size={16} aria-hidden="true" /></Link>
                   </div>
                 ))}
               </div>
             </section>
           )}
-        </div>
 
-        <section className="gn-safe" aria-labelledby="gn-safe">
-          <div className="container gn-safe-grid">
-            <div>
-              <h2 id="gn-safe" className="gn-h2">An toàn là mặc định</h2>
-              <p className="gn-safe-lede">Làm thêm qua group mạng xã hội dễ gặp tin đòi đặt cọc hay đóng phí đồng phục. Trên UniShift, những điều dưới đây được hệ thống chặn sẵn.</p>
-              <dl className="gn-promises">
-                {promises(tiers).map(([Icon, title, text]) => (
-                  <div key={title}>
-                    <dt><Icon size={20} aria-hidden="true" />{title}</dt>
-                    <dd>{text}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-            <table className="gn-compare">
-              <caption className="sr-only">So sánh tìm việc qua group mạng xã hội và qua UniShift</caption>
-              <thead><tr><th scope="col">Tình huống</th><th scope="col">Group mạng xã hội</th><th scope="col">UniShift</th></tr></thead>
-              <tbody>
-                {COMPARE.map(([when, group, ours]) => (
-                  <tr key={when}>
-                    <th scope="row">{when}</th>
-                    <td className="gn-compare-no" data-label="Group mạng xã hội"><X size={16} aria-hidden="true" />{group}</td>
-                    <td className="gn-compare-yes" data-label="UniShift"><Check size={16} aria-hidden="true" />{ours}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+          {/* Biết trước lương (lời hứa "Lương ghi rõ trên từng tin" ở hero): dải nền trời nhạt, hàng số liệu chia vạch dọc, lương màu xanh lá */}
+          {hiring.length > 0 && (
+            <section className="gn-sec" aria-labelledby="gn-cats">
+              <div className="band">
+                <div className="sec-head">
+                  <h2 id="gn-cats" className="display">Biết mình nhận bao nhiêu trước khi nộp</h2>
+                  <p className="lede">Khoảng lương trung bình của các tin đang mở, ngành nhiều tin xếp trước.</p>
+                </div>
+                <ul className="gn-cats">
+                  {hiring.map((c) => {
+                    const [amount, unit] = salary(c.pay).split('/');
+                    return (
+                      <li key={c._id}>
+                        <Link to={`/jobs?categoryId=${c._id}`} className="gn-cat">
+                          <span className="gn-cat-name">{c.name}</span>
+                          <span className="gn-cat-pay">{amount}<small>/{unit}</small></span>
+                          <span className="gn-cat-count">{c.jobCount} việc đang tuyển</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </section>
+          )}
 
-        <div className="container">
-          {/* ④ Hai phía: mỗi ô một nhãn, tiêu đề, 3 bước, một dòng chi phí và một nút */}
-          <section className="gn-sec" aria-labelledby="gn-who">
-            <div className="gn-head">
-              <h2 id="gn-who" className="gn-h2">Dành cho cả hai phía</h2>
-              <p>Sinh viên tìm việc vừa lịch học, nhà tuyển dụng tìm người làm được ngay.</p>
+          {/* Nơi bạn sẽ làm: nhà tuyển dụng đang có tin mở, dải logo chạy ngang tràn viền như dải khách hàng của Sauce.
+              Danh sách lặp hai lần để vòng chạy nối liền; bản lặp ẩn với trình đọc màn hình và không nhận focus */}
+          {employers.length > 0 && (
+            <section className="gn-sec em-sec" aria-label="Nhà tuyển dụng đang tuyển sinh viên">
+              <div className="em-marquee">
+                <ul className="em-track" style={{ '--n': employers.length }}>
+                  {[...employers, ...employers].map((e, i) => {
+                    const copy = i >= employers.length;
+                    return (
+                      <li key={`${e._id}-${i}`} aria-hidden={copy || undefined}>
+                        <Link to={`/employers/${e._id}`} className="em-item" tabIndex={copy ? -1 : undefined} title={`${e.name}, ${e.jobs} tin đang mở`}>
+                          <span className="em-logo">{e.logoUrl ? <img src={e.logoUrl} alt="" width="56" height="56" /> : <Building2 size={22} aria-hidden="true" />}</span>
+                          <span className="em-name">{e.name}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {/* Nộp đơn yên tâm (hai cam kết dưới khung điện thoại ở hero): giữ giao diện cũ theo yêu cầu — dải nền xám xanh tràn viền,
+              trái là tiêu đề + 4 cam kết, phải là bảng so sánh */}
+          <section className="gn-sec gn-safe" aria-labelledby="gn-safe">
+            <div className="gn-safe-grid">
+              <div>
+                <h2 id="gn-safe" className="gn-h2">An toàn là mặc định</h2>
+                <p className="gn-safe-lede">Làm thêm qua group mạng xã hội dễ gặp tin đòi đặt cọc hay đóng phí đồng phục. Trên UniShift, những điều dưới đây được hệ thống chặn sẵn.</p>
+                <dl className="gn-promises">
+                  {promises(tiers).map(([Icon, title, text]) => (
+                    <div key={title}>
+                      <dt><Icon size={20} aria-hidden="true" />{title}</dt>
+                      <dd>{text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+              <table className="gn-compare">
+                <caption className="sr-only">So sánh tìm việc qua group mạng xã hội và qua UniShift</caption>
+                <thead><tr><th scope="col">Tình huống</th><th scope="col">Group mạng xã hội</th><th scope="col">UniShift</th></tr></thead>
+                <tbody>
+                  {COMPARE.map(([when, group, ours]) => (
+                    <tr key={when}>
+                      <th scope="row">{when}</th>
+                      <td className="gn-compare-no" data-label="Group mạng xã hội"><X size={16} aria-hidden="true" />{group}</td>
+                      <td className="gn-compare-yes" data-label="UniShift"><Check size={16} aria-hidden="true" />{ours}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="gn-who">
+          </section>
+
+          {/* Sau ca làm: điểm trung bình cỡ lớn bên trái, ba câu đánh giá bên phải, mỗi câu có vạch xanh lá phía trên */}
+          {reviews.length > 0 && rating?.count >= MIN_REVIEWS && (
+            <section className="gn-sec vo-sec" aria-labelledby="gn-voices">
+              <div className="vo">
+                <div>
+                  <h2 id="gn-voices" className="u-h2">Sinh viên nói gì sau ca làm</h2>
+                  <p className="vo-score">{rating1.format(rating.avg)}<span aria-hidden="true">/5</span></p>
+                  <p className="vo-cap">Trung bình từ {rating.count} đánh giá của sinh viên đã làm xong việc</p>
+                </div>
+                <ul className="vo-quotes">
+                  {reviews.map((r) => (
+                    <li key={r._id}>
+                      <figure className="vo-q">
+                        <span role="img" aria-label={`${r.rating} trên 5 sao`}><Stars value={r.rating} /></span>
+                        <blockquote>“{r.comment}”</blockquote>
+                        <figcaption><strong>{r.reviewerId?.fullName || 'Sinh viên'}</strong>{r.jobId && <span>{r.jobId.title} tại {r.jobId.companySnapshot?.name}</span>}</figcaption>
+                      </figure>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {/* Hai phía: mỗi bên một ô nền nhạt (sinh viên xám xanh, nhà tuyển dụng xanh dương nhạt), 3 bước nối bằng đường dọc, dòng chi phí và một nút */}
+          <section className="gn-sec tw-sec" aria-labelledby="gn-who">
+            <h2 id="gn-who" className="u-h2">Dành cho cả hai phía</h2>
+            <p className="u-lede">Ba bước cho mỗi bên, từ lúc đăng ký đến khi xong việc và đánh giá nhau.</p>
+            <div className="tw">
               {[
-                [GraduationCap, 'Sinh viên', 'Tìm việc không mất phí', STUDENT_STEPS, 'Miễn phí hoàn toàn cho sinh viên.',
-                  <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn btn-lg">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>],
-                [Building2, 'Nhà tuyển dụng', 'Tuyển sinh viên trong vài ngày', EMPLOYER_STEPS,
+                ['Sinh viên', 'Tìm ca làm khớp lịch học, gần trường.', STUDENT_STEPS, 'Miễn phí hoàn toàn.',
+                  <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn tw-btn">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>],
+                ['Nhà tuyển dụng', 'Tuyển sinh viên cho ca làm trong tuần.', EMPLOYER_STEPS,
                   tiers ? `${tiers.free.quota} tin miễn phí, mỗi tin hiển thị ${tiers.free.days} ngày.${plans.length ? ` Premium từ ${money(Math.min(...plans.map((p) => p.price)))} cho ${tiers.premium.quota} tin.` : ''}` : '',
-                  <Link to={postJob} className="btn btn-lg">Đăng tin tuyển dụng</Link>],
-              ].map(([Icon, who, title, steps, note, cta]) => (
-                <article key={who} className="gn-panel">
-                  <span className="gn-pill"><Icon size={18} aria-hidden="true" />{who}</span>
-                  <h3 className="gn-panel-title">{title}</h3>
-                  <ol className="gn-steps">
-                    {steps.map(([t, d], i) => <li key={t}><span className="gn-step-num">{i + 1}</span><div><strong>{t}</strong><span>{d}</span></div></li>)}
+                  <Link to={postJob} className="btn tw-btn tw-btn-line">Đăng tin tuyển dụng</Link>],
+              ].map(([who, sub, steps, note, cta], k) => (
+                <article key={who} className={`tw-side ${k ? 'tw-emp' : ''}`}>
+                  <h3>{who}</h3>
+                  <p className="tw-sub">{sub}</p>
+                  <ol className="tw-steps">
+                    {steps.map(([t, d], i) => <li key={t}><span className="tw-n" aria-hidden="true">{i + 1}</span><div><strong>{t}</strong><span>{d}</span></div></li>)}
                   </ol>
-                  <p className="gn-panel-note">{note}</p>
+                  {note && <p className="tw-note">{note}</p>}
                   {cta}
                 </article>
               ))}
             </div>
           </section>
 
-          {/* ⑤ Đánh giá: điểm trung bình lớn bên trái, các câu đánh giá bên phải; ít hơn 3 câu thì ẩn */}
-          {reviews.length > 0 && rating?.count >= MIN_REVIEWS && (
-            <section className="gn-sec gn-voices" aria-labelledby="gn-voices">
-              <div className="gn-score">
-                <h2 id="gn-voices" className="gn-h2">Sinh viên nói gì sau ca làm</h2>
-                <p className="gn-score-num">{rating1.format(rating.avg)}<span aria-hidden="true">★</span></p>
-                <p>Trung bình từ {rating.count} đánh giá của sinh viên đã làm xong việc.</p>
-              </div>
-              <ul className="gn-quotes">
-                {reviews.map((r) => (
-                  <li key={r._id}>
-                    <figure className="gn-quote">
-                      <blockquote>“{r.comment}”</blockquote>
-                      <figcaption>
-                        <span><strong>{r.reviewerId?.fullName || 'Sinh viên'}</strong>{r.jobId && <>, {r.jobId.title} tại {r.jobId.companySnapshot?.name}</>}</span>
-                        <span role="img" aria-label={`${r.rating} trên 5 sao`}><Stars value={r.rating} /></span>
-                      </figcaption>
-                    </figure>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* ⑥ FAQ một cột giữa trang */}
+          {/* FAQ: giữ giao diện cũ theo yêu cầu — tiêu đề trái, danh sách phải, dấu cộng xoay khi mở */}
           <section className="gn-sec gn-faq" id="hoi-dap" aria-labelledby="gn-faq">
             <h2 id="gn-faq" className="gn-h2">Câu hỏi thường gặp</h2>
             <div>
@@ -515,30 +560,36 @@ class HomePage extends Component {
           </section>
         </div>
 
-        {/* ⑦ Kết trang theo vai trò: sinh viên mở lịch học, nhà tuyển dụng đăng tin (nút cho nhà tuyển dụng đã có ở ④ với khách) */}
-        <section className="gn-band" aria-labelledby="gn-end">
-          {user?.role === 'EMPLOYER' ? (
-            <>
-              <h2 id="gn-end" className="gn-h2">Cần người cho ca làm tuần này?</h2>
-              <p>Đăng tin kèm ca làm trong tuần để sinh viên có lịch học phù hợp tìm thấy bạn.</p>
-              <Link to={postJob} className="btn btn-lg gn-btn-white">Đăng tin tuyển dụng</Link>
-            </>
-          ) : (
-            <>
-              <h2 id="gn-end" className="gn-h2">Nhận việc mới hợp lịch qua email</h2>
-              <p>{busyOf(user).length ? `Khi có tin còn ca rảnh so với lịch học bạn đã tô (bận ${describeShifts(busyOf(user))}), UniShift gửi email cho bạn.` : 'Có tin mới là UniShift gửi email cho bạn. Tô lịch học ở trang Tìm việc để chỉ nhận việc không trùng giờ.'} Hủy bất cứ lúc nào.</p>
-              {alertState === 'done' ? (
-                <p className="al-done" role="status"><Bell size={18} aria-hidden="true" />Đã đăng ký. Việc mới sẽ được gửi tới {alertEmail}.</p>
-              ) : (
-                <form className="al-form" onSubmit={this.subscribe}>
-                  <label className="sr-only" htmlFor="al-email">Email nhận thông báo</label>
-                  <input id="al-email" type="email" required value={alertEmail} onChange={this.set('alertEmail')} placeholder="email@truong.edu.vn" aria-invalid={!!alertError} aria-describedby={alertError ? 'al-error' : undefined} />
-                  <button className="btn btn-lg gn-btn-white" disabled={alertState === 'busy'}>{alertState === 'busy' ? 'Đang gửi…' : 'Nhận thông báo'}</button>
-                  {alertError && <p id="al-error" className="al-error">{alertError}</p>}
-                </form>
-              )}
-            </>
-          )}
+        {/* Dải cuối trang: nền xanh UniShift, chữ trái, hành động phải (sinh viên/khách nhận email, nhà tuyển dụng đăng tin) */}
+        <section className="bd" aria-labelledby="gn-end">
+          <div className="container bd-inner">
+            {user?.role === 'EMPLOYER' ? (
+              <>
+                <div className="bd-copy">
+                  <h2 id="gn-end">Cần người cho ca làm tuần này?</h2>
+                  <p>Đăng tin kèm ca làm trong tuần để sinh viên có lịch học phù hợp tìm thấy bạn.</p>
+                </div>
+                <Link to={postJob} className="btn bd-btn">Đăng tin tuyển dụng</Link>
+              </>
+            ) : (
+              <>
+                <div className="bd-copy">
+                  <h2 id="gn-end">Nhận ca mới hợp lịch qua email</h2>
+                  <p>{busyOf(user).length ? `Khi có tin còn ca rảnh so với lịch học bạn đã tô (bận ${describeShifts(busyOf(user))}), UniShift gửi email cho bạn.` : 'Có tin còn ca rảnh so với lịch học bạn đã tô, UniShift gửi email cho bạn.'} Hủy bất cứ lúc nào.</p>
+                </div>
+                {alertState === 'done' ? (
+                  <p className="al-done" role="status"><Bell size={18} aria-hidden="true" />Đã đăng ký. Việc mới sẽ được gửi tới {alertEmail}.</p>
+                ) : (
+                  <form className="al-form" onSubmit={this.subscribe}>
+                    <label className="sr-only" htmlFor="al-email">Email nhận thông báo</label>
+                    <input id="al-email" type="email" required value={alertEmail} onChange={this.set('alertEmail')} placeholder="email@truong.edu.vn" aria-invalid={!!alertError} aria-describedby={alertError ? 'al-error' : undefined} />
+                    <button className="btn bd-btn" disabled={alertState === 'busy'}>{alertState === 'busy' ? 'Đang gửi…' : 'Nhận thông báo'}</button>
+                    {alertError && <p id="al-error" className="al-error">{alertError}</p>}
+                  </form>
+                )}
+              </>
+            )}
+          </div>
         </section>
       </>
     );
