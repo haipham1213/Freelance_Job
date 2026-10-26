@@ -1,9 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Heart, Hourglass, MapPin, Moon, Sun, Sunset, Users } from 'lucide-react';
+import { Clock, Hourglass, MapPin, Moon, Sun, Sunset, Users } from 'lucide-react';
 import { categoryIcon } from './Illustrations';
 import { describeShifts, shiftParts, salary, DAYS, PERIODS } from '../utils/format';
-import { api } from '../api';
 
 // "Ca làm": có ô buổi thì ghi buổi + khung giờ lấy từ ghi chú ("Tối T2–T6, 18h–22h"), không lặp lại ngày;
 // không có ô buổi thì dùng nguyên ghi chú của nhà tuyển dụng
@@ -64,23 +63,10 @@ export const MiniWeek = ({ shifts, busy }) => {
 export const PERIOD_ICON = [Sun, Sunset, Moon];
 const DAY = 864e5;
 
-// Tin đã lưu của sinh viên (để tô tim trên thẻ) và lưu / bỏ lưu một tin
-export const loadSavedIds = () => api.get('/students/me/saved-jobs').then((r) => new Set(r.data.map((j) => j._id))).catch(() => new Set());
-// Lưu / bỏ lưu cho component có state.savedIds: đổi ngay trên giao diện rồi mới gọi API, lỗi thì trả lại như cũ
-export const saveToggler = (comp) => async (id, saved) => {
-  const flip = (on) => comp.setState((s) => {
-    const savedIds = new Set(s.savedIds);
-    if (on) savedIds.add(id); else savedIds.delete(id);
-    return { savedIds };
-  });
-  flip(!saved);
-  await (saved ? api.del : api.put)(`/students/me/saved-jobs/${id}`).catch(() => flip(saved));
-};
-
 // Thẻ việc (trang Tìm việc, việc tương tự). Đọc từ trên xuống theo thứ tự sinh viên quyết định: việc gì ở đâu, lương bao nhiêu,
 // làm ngày nào buổi nào (dải 7 ngày, ngày có ca tô xanh), rồi các tín hiệu phụ trên một dòng mảnh. Cả thẻ bấm được nhờ link tên việc
-// phủ toàn thẻ (::after), nút tim nằm trên lớp đó. Lưu tin: sinh viên truyền onSave + saved; khách truyền saveHref; nhà tuyển dụng không truyền gì.
-const JobRow = ({ job: j, category, on, onClick, badge = true, saved, onSave, saveHref }) => {
+// phủ toàn thẻ (::after).
+const JobRow = ({ job: j, category, on, onClick, badge = true }) => {
   const Icon = categoryIcon(category);
   const left = j.slots - (j.acceptedCount || 0);
   const daysLeft = Math.ceil((new Date(j.expiresAt) - Date.now()) / DAY);
@@ -101,13 +87,6 @@ const JobRow = ({ job: j, category, on, onClick, badge = true, saved, onSave, sa
           <span className="jr-where"><MapPin size={13} aria-hidden="true" />{j.district || j.city}</span>
         </p>
       </div>
-      {onSave ? (
-        <button type="button" className={`jr-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={saved ? 'Bỏ lưu tin' : 'Lưu tin'} onClick={() => onSave(j._id, saved)}>
-          <Heart size={18} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
-        </button>
-      ) : saveHref && (
-        <Link to={saveHref} className="jr-save" aria-label="Đăng nhập để lưu tin"><Heart size={18} aria-hidden="true" /></Link>
-      )}
       <p className="jr-salary">{salary(j)}{featured && <span className="jt-badge">Nổi bật</span>}{isNew && <span className="jr-new">Mới</span>}</p>
       {j.shifts?.length > 0 ? (
         <div className="jr-sched">

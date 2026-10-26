@@ -1,14 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import User from '../../models/User.js';
-import Job from '../../models/Job.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
 import { ok, paging, oid, slotList } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { rawFile, saveUpload } from '../../utils/files.js';
-import { visibleMatch } from '../jobs/jobs.service.js';
 
 const router = Router();
 const student = [authenticate, authorize('STUDENT')];
@@ -85,35 +83,6 @@ router.get('/students/me/applications', ...student, async (req, res) => {
     Application.countDocuments(filter),
   ]);
   ok(res, items, { page, limit, total });
-});
-
-// API-36: Job bị ẩn/hết hạn vẫn trả về kèm cờ isAvailable = false
-router.get('/students/me/saved-jobs', ...student, async (req, res) => {
-  const ids = req.user.student.savedJobIds || [];
-  const [jobs, visibleIds] = await Promise.all([
-    Job.find({ _id: { $in: ids } }).select('-searchText -description'),
-    Job.find({ _id: { $in: ids }, ...(await visibleMatch()) }).distinct('_id'),
-  ]);
-  const visible = new Set(visibleIds.map(String));
-  ok(res, jobs.map((j) => ({ ...j.toJSON(), isAvailable: visible.has(String(j._id)) })));
-});
-
-// API-37
-router.put('/students/me/saved-jobs/:jobId', ...student, async (req, res) => {
-  const jobId = oid(req.params.jobId);
-  if (!(await Job.exists({ _id: jobId }))) throw new AppError(404, 'JOB_NOT_FOUND', 'Không tìm thấy tin');
-  const r = await User.updateOne(
-    { _id: req.user._id, 'student.savedJobIds.99': { $exists: false } },
-    { $addToSet: { 'student.savedJobIds': jobId } },
-  );
-  if (!r.matchedCount) throw new AppError(409, 'SAVED_LIMIT', 'Bạn chỉ lưu được tối đa 100 tin');
-  res.status(204).end();
-});
-
-// API-38
-router.delete('/students/me/saved-jobs/:jobId', ...student, async (req, res) => {
-  await User.updateOne({ _id: req.user._id }, { $pull: { 'student.savedJobIds': oid(req.params.jobId) } });
-  res.status(204).end();
 });
 
 export default router;

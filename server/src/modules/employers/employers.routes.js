@@ -1,12 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import User from '../../models/User.js';
 import Job from '../../models/Job.js';
-import Review from '../../models/Review.js';
-import Payment from '../../models/Payment.js';
 import Application from '../../models/Application.js';
-import AppError from '../../utils/AppError.js';
-import { ok, paging, oid } from '../../utils/http.js';
+import { ok, paging } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { rawFile, saveUpload } from '../../utils/files.js';
@@ -91,14 +87,6 @@ router.get('/employers/me/stats', ...employer, async (req, res) => {
   ok(res, { ...(await profile(req.user)), jobs: toMap(jobs), applications: toMap(apps), recentPending: recent, tiers: TIERS });
 });
 
-// API-49
-router.get('/employers/me/payments', ...employer, async (req, res) => {
-  const { page, limit, skip } = paging(req.query);
-  const filter = { employerId: req.user._id };
-  const [items, total] = await Promise.all([Payment.find(filter).select('-ipnRaw').sort('-createdAt').skip(skip).limit(limit), Payment.countDocuments(filter)]);
-  ok(res, items, { page, limit, total });
-});
-
 // Nhà tuyển dụng đang có tin mở, nhiều tin xếp trước (dải logo ở trang chủ)
 router.get('/employers/hiring', async (req, res) => {
   const rows = await Job.aggregate([
@@ -109,23 +97,6 @@ router.get('/employers/hiring', async (req, res) => {
     { $limit: Math.min(24, Number(req.query.limit) || 12) },
   ]);
   ok(res, rows.map((r) => ({ _id: r._id, name: r.company?.name, logoUrl: r.company?.logoUrl, city: r.company?.city, jobs: r.jobs })));
-});
-
-// API-18: trang công khai
-router.get('/employers/:id', async (req, res) => {
-  const u = await User.findOne({ _id: oid(req.params.id), role: 'EMPLOYER' });
-  if (!u || u.status === 'LOCKED') throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy nhà tuyển dụng');
-  const { page, limit, skip } = paging(req.query);
-  const [openJobs, reviews, total] = await Promise.all([
-    Job.find({ ...(await visibleMatch()), employerId: u._id }).select('-searchText -description').sort('-createdAt').limit(20),
-    Review.find({ revieweeId: u._id, isHidden: false }).sort('-createdAt').skip(skip).limit(limit).populate('reviewerId', 'fullName avatarUrl'),
-    Review.countDocuments({ revieweeId: u._id, isHidden: false }),
-  ]);
-  ok(res, {
-    employer: { _id: u._id, fullName: u.fullName, company: u.employer?.company, ratingAvg: u.ratingAvg, ratingCount: u.ratingCount, isPremium: u.isPremium(), createdAt: u.createdAt },
-    openJobs,
-    reviews,
-  }, { page, limit, total });
 });
 
 export default router;

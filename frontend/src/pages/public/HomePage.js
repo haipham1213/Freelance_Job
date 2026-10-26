@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
-import { ArrowRight, Ban, Bell, Building2, CalendarClock, CalendarDays, Check, Heart, Hourglass, Lock, MapPin, Plus, Search, Star, Users, X } from 'lucide-react';
+import { ArrowRight, Ban, Bell, Building2, CalendarClock, CalendarDays, Check, Hourglass, Lock, MapPin, Plus, Search, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Alert, Dropdown, Stars } from '../../components/ui';
+import { Alert, Dropdown } from '../../components/ui';
 import { categoryIcon } from '../../components/Illustrations';
-import { loadSavedIds, saveToggler, busyOf, shiftText, PERIOD_ICON, FitBadge } from '../../components/JobRow';
+import { busyOf, shiftText, PERIOD_ICON, FitBadge } from '../../components/JobRow';
 import withRouter from '../../utils/withRouter';
-import { money, salary, shiftParts, describeShifts, DAYS as WEEKDAYS, PERIODS } from '../../utils/format';
+import { salary, shiftParts, describeShifts, DAYS as WEEKDAYS, PERIODS } from '../../utils/format';
 import { AuthContext } from '../../context/AuthContext';
 
 // Bốn cam kết an toàn, mỗi cam kết là một business rule backend đang chặn
@@ -14,20 +14,20 @@ import { AuthContext } from '../../context/AuthContext';
 const promises = (t) => [
   [Ban, 'Không phí, không đặt cọc', 'Nhà tuyển dụng không được thu tiền của sinh viên. Tin đòi đặt cọc bị ẩn, tài khoản lừa đảo bị khóa.'],
   [Lock, 'Liên hệ chỉ mở khi được nhận', 'Số điện thoại và email của hai bên chỉ hiện khi đơn đã được nhận, không lộ cho người lạ.'],
-  [Star, 'Đánh giá từ người đã làm', 'Chỉ đơn đã hoàn thành mới được đánh giá, mỗi bên một lần trong 14 ngày.'],
+  [Bell, 'Biết kết quả ngay', 'Có thông báo ngay khi nhà tuyển dụng nhận hoặc từ chối đơn của bạn.'],
   [CalendarClock, 'Tin luôn còn hiệu lực', `Tin tự hết hạn${t ? ` sau ${t.free.days} ngày (${t.premium.days} ngày với Premium)` : ''}. Tin đã đủ người không còn hiện.`],
 ];
 
 // Bảng so sánh với cách tìm việc qua group mạng xã hội; mỗi dòng ứng với một cam kết bên trái
 const COMPARE = [
-  ['Bị đòi đặt cọc, phí đồng phục', 'Tự xoay xở, khó đòi lại tiền', 'Báo cáo tin, admin ẩn tin hoặc khóa tài khoản'],
+  ['Bị đòi đặt cọc, phí đồng phục', 'Tự xoay xở, khó đòi lại tiền', 'Điều khoản cấm thu bất kỳ khoản phí nào'],
   ['Số điện thoại của bạn', 'Để công khai dưới bài đăng', 'Chỉ nhà tuyển dụng đã nhận bạn mới thấy'],
-  ['Quán có uy tín không', 'Hỏi quanh, nghe lời đồn', 'Điểm đánh giá từ người đã làm xong việc'],
+  ['Nộp đơn rồi không ai trả lời', 'Nhắn tin chờ mãi', 'Có thông báo khi đơn được nhận hoặc từ chối'],
   ['Tin đã cũ', 'Bài cũ vẫn trôi, gọi mới biết đủ người', 'Tin tự ẩn khi hết hạn hoặc đủ người'],
 ];
 
-const STUDENT_STEPS = [['Tạo hồ sơ', 'Điền trường, ngành, kỹ năng và tải CV'], ['Ứng tuyển', 'Nộp đơn kèm thư giới thiệu ngắn'], ['Đi làm', 'Được nhận thì thấy liên hệ, xong việc thì đánh giá']];
-const EMPLOYER_STEPS = [['Đăng tin', 'Mô tả việc, mức lương và chọn ca làm trong tuần'], ['Duyệt hồ sơ', 'Xem CV và điểm đánh giá, nhận hoặc từ chối'], ['Xác nhận kết quả', 'Xong việc thì xác nhận và đánh giá sinh viên']];
+const STUDENT_STEPS = [['Tạo hồ sơ', 'Điền trường, ngành, kỹ năng và tải CV'], ['Ứng tuyển', 'Nộp đơn kèm thư giới thiệu ngắn'], ['Đi làm', 'Được nhận thì thấy liên hệ và đi làm theo ca']];
+const EMPLOYER_STEPS = [['Đăng tin', 'Mô tả việc, mức lương và chọn ca làm trong tuần'], ['Duyệt hồ sơ', 'Xem CV, nhận hoặc từ chối'], ['Xác nhận kết quả', 'Xong việc thì xác nhận hoàn thành']];
 
 // Tab "Ca làm tuần này" theo buổi (ô = ngày * 3 + buổi, xem Job.shifts). Lọc bằng tham số busy của API-20:
 // coi mọi ô ngoài tab là bận, API giữ việc còn ít nhất một ca trong tab (và việc linh hoạt, xếp cuối)
@@ -38,30 +38,18 @@ const HOME_JOBS = 6;
 // Thời khóa biểu minh họa trong khung điện thoại: h = giờ học, w = ca làm thêm, . = trống
 const DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const WEEK = [['Sáng', 'hhhhh.'], ['Chiều', 'h.h.hw'], ['Tối', 'w.w.w.']];
-// Ít đánh giá quá thì điểm trung bình gây phản tác dụng → ẩn mục đánh giá
-const MIN_REVIEWS = 5;
 // Từ khóa đã tìm gần đây (gợi ý sẵn trong ô tìm kiếm bằng <datalist>)
 const RECENT_KEY = 'jobsv.recentQ';
 const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch { return []; } };
 const pushRecent = (q) => { try { localStorage.setItem(RECENT_KEY, JSON.stringify([q, ...readRecent().filter((x) => x !== q)].slice(0, 5))); } catch { /* bỏ qua */ } };
-const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const faq = (t) => [
   ['Ứng tuyển có mất phí không?', 'Hoàn toàn miễn phí với sinh viên. Nhà tuyển dụng không được thu bất kỳ khoản phí nào của bạn.'],
-  ['Bị yêu cầu đặt cọc hoặc đóng phí thì làm gì?', 'Đừng chuyển tiền. Bấm “Báo cáo tin này” ở trang chi tiết việc và chọn lý do “Lừa đảo / thu phí”. Quản trị viên xử lý theo 3 bậc: cảnh cáo, ẩn tin hoặc khóa tài khoản.'],
   ['Tôi cần chuẩn bị gì để ứng tuyển?', 'Đăng ký bằng email trường, điền hồ sơ và tải lên một CV PDF. CV này được dùng lại cho mọi đơn ứng tuyển.'],
-  ['Làm sao biết nhà tuyển dụng đáng tin?', 'Mỗi nhà tuyển dụng có trang công khai với điểm đánh giá từ những sinh viên đã từng làm việc ở đó.'],
   t && ['Nhà tuyển dụng đăng tin thế nào?', `Mỗi tài khoản được đăng tối đa ${t.free.quota} tin miễn phí. Gói Premium nâng lên ${t.premium.quota} tin, mỗi tin hiển thị ${t.premium.days} ngày và được ghim Nổi bật.`],
 ].filter(Boolean);
 
 // "Ca làm tuần này": lưới thẻ việc đều nhau (nổi bật trước, API đã xếp).
-// Nút lưu: sinh viên bấm lưu ngay, khách được dẫn đi đăng nhập, nhà tuyển dụng không có nút
 const DAY = 864e5;
-const SaveBtn = ({ job, saved, onSave, saveHref }) => (onSave ? (
-  <button type="button" className={`sh-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={saved ? 'Bỏ lưu tin' : 'Lưu tin'} onClick={() => onSave(job._id, saved)}>
-    <Heart size={18} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
-  </button>
-) : saveHref ? <Link to={saveHref} className="sh-save" aria-label="Đăng nhập để lưu tin"><Heart size={18} aria-hidden="true" /></Link> : null);
-
 const Logo = ({ job, category, size }) => {
   const Icon = categoryIcon(category);
   return (
@@ -103,7 +91,7 @@ const WeekStrip = ({ shifts, focus }) => {
 };
 
 // Thẻ việc: công ty và khu vực ở đầu, tên việc, tuần thu nhỏ (hoặc ô giờ linh hoạt cùng chiều cao), chỗ trống, lương
-const JobCard = ({ job: j, category, save, focus }) => {
+const JobCard = ({ job: j, category, focus }) => {
   const left = j.slots - (j.acceptedCount || 0);
   const daysLeft = Math.ceil((new Date(j.expiresAt) - Date.now()) / DAY);
   return (
@@ -114,7 +102,6 @@ const JobCard = ({ job: j, category, save, focus }) => {
           <p className="sc-company">{j.companySnapshot?.name}</p>
           <p className="sc-where"><MapPin size={13} aria-hidden="true" />{[j.district, j.city].filter(Boolean).join(', ')}</p>
         </div>
-        <SaveBtn job={j} {...save} />
       </div>
       <h3 className="sc-title"><Link to={`/jobs/${j._id}`} className="sh-link">{j.title}</Link></h3>
       {j.shifts?.length ? <WeekStrip shifts={j.shifts} focus={focus} />
@@ -132,7 +119,7 @@ const JobCard = ({ job: j, category, save, focus }) => {
   );
 };
 
-const ShiftRow = ({ job: j, category, save, i }) => (
+const ShiftRow = ({ job: j, category, i }) => (
   <li className="sh-row" style={{ '--i': i }}>
     <Logo job={j} category={category} size={44} />
     <div className="sh-row-main">
@@ -142,17 +129,14 @@ const ShiftRow = ({ job: j, category, save, i }) => (
       {j.fit !== undefined && <div className="sh-fit"><FitBadge job={j} /></div>}
     </div>
     <p className="sh-row-pay">{salary(j)}</p>
-    <SaveBtn job={j} {...save} />
   </li>
 );
 
-// "Dành cho bạn" (chỉ sinh viên đăng nhập): đơn đang chờ, tin đã lưu sắp hết hạn, lịch học, và việc hợp lịch học trong hồ sơ
-const ForYou = ({ user, data, catName, save }) => {
+// "Dành cho bạn" (chỉ sinh viên đăng nhập): đơn đang chờ, lịch học, và việc hợp lịch học trong hồ sơ
+const ForYou = ({ user, data, catName }) => {
   const busy = user.student?.busySlots || [];
-  const soon = data.saved.filter((j) => new Date(j.expiresAt) - Date.now() < 3 * DAY).length;
   const tiles = [
     ['Đơn đang chờ duyệt', data.pending, '/student/applications'],
-    [soon ? `Tin đã lưu, ${soon} sắp hết hạn` : 'Tin đã lưu', data.saved.length, '/student/saved-jobs'],
     [busy.length ? 'Buổi học đã tô' : 'Chưa tô lịch học', busy.length, '/jobs#lich-hoc'],
   ];
   // Dải abyss: hàng số liệu neon chia vạch dọc ở trên, việc hợp lịch học (danh sách mint) ở dưới
@@ -171,7 +155,7 @@ const ForYou = ({ user, data, catName, save }) => {
         <div className="fy-jobs">
           <h3 className="fy-h3">{busy.length ? 'Việc hợp lịch học của bạn' : 'Việc mới nhất'}</h3>
           {!data.jobs.length ? <p className="muted">Chưa có việc nào còn ca rảnh so với lịch học của bạn.</p> : (
-            <ol className="sh-list">{data.jobs.map((j, i) => <ShiftRow key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} i={i} />)}</ol>
+            <ol className="sh-list">{data.jobs.map((j, i) => <ShiftRow key={j._id} job={j} category={catName[j.categoryId]} i={i} />)}</ol>
           )}
           {!busy.length && <p className="fy-hint">Tô các buổi có tiết học để UniShift chỉ gợi ý việc không trùng giờ. <Link to="/jobs#lich-hoc" className="text-link">Tô lịch học<ArrowRight size={16} aria-hidden="true" /></Link></p>}
         </div>
@@ -184,7 +168,7 @@ class HomePage extends Component {
   static contextType = AuthContext;
   state = {
     q: '', categoryId: '', city: '', categories: [], locations: [], jobs: null, tab: 'all', loading: false,
-    total: 0, reviews: [], rating: null, plans: [], tiers: null, savedIds: new Set(), employers: [],
+    total: 0, tiers: null, employers: [],
     forYou: null, recent: readRecent(), alertEmail: '', alertState: '', alertError: '',
   };
 
@@ -195,16 +179,11 @@ class HomePage extends Component {
     const [c, l, j, p] = await Promise.all([
       api.get('/categories'), api.get('/jobs/locations'), api.get(`/jobs?limit=${HOME_JOBS}`), api.get('/plans').catch(() => ({ data: [], meta: {} })),
     ]);
-    this.setState({ categories: c.data, locations: l.data, jobs: j.data, total: j.meta?.total || j.data.length, plans: p.data, tiers: p.meta?.tiers || null },
+    this.setState({ categories: c.data, locations: l.data, jobs: j.data, total: j.meta?.total || j.data.length, tiers: p.meta?.tiers || null },
       // Link /#hoi-dap từ footer: cuộn tới mục sau khi nội dung phía trên đã có chiều cao thật
       () => { const h = this.props.location.hash; if (h) document.getElementById(h.slice(1))?.scrollIntoView(); });
-    // Lời chứng thực thật: đánh giá gần nhất của sinh viên, điểm trung bình trên mọi đánh giá đang hiện
-    const [r, e] = await Promise.all([api.get('/reviews/recent?limit=3').catch(() => null), api.get('/employers/hiring?limit=12').catch(() => null)]);
-    this.setState({
-      reviews: r?.data || [],
-      rating: r?.meta?.ratingCount ? { avg: r.meta.ratingAvg, count: r.meta.ratingCount } : null,
-      employers: e?.data || [],
-    });
+    const e = await api.get('/employers/hiring?limit=12').catch(() => null);
+    this.setState({ employers: e?.data || [] });
   }
 
   componentDidUpdate(prev) {
@@ -215,7 +194,7 @@ class HomePage extends Component {
   // StrictMode (dev) gỡ rồi gắn lại component: xóa mốc để lần gắn sau tải lại theo người dùng
   componentWillUnmount() { this.savedFor = undefined; document.body.classList.remove('page-home'); }
 
-  // Theo người đang đăng nhập: tô tim tin đã lưu, điền sẵn email, tải mục "Dành cho bạn" của sinh viên
+  // Theo người đang đăng nhập: điền sẵn email, tải mục "Dành cho bạn" của sinh viên
   syncSaved = () => {
     const u = this.context.user;
     const key = u ? `${u._id}:${u.student?.busySlots?.join() || ''}` : 'guest';
@@ -223,13 +202,11 @@ class HomePage extends Component {
     this.savedFor = key;
     this.setState({ alertEmail: u?.email || '' });
     if (u?.role !== 'STUDENT') return this.setState({ forYou: null });
-    loadSavedIds().then((savedIds) => this.setState({ savedIds }));
     const busy = u.student?.busySlots || [];
     Promise.all([
       api.get('/students/me/applications?status=PENDING&limit=1'),
-      api.get('/students/me/saved-jobs'),
       api.get(`/jobs${qs({ limit: 4, busy: busy.length ? busy.join(',') : undefined })}`),
-    ]).then(([a, sv, jb]) => this.setState({ forYou: { pending: a.meta?.total || 0, saved: sv.data, jobs: jb.data } })).catch(() => {});
+    ]).then(([a, jb]) => this.setState({ forYou: { pending: a.meta?.total || 0, jobs: jb.data } })).catch(() => {});
   };
 
   subscribe = async (e) => {
@@ -242,8 +219,6 @@ class HomePage extends Component {
       this.setState({ alertState: '', alertError: err.message });
     }
   };
-
-  toggleSave = saveToggler(this);
 
   // Giữ danh sách cũ (làm mờ) trong lúc tải tab mới để trang không giật
   loadTab = async (tab) => {
@@ -276,7 +251,7 @@ class HomePage extends Component {
   set = (k) => (e) => this.setState({ [k]: e.target.value });
 
   render() {
-    const { q, categoryId, city, categories, locations, jobs, tab, loading, total, reviews, rating, plans, tiers, employers, forYou, recent, alertEmail, alertState, alertError } = this.state;
+    const { q, categoryId, city, categories, locations, jobs, tab, loading, total, tiers, employers, forYou, recent, alertEmail, alertState, alertError } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const user = this.context.user;
     // Sinh viên đã đăng nhập không vào được /employer/* (403) → dẫn sang đăng ký tài khoản nhà tuyển dụng
@@ -284,7 +259,6 @@ class HomePage extends Component {
     // Ngành đang có tin, nhiều tin xếp trước (dùng cho chip ở hero và hàng ngành ②)
     const hiring = categories.filter((c) => c.jobCount > 0).sort((a, b) => b.jobCount - a.jobCount);
     const busiest = hiring.slice(0, 4);
-    const save = (j) => ({ saved: this.state.savedIds.has(j._id), onSave: user?.role === 'STUDENT' ? this.toggleSave : undefined, saveHref: user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${j._id}`)}` });
     const areas = [...locations].sort((a, b) => b.total - a.total).filter((l) => l.total > 0);
     return (
       <>
@@ -356,7 +330,7 @@ class HomePage extends Component {
         </section>
 
         <div className="container">
-          {user?.role === 'STUDENT' && forYou && <ForYou user={user} data={forYou} catName={catName} save={save} />}
+          {user?.role === 'STUDENT' && forYou && <ForYou user={user} data={forYou} catName={catName} />}
 
           {/* Câu chuyện trang chủ tiếp nối lời hứa của hero, mỗi mục một bước:
               Tìm ca trống → Chọn chỗ gần → Biết trước lương → Nơi bạn sẽ làm → Nộp đơn yên tâm → Sau ca làm → Tuần sau (dải cuối).
@@ -385,7 +359,7 @@ class HomePage extends Component {
                 </div>
               ) : (
                 <ol className={`sc-grid ${loading ? 'is-loading' : ''}`}>
-                  {jobs.slice(0, HOME_JOBS).map((j) => <JobCard key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} focus={TABS.find(([key]) => key === tab)[2]} />)}
+                  {jobs.slice(0, HOME_JOBS).map((j) => <JobCard key={j._id} job={j} category={catName[j.categoryId]} focus={TABS.find(([key]) => key === tab)[2]} />)}
                 </ol>
               )}
             </div>
@@ -453,7 +427,7 @@ class HomePage extends Component {
                     const copy = i >= employers.length;
                     return (
                       <li key={`${e._id}-${i}`} aria-hidden={copy || undefined}>
-                        <Link to={`/employers/${e._id}`} className="em-item" tabIndex={copy ? -1 : undefined} title={`${e.name}, ${e.jobs} tin đang mở`}>
+                        <Link to={`/jobs${qs({ q: e.name })}`} className="em-item" tabIndex={copy ? -1 : undefined} title={`${e.name}, ${e.jobs} tin đang mở`}>
                           <span className="em-logo">{e.logoUrl ? <img src={e.logoUrl} alt="" width="56" height="56" /> : <Building2 size={22} aria-hidden="true" />}</span>
                           <span className="em-name">{e.name}</span>
                         </Link>
@@ -497,40 +471,16 @@ class HomePage extends Component {
             </div>
           </section>
 
-          {/* Sau ca làm: điểm trung bình cỡ lớn bên trái, ba câu đánh giá bên phải, mỗi câu có vạch xanh lá phía trên */}
-          {reviews.length > 0 && rating?.count >= MIN_REVIEWS && (
-            <section className="gn-sec vo-sec" aria-labelledby="gn-voices">
-              <div className="vo">
-                <div>
-                  <h2 id="gn-voices" className="u-h2">Sinh viên nói gì sau ca làm</h2>
-                  <p className="vo-score">{rating1.format(rating.avg)}<span aria-hidden="true">/5</span></p>
-                  <p className="vo-cap">Trung bình từ {rating.count} đánh giá của sinh viên đã làm xong việc</p>
-                </div>
-                <ul className="vo-quotes">
-                  {reviews.map((r) => (
-                    <li key={r._id}>
-                      <figure className="vo-q">
-                        <span role="img" aria-label={`${r.rating} trên 5 sao`}><Stars value={r.rating} /></span>
-                        <blockquote>“{r.comment}”</blockquote>
-                        <figcaption><strong>{r.reviewerId?.fullName || 'Sinh viên'}</strong>{r.jobId && <span>{r.jobId.title} tại {r.jobId.companySnapshot?.name}</span>}</figcaption>
-                      </figure>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-          )}
-
           {/* Hai phía: mỗi bên một ô nền nhạt (sinh viên xám xanh, nhà tuyển dụng xanh dương nhạt), 3 bước nối bằng đường dọc, dòng chi phí và một nút */}
           <section className="gn-sec tw-sec" aria-labelledby="gn-who">
             <h2 id="gn-who" className="u-h2">Dành cho cả hai phía</h2>
-            <p className="u-lede">Ba bước cho mỗi bên, từ lúc đăng ký đến khi xong việc và đánh giá nhau.</p>
+            <p className="u-lede">Ba bước cho mỗi bên, từ lúc đăng ký đến khi xong việc.</p>
             <div className="tw">
               {[
                 ['Sinh viên', 'Tìm ca làm khớp lịch học, gần trường.', STUDENT_STEPS, 'Miễn phí hoàn toàn.',
                   <Link to={user?.role === 'STUDENT' ? '/student/profile' : '/register'} className="btn tw-btn">{user?.role === 'STUDENT' ? 'Hoàn thiện hồ sơ' : 'Tạo hồ sơ miễn phí'}</Link>],
                 ['Nhà tuyển dụng', 'Tuyển sinh viên cho ca làm trong tuần.', EMPLOYER_STEPS,
-                  tiers ? `${tiers.free.quota} tin miễn phí, mỗi tin hiển thị ${tiers.free.days} ngày.${plans.length ? ` Premium từ ${money(Math.min(...plans.map((p) => p.price)))} cho ${tiers.premium.quota} tin.` : ''}` : '',
+                  tiers ? `${tiers.free.quota} tin miễn phí, mỗi tin hiển thị ${tiers.free.days} ngày.` : '',
                   <Link to={postJob} className="btn tw-btn tw-btn-line">Đăng tin tuyển dụng</Link>],
               ].map(([who, sub, steps, note, cta], k) => (
                 <article key={who} className={`tw-side ${k ? 'tw-emp' : ''}`}>

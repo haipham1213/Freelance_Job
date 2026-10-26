@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { ArrowLeft, Building2, Check, ChevronDown, Inbox, Search, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { APP_STATUS, JOB_STATUS, PAY_STATUS, DAYS, DAY_NAMES, PERIODS } from '../utils/format';
+import { APP_STATUS, JOB_STATUS, DAYS, DAY_NAMES, PERIODS } from '../utils/format';
 
 export const Spinner = () => <div className="spinner" role="status" aria-label="Đang tải" />;
 
@@ -21,7 +21,6 @@ const badge = (map) => ({ status }) => {
 };
 export const JobBadge = badge(JOB_STATUS);
 export const AppBadge = badge(APP_STATUS);
-export const PayBadge = badge(PAY_STATUS);
 
 const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 export const Stars = ({ value = 0, count }) => (

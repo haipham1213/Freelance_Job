@@ -107,7 +107,6 @@ router.get('/jobs/:id', optionalAuth, async (req, res) => {
     employer: { _id: employer._id, fullName: employer.fullName, company: employer.employer?.company, ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, isPremium: employer.isPremium() },
     category,
     myApplication: application && { _id: application._id, status: application.status },
-    isSaved: !!req.user?.student?.savedJobIds?.some((j) => j.equals(job._id)),
   });
 });
 

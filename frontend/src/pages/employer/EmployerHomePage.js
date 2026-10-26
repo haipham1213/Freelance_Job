@@ -76,11 +76,10 @@ export default class EmployerHomePage extends Component {
 
           <aside className="emp-upsell">
             <span className={`chip ${isPremium ? 'chip-featured' : ''}`}>{isPremium ? '★ Premium' : 'Gói miễn phí'}</span>
-            <h2 className="h-md">{isPremium ? 'Bạn đang dùng Premium' : 'Tuyển nhanh hơn với Premium'}</h2>
+            <h2 className="h-md">Hạn mức đăng tin</h2>
             <p className="muted small">
-              {isPremium ? `Hiệu lực đến ${date(premiumUntil)}. Tin của bạn được ghim Nổi bật và hiển thị ${premium.days} ngày.` : `Tối đa ${free.quota} tin đang mở, mỗi tin hiển thị ${free.days} ngày. Premium: ${premium.quota} tin, ${premium.days} ngày, ghim Nổi bật.`}
+              {isPremium ? `Hiệu lực đến ${date(premiumUntil)}. Tin của bạn được ghim Nổi bật và hiển thị ${premium.days} ngày.` : `Tối đa ${free.quota} tin đang mở, mỗi tin hiển thị ${free.days} ngày.`}
             </p>
-            <Link to="/employer/premium" className="btn btn-block">{isPremium ? 'Gia hạn' : 'Nâng cấp Premium'}</Link>
           </aside>
         </div>
       </div>

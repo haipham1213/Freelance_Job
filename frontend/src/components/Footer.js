@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 // Footer kiểu job board: logo + mô tả, các cột link, dòng bản quyền
 const GROUPS = [
-  ['Dành cho sinh viên', [['/jobs', 'Tìm việc'], ['/register', 'Tạo hồ sơ'], ['/student/saved-jobs', 'Việc đã lưu']]],
-  ['Dành cho nhà tuyển dụng', [['/register?role=EMPLOYER', 'Đăng ký tuyển dụng'], ['/employer/jobs/new', 'Đăng tin'], ['/employer/premium', 'Gói Premium']]],
+  ['Dành cho sinh viên', [['/jobs', 'Tìm việc'], ['/register', 'Tạo hồ sơ'], ['/student/applications', 'Đơn của tôi']]],
+  ['Dành cho nhà tuyển dụng', [['/register?role=EMPLOYER', 'Đăng ký tuyển dụng'], ['/employer/jobs/new', 'Đăng tin'], ['/employer/jobs', 'Quản lý tin']]],
   ['Hỗ trợ', [['/#hoi-dap', 'Hỏi đáp'], ['/dieu-khoan#bao-cao', 'Báo cáo lừa đảo'], ['/dieu-khoan', 'Điều khoản sử dụng'], ['/quyen-rieng-tu', 'Quyền riêng tư']]],
 ];
 

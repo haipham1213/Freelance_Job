@@ -27,7 +27,7 @@ export const quotaOf = async (employer) => {
 
 export const assertQuota = async (employer) => {
   const q = await quotaOf(employer);
-  if (q.used >= q.limit) throw new AppError(403, 'QUOTA_EXCEEDED', `Bạn đã dùng hết ${q.limit} tin đang mở. Nâng cấp Premium để đăng thêm.`, q);
+  if (q.used >= q.limit) throw new AppError(403, 'QUOTA_EXCEEDED', `Bạn đã dùng hết ${q.limit} tin đang mở. Đóng bớt tin cũ để đăng thêm.`, q);
 };
 
 // BR-16: số ngày theo gói tại lúc đăng

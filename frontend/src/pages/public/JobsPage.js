@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import { CalendarClock, CalendarDays, ChevronDown, Clock, Heart, Hourglass, MapPin, Search, Users, X } from 'lucide-react';
+import { CalendarClock, CalendarDays, ChevronDown, Clock, Hourglass, MapPin, Search, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { categoryIcon } from '../../components/Illustrations';
 import { Spinner, Empty, Pagination, Dropdown, ShiftGrid } from '../../components/ui';
-import JobRow, { FitBadge, MiniWeek, shiftText, plainClick, loadSavedIds, saveToggler, readWeek, writeWeek } from '../../components/JobRow';
+import JobRow, { FitBadge, MiniWeek, shiftText, plainClick, readWeek, writeWeek } from '../../components/JobRow';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 import { date, money, shortMoney, salary, describeShifts, SALARY_TYPE } from '../../utils/format';
@@ -20,7 +20,7 @@ const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maxim
 const WIDE = '(min-width: 1100px)';
 
 // Khung xem trước tin đang chọn: dữ liệu cơ bản có sẵn từ danh sách, mô tả + trạng thái đã lưu tải thêm từ API-21
-const Preview = ({ job: j, detail, catName, busy, user, saved, onSave }) => {
+const Preview = ({ job: j, detail, catName, busy }) => {
   const Icon = categoryIcon(catName[j.categoryId]);
   const left = j.slots - (j.acceptedCount || 0);
   const facts = [
@@ -40,7 +40,7 @@ const Preview = ({ job: j, detail, catName, busy, user, saved, onSave }) => {
             {catName[j.categoryId] && <span className="eyebrow-chip">{catName[j.categoryId]}</span>}
             <h2>{j.title}</h2>
             <FitBadge job={j} />
-            <Link to={`/employers/${j.employerId}`} className="jx-company">{j.companySnapshot?.name}</Link>
+            <span className="jx-company">{j.companySnapshot?.name}</span>
             {detail?.employer?.ratingCount > 0 && <span className="jx-rating"> ★ {rating1.format(detail.employer.ratingAvg)} ({detail.employer.ratingCount})</span>}
           </div>
         </div>
@@ -48,12 +48,6 @@ const Preview = ({ job: j, detail, catName, busy, user, saved, onSave }) => {
         <p className="jx-preview-pay"><span>Mức lương</span><strong>{salary(j)}</strong></p>
         <div className="jx-preview-actions">
           <Link to={`/jobs/${j._id}`} className="btn btn-lg jx-apply">Xem chi tiết và ứng tuyển</Link>
-          {!user ? <Link to={`/login?next=${encodeURIComponent(`/jobs/${j._id}`)}`} className="btn btn-lg btn-ghost"><Heart size={18} aria-hidden="true" />Lưu tin</Link>
-            : user.role === 'STUDENT' && (
-              <button type="button" className="btn btn-lg btn-ghost" onClick={() => onSave(j._id, saved)} aria-pressed={saved}>
-                <Heart size={18} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />{saved ? 'Đã lưu' : 'Lưu tin'}
-              </button>
-            )}
         </div>
       </div>
       <dl className="jx-facts">
@@ -70,7 +64,7 @@ const Preview = ({ job: j, detail, catName, busy, user, saved, onSave }) => {
 // SCR-C04 / FR-SRC-01: bộ lọc nằm trên URL để chia sẻ và quay lại được
 class JobsPage extends Component {
   static contextType = AuthContext;
-  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, sel: null, details: {}, wide: false, week: null, loading: false, hint: !hintHidden(), savedIds: new Set() };
+  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, sel: null, details: {}, wide: false, week: null, loading: false, hint: !hintHidden() };
 
   params = () => Object.fromEntries(FILTERS.map((k) => [k, this.props.searchParams.get(k) || '']));
 
@@ -81,7 +75,6 @@ class JobsPage extends Component {
     this.mq?.addEventListener?.('change', this.onWide);
     document.addEventListener('mousedown', this.outsidePay);
     this.setState({ wide: !!this.mq?.matches });
-    this.syncSaved();
     const [c, l] = await Promise.all([api.get('/categories'), api.get('/jobs/locations')]);
     this.setState({ categories: c.data, locations: l.data });
     this.load();
@@ -101,18 +94,7 @@ class JobsPage extends Component {
 
   componentDidUpdate(prev) {
     if (prev.location.search !== this.props.location.search) this.load();
-    this.syncSaved();
   }
-
-  // Tin đã lưu của sinh viên; tải lại khi phiên đăng nhập khôi phục xong hoặc đổi tài khoản
-  syncSaved = () => {
-    const u = this.context.user;
-    const key = u?.role === 'STUDENT' ? u._id : null;
-    if (key === this.savedFor) return;
-    this.savedFor = key;
-    if (key) loadSavedIds().then((savedIds) => this.setState({ savedIds }));
-    else this.setState({ savedIds: new Set() });
-  };
 
   onWide = (e) => this.setState({ wide: e.matches });
 
@@ -161,7 +143,6 @@ class JobsPage extends Component {
     }
   };
 
-  toggleSave = saveToggler(this);
 
   hideHint = () => {
     try { localStorage.setItem(HINT_KEY, '1'); } catch { /* trình duyệt chặn lưu trữ */ }
@@ -188,7 +169,7 @@ class JobsPage extends Component {
   };
 
   render() {
-    const { categories, locations, jobs, meta, form, sel, details, wide, week, loading, hint, savedIds } = this.state;
+    const { categories, locations, jobs, meta, form, sel, details, wide, week, loading, hint } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const districts = locations.find((l) => l.city === form.city)?.districts || [];
     const chips = this.activeChips(catName);
@@ -292,14 +273,13 @@ class JobsPage extends Component {
                   const on = wide && j._id === sel;
                   return (
                     <li key={j._id}>
-                      <JobRow job={j} category={catName[j.categoryId]} on={on} saved={savedIds.has(j._id)}
-                        onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined} saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${j._id}`)}`}
+                      <JobRow job={j} category={catName[j.categoryId]} on={on}
                         onClick={(e) => { if (wide && plainClick(e)) { e.preventDefault(); this.select(j._id); } }} />
                     </li>
                   );
                 })}
               </ol>
-              {wide && selected && <div className="jx-aside"><Preview job={selected} detail={details[selected._id]} catName={catName} busy={busy} user={user} saved={savedIds.has(selected._id)} onSave={this.toggleSave} /></div>}
+              {wide && selected && <div className="jx-aside"><Preview job={selected} detail={details[selected._id]} catName={catName} busy={busy} /></div>}
             </div>
           )}
           <Pagination meta={meta} onPage={(page) => this.apply({ page: String(page) })} />

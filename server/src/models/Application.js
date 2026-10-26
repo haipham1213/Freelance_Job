@@ -12,7 +12,7 @@ const applicationSchema = new Schema(
     cvUrl: { type: String, required: true },
     status: {
       type: String,
-      enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'WITHDRAWN', 'COMPLETED', 'NOT_COMPLETED'],
+      enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'COMPLETED', 'NOT_COMPLETED'],
       default: 'PENDING',
     },
     employerNote: { type: String, maxlength: 500 },

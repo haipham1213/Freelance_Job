@@ -123,7 +123,7 @@ class JobFormPage extends Component {
           <Modal title="Đã hết hạn mức tin" onClose={() => this.setState({ quota: false })}>
             <p className="muted">{this.state.error}</p>
             <div className="row">
-              <Link to="/employer/premium" className="btn">Xem gói Premium</Link>
+              <Link to="/employer/jobs" className="btn">Đóng bớt tin cũ</Link>
               <button className="btn btn-ghost" onClick={() => this.setState({ quota: false })}>Để sau</button>
             </div>
           </Modal>

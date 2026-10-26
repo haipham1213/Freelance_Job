@@ -1,14 +1,11 @@
 import React, { Component } from 'react';
-import { BriefcaseBusiness, CreditCard, Flag, LayoutDashboard, Star, Tags, Users } from 'lucide-react';
+import { Tags } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 import { Avatar } from '../../components/ui';
 
-const MENU = [
-  ['/admin', LayoutDashboard, 'Dashboard'], ['/admin/users', Users, 'Người dùng'], ['/admin/jobs', BriefcaseBusiness, 'Tin tuyển dụng'],
-  ['/admin/reports', Flag, 'Báo cáo vi phạm'], ['/admin/reviews', Star, 'Đánh giá'], ['/admin/categories', Tags, 'Danh mục'], ['/admin/payments', CreditCard, 'Gói & giao dịch'],
-];
+const MENU = [['/admin', Tags, 'Danh mục']];
 
 // SCR-A08
 class AdminLayout extends Component {

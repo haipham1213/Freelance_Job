@@ -1,47 +1,12 @@
 import React, { Component } from 'react';
-import { Check, FileText, GraduationCap, Mail, Phone, Star } from 'lucide-react';
+import { Check, FileText, GraduationCap, Mail, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
-import { Spinner, AppBadge, Stars, Avatar, CompanyLogo, Modal, Field, Alert, ReasonModal, BackLink } from '../../components/ui';
+import { Spinner, AppBadge, Avatar, CompanyLogo, Field, Alert, ReasonModal, BackLink } from '../../components/ui';
 import ErrorPage from '../public/ErrorPage';
 import { date, dateTime, APP_STATUS, salary } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
-
-// SCR-S06 / SCR-E07: chấm 1–5 sao, nhận xét ≤ 500 ký tự
-class ReviewModal extends Component {
-  state = { rating: 0, comment: '', error: '', busy: false };
-  submit = async (e) => {
-    e.preventDefault();
-    if (!this.state.rating) return this.setState({ error: 'Vui lòng chọn số sao' });
-    this.setState({ busy: true, error: '' });
-    try {
-      await api.post(`/applications/${this.props.appId}/reviews`, { rating: this.state.rating, comment: this.state.comment || undefined });
-      this.props.onDone();
-    } catch (err) {
-      this.setState({ error: err.message, busy: false });
-    }
-  };
-  render() {
-    return (
-      <Modal title={`Đánh giá ${this.props.name}`} onClose={this.props.onClose}>
-        <form className="stack" onSubmit={this.submit}>
-          <div className="center" role="radiogroup" aria-label="Số sao">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button type="button" key={n} className={`star-btn ${n <= this.state.rating ? 'on' : ''}`} onClick={() => this.setState({ rating: n })} aria-label={`${n} sao`}>★</button>
-            ))}
-          </div>
-          <Field label="Nhận xét (không bắt buộc)">
-            <textarea className="textarea" maxLength={500} value={this.state.comment} onChange={(e) => this.setState({ comment: e.target.value })} />
-          </Field>
-          <p className="fog tiny">Đánh giá không sửa hoặc xóa được sau khi gửi.</p>
-          <Alert>{this.state.error}</Alert>
-          <button className="btn" disabled={this.state.busy}>Gửi đánh giá</button>
-        </form>
-      </Modal>
-    );
-  }
-}
 
 class ApplicationDetailPage extends Component {
   static contextType = AuthContext;
@@ -102,7 +67,7 @@ class ApplicationDetailPage extends Component {
     const { data, error, modal, msg } = this.state;
     if (error) return <ErrorPage code={error.status === 403 ? 403 : 404} message={error.message} />;
     if (!data) return <Spinner />;
-    const { application: app, job, student, employer, reviews, canReview, reviewDeadline } = data;
+    const { application: app, job, student, employer } = data;
     const role = this.context.user.role;
     const isEmployer = role === 'EMPLOYER';
     const other = isEmployer ? student : employer;
@@ -130,10 +95,8 @@ class ApplicationDetailPage extends Component {
               {app.rejectReason && <Alert>Lý do từ chối: {app.rejectReason}</Alert>}
               {app.notCompletedReason && <Alert>Lý do không hoàn thành: {app.notCompletedReason}</Alert>}
               <Alert type="info">{msg}</Alert>
-              {isEmployer ? this.employerActions(app, job) : app.status === 'PENDING' && (
-                <button className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => this.act(() => api.patch(`/applications/${app._id}/withdraw`), 'Đã rút đơn')}>Rút đơn</button>
-              )}
-              {!app.coverLetter && !app.employerNote && !app.rejectReason && !app.notCompletedReason && !msg && !(isEmployer ? ['PENDING', 'ACCEPTED'] : ['PENDING']).includes(app.status) && (
+              {isEmployer && this.employerActions(app, job)}
+              {!app.coverLetter && !app.employerNote && !app.rejectReason && !app.notCompletedReason && !msg && !(isEmployer && ['PENDING', 'ACCEPTED'].includes(app.status)) && (
                 <p className="muted">Không có thao tác nào cần làm với đơn này.</p>
               )}
             </div>
@@ -145,23 +108,6 @@ class ApplicationDetailPage extends Component {
                 ))}
               </ol>
             </div>
-            {(reviews.length > 0 || canReview) && (
-              <div className="card stack pub-app-card">
-                <h2 className="h-md">Đánh giá</h2>
-                {reviews.map((r) => (
-                  <div key={r._id} className="card-sm card-white">
-                    <div className="small">{r.reviewerRole === 'STUDENT' ? 'Sinh viên' : 'Nhà tuyển dụng'} đánh giá <Stars value={r.rating} /></div>
-                    {r.comment && <p className="muted small">{r.comment}</p>}
-                  </div>
-                ))}
-                {canReview && (
-                  <div className="row-between">
-                    <span className="muted small">Hạn đánh giá: {date(reviewDeadline)}</span>
-                    <button className="btn" onClick={() => this.setState({ modal: 'review' })}><Star size={18} /> Đánh giá {isEmployer ? 'sinh viên' : 'nhà tuyển dụng'}</button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
           <aside className="card stack pub-app-side">
             <h2 className="h-md">{isEmployer ? 'Ứng viên' : 'Nhà tuyển dụng'}</h2>
@@ -169,7 +115,6 @@ class ApplicationDetailPage extends Component {
               {isEmployer ? <Avatar src={student.avatarUrl} name={student.fullName} size="lg" /> : <CompanyLogo src={employer.company?.logoUrl} />}
               <div style={{ minWidth: 0 }}>
                 <div className="h-sm">{isEmployer ? student.fullName : employer.company?.name}</div>
-                <Stars value={other.ratingAvg} count={other.ratingCount} />
               </div>
             </div>
             {isEmployer && student.student && (
@@ -179,7 +124,6 @@ class ApplicationDetailPage extends Component {
                 {student.student.bio && <p className="muted pre">{student.student.bio}</p>}
               </div>
             )}
-            {!isEmployer && <Link to={`/employers/${employer._id}`} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }}>Trang công ty</Link>}
             <div className="stu-contact">
               <h3 className="h-sm">Liên hệ</h3>
               {contactOpen ? (
@@ -191,7 +135,6 @@ class ApplicationDetailPage extends Component {
             </div>
           </aside>
         </div>
-        {modal === 'review' && <ReviewModal appId={app._id} name={isEmployer ? student.fullName : employer.company?.name} onClose={() => this.setState({ modal: null })} onDone={() => { this.load(); this.setState({ msg: 'Cảm ơn bạn đã đánh giá!' }); }} />}
         {modal === 'reject' && (
           <ReasonModal title="Từ chối ứng viên" label="Lý do (không bắt buộc, sinh viên sẽ thấy)" confirm="Từ chối" danger onClose={() => this.setState({ modal: null })}
             onSubmit={(reason) => api.patch(`/applications/${app._id}/reject`, { reason: reason || undefined }).then(this.load)} />

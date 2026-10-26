@@ -5,7 +5,7 @@ import { api, qs } from '../../api';
 import { Spinner, Empty, AppBadge, Tabs, Pagination } from '../../components/ui';
 import { date } from '../../utils/format';
 
-const TABS = [['', 'Tất cả'], ['PENDING', 'Đang chờ'], ['ACCEPTED', 'Được nhận'], ['REJECTED', 'Bị từ chối'], ['COMPLETED,NOT_COMPLETED', 'Đã kết thúc'], ['WITHDRAWN', 'Đã rút']];
+const TABS = [['', 'Tất cả'], ['PENDING', 'Đang chờ'], ['ACCEPTED', 'Được nhận'], ['REJECTED', 'Bị từ chối'], ['COMPLETED,NOT_COMPLETED', 'Đã kết thúc']];
 
 // SCR-S04 / FR-APP-03
 export default class ApplicationsPage extends Component {
@@ -42,7 +42,6 @@ export default class ApplicationsPage extends Component {
                   </div>
                   <div className="stu-app-side">
                     <AppBadge status={a.status} />
-                    {(a.status === 'COMPLETED' || a.status === 'NOT_COMPLETED') && !a.reviewedByStudent && <div className="accent tiny">Chưa đánh giá</div>}
                   </div>
                   <ChevronRight className="stu-chev" size={20} aria-hidden="true" />
                 </Link>

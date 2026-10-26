@@ -16,7 +16,7 @@ export default class VerifyBanner extends Component {
     return (
       <div className="container" style={{ marginTop: 16 }}>
         <div className="alert alert-warn row-between">
-          <span>Email của bạn chưa được xác thực. Bạn cần xác thực để {user.role === 'STUDENT' ? 'ứng tuyển, đánh giá' : 'đăng tin, mua Premium, đánh giá'}.</span>
+          <span>Email của bạn chưa được xác thực. Bạn cần xác thực để {user.role === 'STUDENT' ? 'ứng tuyển' : 'đăng tin'}.</span>
           {this.state.sent ? <span>Đã gửi lại link, hãy kiểm tra hộp thư.</span> : <button className="btn btn-sm" onClick={this.resend}>Gửi lại email</button>}
         </div>
       </div>

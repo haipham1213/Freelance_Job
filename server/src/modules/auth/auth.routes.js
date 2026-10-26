@@ -132,16 +132,6 @@ router.post('/reset-password', validate(z.object({ token: z.string(), newPasswor
   ok(res, { message: 'Đặt lại mật khẩu thành công' });
 });
 
-// API-09
-router.put('/change-password', authenticate, validate(z.object({ currentPassword: z.string(), newPassword: password })), async (req, res) => {
-  const user = await User.findById(req.user._id).select('+passwordHash');
-  if (!(await bcrypt.compare(req.body.currentPassword, user.passwordHash)))
-    throw new AppError(400, 'WRONG_PASSWORD', 'Mật khẩu hiện tại không đúng');
-  user.passwordHash = await bcrypt.hash(req.body.newPassword, 10);
-  await user.save();
-  ok(res, { message: 'Đổi mật khẩu thành công' });
-});
-
 // API-10
 router.get('/me', authenticate, (req, res) => ok(res, { user: req.user.toPublic() }));
 

@@ -23,7 +23,6 @@ const userSchema = new Schema(
       skills: [String],
       bio: String,
       cv: { url: String, fileName: String, uploadedAt: Date },
-      savedJobIds: [{ type: Schema.Types.ObjectId, ref: 'Job' }],
       // Lịch học: các ô buổi bận, cùng cách đánh số với Job.shifts
       busySlots: [Number],
     },

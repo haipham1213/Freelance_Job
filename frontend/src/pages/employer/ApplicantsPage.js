@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Spinner, Empty, AppBadge, Tabs, Pagination, Avatar, Stars, JobBadge, BackLink } from '../../components/ui';
+import { Spinner, Empty, AppBadge, Tabs, Pagination, Avatar, JobBadge, BackLink } from '../../components/ui';
 import ErrorPage from '../public/ErrorPage';
 import { timeAgo } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
-const TABS = [['', 'Tất cả'], ['PENDING', 'Chờ duyệt'], ['ACCEPTED', 'Đã nhận'], ['REJECTED', 'Từ chối'], ['COMPLETED', 'Hoàn thành'], ['NOT_COMPLETED', 'Không hoàn thành'], ['WITHDRAWN', 'Đã rút']];
+const TABS = [['', 'Tất cả'], ['PENDING', 'Chờ duyệt'], ['ACCEPTED', 'Đã nhận'], ['REJECTED', 'Từ chối'], ['COMPLETED', 'Hoàn thành'], ['NOT_COMPLETED', 'Không hoàn thành']];
 
 // SCR-E05 / FR-APP-04
 class ApplicantsPage extends Component {
@@ -47,7 +47,6 @@ class ApplicantsPage extends Component {
                     <Avatar src={s.avatarUrl} name={s.fullName} />
                     <div style={{ flex: 1 }}>
                       <div className="h-sm">{s.fullName}</div>
-                      <Stars value={s.ratingAvg} count={s.ratingCount} />
                     </div>
                     <AppBadge status={a.status} />
                   </div>

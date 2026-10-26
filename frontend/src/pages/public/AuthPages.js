@@ -8,7 +8,7 @@ import { homeOf } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
 // Bố cục chia đôi kiểu hero saucelabs: bên trái lời giới thiệu và lợi ích ngay trên nền tối, bên phải thẻ form mint bo 40
-const PERKS = ['Lương và ca làm công khai trước khi nộp', 'Một CV dùng cho mọi đơn ứng tuyển', 'Đánh giá hai chiều sau mỗi công việc'];
+const PERKS = ['Lương và ca làm công khai trước khi nộp', 'Một CV dùng cho mọi đơn ứng tuyển', 'Nhận thông báo ngay khi đơn được duyệt'];
 const Shell = ({ title, subtitle, children }) => (
   <div className="container page pub-auth">
     <div className="pub-auth-art" aria-hidden="true">
@@ -208,28 +208,3 @@ class Reset extends FormPage {
   }
 }
 export const ResetPasswordPage = withRouter(Reset);
-
-// FR-AUTH-06
-class ChangePassword extends FormPage {
-  submit = (e) => this.run(e, async () => {
-    const { currentPassword, newPassword, confirm } = this.state.form;
-    if (newPassword !== confirm) throw new Error('Mật khẩu xác nhận không khớp');
-    await api.put('/auth/change-password', { currentPassword, newPassword });
-    this.setState({ done: 'Đổi mật khẩu thành công', form: {} });
-  });
-  render() {
-    return (
-      <Shell title="Đổi mật khẩu">
-        <form className="stack" onSubmit={this.submit}>
-          {this.input('currentPassword', 'Mật khẩu hiện tại', { type: 'password', required: true, autoComplete: 'current-password' })}
-          {this.input('newPassword', 'Mật khẩu mới', { type: 'password', required: true, minLength: 8, autoComplete: 'new-password' })}
-          {this.input('confirm', 'Nhập lại mật khẩu mới', { type: 'password', required: true })}
-          <Alert>{this.state.error}</Alert>
-          <Alert type="ok">{this.state.done}</Alert>
-          <button className="btn btn-block" disabled={this.state.busy}>Lưu</button>
-        </form>
-      </Shell>
-    );
-  }
-}
-export const ChangePasswordPage = withRouter(ChangePassword);

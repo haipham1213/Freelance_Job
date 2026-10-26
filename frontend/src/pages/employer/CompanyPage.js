@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
 import { api, fieldErrors } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Field, Alert, CompanyLogo } from '../../components/ui';
@@ -63,7 +62,6 @@ export default class CompanyPage extends Component {
             <h1 className="display">Hồ sơ công ty</h1>
             <p className="muted">Thông tin rõ ràng giúp sinh viên tin tưởng và ứng tuyển nhiều hơn.</p>
           </div>
-          <Link to={`/employers/${this.context.user._id}`} className="btn btn-ghost">Xem trang công khai</Link>
         </header>
         <div className="layout-main">
           <form className="card stack-lg" onSubmit={this.save}>

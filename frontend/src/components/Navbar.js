@@ -9,8 +9,8 @@ import withRouter from '../utils/withRouter';
 
 const LINKS = {
   GUEST: [['/', 'Trang chủ'], ['/jobs', 'Tìm việc']],
-  STUDENT: [['/', 'Trang chủ'], ['/jobs', 'Tìm việc'], ['/student/applications', 'Đơn của tôi'], ['/student/saved-jobs', 'Đã lưu']],
-  EMPLOYER: [['/', 'Trang chủ'], ['/employer', 'Dashboard'], ['/employer/jobs', 'Tin tuyển dụng'], ['/employer/jobs/new', 'Đăng tin'], ['/employer/premium', 'Premium']],
+  STUDENT: [['/', 'Trang chủ'], ['/jobs', 'Tìm việc'], ['/student/applications', 'Đơn của tôi']],
+  EMPLOYER: [['/', 'Trang chủ'], ['/employer', 'Dashboard'], ['/employer/jobs', 'Tin tuyển dụng'], ['/employer/jobs/new', 'Đăng tin']],
 };
 
 // FR-NOT-01: hỏi số chưa đọc mỗi 30 giây (AS-15, không WebSocket)
@@ -98,8 +98,6 @@ class UserMenu extends Component {
             </div>
             <button className="menu-item" onClick={() => this.go(homeOf(user.role))}>Trang của tôi</button>
             {profile && <button className="menu-item" onClick={() => this.go(profile[0])}>{profile[1]}</button>}
-            {user.role === 'EMPLOYER' && <button className="menu-item" onClick={() => this.go('/employer/payments')}>Lịch sử giao dịch</button>}
-            <button className="menu-item" onClick={() => this.go('/account/password')}>Đổi mật khẩu</button>
             <button className="menu-item" onClick={this.logout} style={{ color: 'var(--alert)' }}>Đăng xuất</button>
           </div>
         )}

@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { ArrowRight, Bookmark, Search } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -28,7 +28,7 @@ export default class StudentHomePage extends Component {
     const { profile, apps, jobs, counts } = this.state;
     if (!profile) return <Spinner />;
     const u = profile.profile;
-    const stats = [['Đang chờ', counts.PENDING], ['Được nhận', counts.ACCEPTED], ['Hoàn thành', counts.COMPLETED], ['Điểm uy tín', u.ratingCount ? `${u.ratingAvg}★` : '-']];
+    const stats = [['Đang chờ', counts.PENDING], ['Được nhận', counts.ACCEPTED], ['Hoàn thành', counts.COMPLETED]];
     return (
       <div className="container page">
         <header className="stu-head">
@@ -39,7 +39,7 @@ export default class StudentHomePage extends Component {
           </div>
           <div className="row">
             <Link to="/jobs" className="btn"><Search size={16} /> Tìm việc</Link>
-            <Link to="/student/saved-jobs" className="btn btn-ghost"><Bookmark size={16} /> Việc đã lưu</Link>
+            <Link to="/student/profile" className="btn btn-ghost">Hồ sơ & CV</Link>
           </div>
         </header>
 
