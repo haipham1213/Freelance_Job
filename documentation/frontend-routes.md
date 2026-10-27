@@ -1,6 +1,6 @@
 # Các trang frontend
 
-Định nghĩa trong `frontend/src/App.js`. Trang có vai trò được bọc bởi `RequireRole`, chưa đăng nhập sẽ bị chuyển tới `/login`.
+Định nghĩa trong `frontend/src/App.js`. Trang có vai trò được bọc bởi `RequireRole`, chưa đăng nhập sẽ bị chuyển tới `/login?next=...`, sai vai trò thì hiện trang 403. Đây chỉ là điều hướng giao diện, backend vẫn tự kiểm tra quyền ở mọi API. Dev server CRA proxy `/api` tới `http://localhost:5050`.
 
 ## Công khai
 
