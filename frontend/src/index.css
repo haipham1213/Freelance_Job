@@ -1,49 +1,45 @@
-/* Hệ giao diện UniShift theo docs/DESIGN: "bảng điều khiển trên kính obsidian".
-   Nền tối #132322, chữ trắng; một màu xanh neon #3ddc91 chỉ dành cho nút chính, trạng thái đang chọn và tín hiệu cần chú ý.
-   Nội dung dày (thẻ việc, form, bảng, hộp thoại) nằm trên thẻ sáng mint #edf7f5 bo 20px nổi trên nền tối.
-   Nút và tab bo tròn hẳn (viên thuốc), không gradient, bóng nhẹ nhất có thể. Font Inter (thay Aeonik), nặng tối đa 500.
+/* Hệ giao diện UniShift, đồng bộ với trang chủ (styles/home.css): nền sáng #f5f8fc, thẻ trắng viền mảnh,
+   xanh trời #0b4fa8 cho nút chính và link, xanh lá #3fd68a cho trạng thái đang chọn. Nút và tab bo tròn (viên thuốc), không gradient.
+   Font Be Vietnam Pro, tiêu đề 600–700.
 
    Hero trang chủ (.rv-hero) được đóng băng trong styles/hero.css: mọi quy tắc ở đây nằm trong @scope (:root) to (.rv-hero)
    nên không chạm vào bên trong hero. */
 
 @scope (:root) to (.rv-hero) {
 
-/* Ngữ cảnh tối (mặc định): token màu theo nền obsidian */
+/* Bộ màu chung theo trang chủ (styles/home.css): nền sáng #f5f8fc, thẻ trắng, xanh trời #0b4fa8 cho nút chính và link,
+   xanh lá #3fd68a làm nền tín hiệu (tab/bộ lọc đang chọn, ô ca làm) với chữ navy. Tên token cũ (obsidian, neon, mint…) giữ lại, chỉ đổi giá trị:
+   obsidian = navy đậm, abyss = nền xanh nhạt cho khối phụ, mint-frost = trắng cho thẻ */
 :scope {
-  --obsidian: #132322; --abyss: #0e1a19; --charcoal-deep: #070f0f; --mint-frost: #edf7f5;
-  --neon: #3ddc91; --neon-bright: #5fe8a8; --mint-whisper: #97ddbc; --signal-yellow: #ffcd48;
-  --graphite: #424f4f; --slate: #828786;
+  --obsidian: #16233b; --abyss: #eaf2fb; --charcoal-deep: #0d1626; --mint-frost: #ffffff;
+  --neon: #3fd68a; --neon-bright: #2fc47a; --mint-whisper: #dcf2e4; --signal-yellow: #ffcd48;
+  --graphite: #46526a; --slate: #6b768c;
 
-  --ink: #ffffff; --on-ink: #132322; --body: #c4ccca; --muted: #94a09d; --placeholder: #7f8b89;
-  --line: rgba(255, 255, 255, .1); --stone-border: rgba(255, 255, 255, .22); --sand: rgba(255, 255, 255, .06);
-  --warm: var(--abyss); --white: var(--abyss); --page-bg: var(--obsidian);
-  --primary: var(--neon); --primary-dark: var(--neon-bright); --on-primary: var(--obsidian);
-  --primary-wash: rgba(61, 220, 145, .12); --aqua-mist: rgba(61, 220, 145, .35);
-  --link: var(--neon); --pay: var(--neon); --highlight: rgba(61, 220, 145, .14); --highlight-dark: rgba(61, 220, 145, .3);
-  --alert: #ff7a6e; --alert-wash: rgba(255, 122, 110, .12);
+  --ink: #191919; --on-ink: #ffffff; --body: #3b4250; --muted: #5a6270; --placeholder: #8c8c8c;
+  --line: #dde4ec; --stone-border: #c4ccd6; --sand: #e8f1fb; --warm: #e8f1fb; --white: #ffffff; --page-bg: #f5f8fc;
+  --primary: #0b4fa8; --primary-dark: #083d84; --on-primary: #ffffff;
+  --primary-wash: #e8f1fb; --aqua-mist: #c6dcf3;
+  --link: #0b4fa8; --pay: #05683a; --highlight: #dcf2e4; --highlight-dark: #c8ead5;
+  --alert: #c4302b; --alert-wash: #fdf0ef;
   --steel: var(--body); --charcoal: var(--ink); --shell: var(--abyss);
   --featured-bg: var(--signal-yellow); --featured-ink: var(--obsidian);
-  /* Nút viền: trên nền tối viền trắng mờ, hover phủ nhẹ; ngữ cảnh sáng đổi thành viền obsidian, hover đặc */
-  --ghost-line: rgba(255, 255, 255, .6); --ghost-hover-bg: rgba(255, 255, 255, .08); --ghost-hover-ink: #ffffff;
+  /* Nút viền: viền chữ đậm, hover nền xanh nhạt */
+  --ghost-line: var(--ink); --ghost-hover-bg: var(--sand); --ghost-hover-ink: var(--ink);
 
-  --font-display: 'Inter', 'Be Vietnam Pro', Arial, sans-serif;
-  --font-body: 'Inter', 'Be Vietnam Pro', Arial, sans-serif;
+  /* Be Vietnam Pro như trang chủ: đủ dấu tiếng Việt, tiêu đề 600–700 */
+  --font-display: 'Be Vietnam Pro', Arial, sans-serif;
+  --font-body: 'Be Vietnam Pro', Arial, sans-serif;
 
   --radius: 20px; --radius-lg: 32px; --radius-xl: 60px; --radius-ctl: 10px; --radius-badge: 999px; --radius-pill: 999px;
   --hairline: inset 0 0 0 1px var(--line);
-  --shadow-md: rgba(0, 0, 0, .04) 1px 0 9px 2px;
+  --shadow-md: rgba(22, 35, 59, .06) 0 1px 3px, rgba(22, 35, 59, .04) 0 8px 24px;
   --page: 1200px;
 }
 
-/* Ngữ cảnh sáng: thẻ mint, hộp thoại, ô nhập, menu thả xuống. Token đổi theo nên mọi thành phần con tự đổi màu */
+/* Thẻ, hộp thoại, ô nhập: viền mảnh để tách khỏi nền xanh nhạt (token giống ngữ cảnh chung) */
 .card, .card-sm, .tile, .modal, .dropdown, .dd-pop, .jx-pop-body, .jx-row, .sh-spot, .sh-list, .jt, .job-card,
 .jx-preview, .jx-week, .gn-compare, .gn-steps, .voice, .gn-voices, .gn-band, .jd-card, .jd-bar, .panel,
 .input, .select, .textarea, .pill-select, .hx-search, .search-bar, .adm-search, .al-form input {
-  --ink: #132322; --on-ink: #ffffff; --body: #424f4f; --muted: #5f6766; --placeholder: #828786;
-  --line: #d0d3d3; --stone-border: #b2b6b4; --sand: #e1ebe8; --warm: #e1ebe8; --white: #ffffff;
-  --link: #0b7a4b; --pay: #0b7a4b; --highlight: #d3f2e2; --highlight-dark: #97ddbc; --primary-wash: #d6f3e5; --aqua-mist: rgba(61, 220, 145, .45);
-  --alert: #c4302b; --alert-wash: #fdecea;
-  --ghost-line: #132322; --ghost-hover-bg: #132322; --ghost-hover-ink: #ffffff;
   color: var(--ink);
 }
 
@@ -56,23 +52,21 @@ body {
   font-weight: 400;
   font-size: 16px;
   line-height: 1.5;
-  letter-spacing: -0.005em;
-  font-feature-settings: "ss01" on, "cv11" on;
   -webkit-font-smoothing: antialiased;
 }
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
 button, input, select, textarea { font: inherit; letter-spacing: inherit; color: inherit; }
-strong, b { font-weight: 500; }
-::selection { background: var(--neon); color: var(--obsidian); }
-:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; border-radius: 4px; }
-input[type="radio"], input[type="checkbox"] { accent-color: var(--neon); }
+strong, b { font-weight: 600; }
+::selection { background: var(--aqua-mist); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+input[type="radio"], input[type="checkbox"] { accent-color: var(--primary); }
 
-/* Thang chữ: 64 / 48 / 28 / 20 / 16, tiêu đề nặng 500; mobile tiêu đề mục 32 */
-h1, h2, h3, h4 { margin: 0; font-weight: 500; color: var(--ink); }
+/* Thang chữ: 64 / 48 / 28 / 20 / 16, tiêu đề nặng 600 (display 700); mobile tiêu đề mục 32 */
+h1, h2, h3, h4 { margin: 0; font-weight: 600; color: var(--ink); }
 .hero-title, .display, .h-lg { font-family: var(--font-display); }
 .hero-title { font-size: clamp(36px, 5vw, 64px); line-height: 1.1; letter-spacing: -0.03em; }
-.display { font-size: clamp(32px, 4vw, 48px); line-height: 1.1; letter-spacing: -0.03em; }
+.display { font-size: clamp(32px, 4vw, 48px); line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
 .h-lg { font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; letter-spacing: -0.02em; }
 .h-md { font-size: 20px; line-height: 1.3; letter-spacing: -0.015em; }
 .h-sm { font-size: 16px; line-height: 1.4; font-weight: 500; }
@@ -86,7 +80,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 500; color: var(--ink); }
 @media (max-width: 640px) { .lede { font-size: 16px; } }
 .hl { background: var(--highlight); color: var(--pay); padding: 0 6px; border-radius: 6px; }
 /* Nhãn chữ hoa nhỏ đặt trên tiêu đề mục; .eyebrow-dot thêm chấm tròn phía trước, .eyebrow-chip là nhãn nền mờ bo 4px */
-.eyebrow { display: block; margin: 0 0 12px; font-size: 12px; font-weight: 500; line-height: 1.2; letter-spacing: .1em; text-transform: uppercase; color: var(--neon); }
+.eyebrow { display: block; margin: 0 0 12px; font-size: 12px; font-weight: 500; line-height: 1.2; letter-spacing: .1em; text-transform: uppercase; color: var(--link); }
 .card .eyebrow, .jd-card .eyebrow, .panel .eyebrow { color: var(--ink); }
 .eyebrow-dot { display: inline-flex; align-items: center; gap: 8px; }
 .eyebrow-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -135,7 +129,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 500; color: var(--ink); }
 .stat-row { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; text-align: center; }
 .stat-row > * { padding: 0 32px; }
 .stat-row > * + * { box-shadow: inset 1px 0 0 var(--line); }
-.stat-num { display: block; margin: 12px 0 8px; font-size: 64px; font-weight: 500; line-height: 1; letter-spacing: -0.04em; color: var(--neon); font-variant-numeric: tabular-nums; }
+.stat-num { display: block; margin: 12px 0 8px; font-size: 64px; font-weight: 500; line-height: 1; letter-spacing: -0.04em; color: var(--link); font-variant-numeric: tabular-nums; }
 .panel .stat-num, .card .stat-num { color: var(--ink); }
 .stat-label { font-size: 14px; color: var(--muted); max-width: 240px; margin: 0 auto; }
 @media (max-width: 640px) {
@@ -228,7 +222,7 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 .logo { font-family: var(--font-display); font-weight: 500; font-size: 23px; letter-spacing: -0.03em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
 .nav .logo { font-weight: 700; font-size: 24px; letter-spacing: -0.025em; }
 .logo-mark { width: 28px; height: 34px; flex-shrink: 0; background: url("./assets/logo.svg") center / contain no-repeat; }
-.logo-shift { color: var(--neon); }
+.logo-shift { color: #1f9d4a; }
 .nav .logo-shift { color: #1f9d4a; }
 .nav-links { display: flex; gap: 4px; flex: 1; }
 .nav-link { color: var(--ink); font-size: 16px; font-weight: 500; padding: 8px 12px; border-radius: var(--radius-ctl); }
@@ -310,7 +304,7 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 .divider { height: 1px; background: var(--line); margin: 24px 0; }
 .empty { text-align: center; padding: 48px 16px; color: var(--body); }
 .empty-icon { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: var(--sand); box-shadow: inset 0 0 0 1px var(--line); display: grid; place-items: center; color: var(--ink); }
-.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--neon); animation: spin .8s linear infinite; margin: 48px auto; }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--primary); animation: spin .8s linear infinite; margin: 48px auto; }
 .pagination { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 32px; flex-wrap: wrap; }
 .page-btn { min-width: 40px; height: 40px; padding: 0 10px; border-radius: 999px; border: 0; background: transparent; box-shadow: inset 0 0 0 1px var(--stone-border); color: var(--ink); font-size: 14px; cursor: pointer; }
 .page-btn:hover { background: var(--sand); box-shadow: inset 0 0 0 1px var(--ink); }
@@ -442,20 +436,20 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--line); border-radiu
 .voice { margin: 0; background: var(--mint-frost); border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
 .voice blockquote { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink); }
 .voice figcaption { color: var(--body); }
-.join-num { font-family: var(--font-display); font-size: 32px; font-weight: 500; line-height: 1.1; color: var(--neon); }
+.join-num { font-family: var(--font-display); font-size: 32px; font-weight: 500; line-height: 1.1; color: var(--link); }
 
 /* Footer: giữ giao diện cũ theo yêu cầu — nền than #1d2226, logo + mô tả, ba cột link, dòng bản quyền dưới vạch mảnh.
    Màu viết thẳng giá trị cũ để bộ màu mới không đè lên */
-.footer { margin-top: 80px; background: #1d2226; color: #b0b7bf; }
+.footer { margin-top: 80px; background: var(--primary-dark); color: #c6d6ee; }
 .foot-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 32px; padding-top: 40px; padding-bottom: 32px; }
-.foot-brand p { margin: 10px 0 12px; max-width: 320px; color: #b0b7bf; }
+.foot-brand p { margin: 10px 0 12px; max-width: 320px; color: #c6d6ee; }
 .footer .logo { font-weight: 700; font-size: 24px; letter-spacing: -0.025em; color: #fff; }
 .footer .logo-shift { color: #3fd68a; }
 .foot-col { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
 .foot-col strong { color: #fff; margin-bottom: 4px; }
-.foot-col a, .foot-col span { color: #b0b7bf; }
+.foot-col a, .foot-col span { color: #c6d6ee; }
 .foot-col a:hover { color: #fff; }
-.foot-bar { box-shadow: 0 -1px 0 rgba(255, 255, 255, .1); color: #8c8c8c; font-size: 13px; }
+.foot-bar { box-shadow: 0 -1px 0 rgba(255, 255, 255, .15); color: #a9bfe0; font-size: 13px; }
 .footer :focus-visible { outline-color: #fff; }
 .foot-bar .container { padding-top: 16px; padding-bottom: 16px; }
 @media (max-width: 860px) { .foot-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .foot-brand { grid-column: 1 / -1; } }

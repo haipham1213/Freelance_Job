@@ -15,7 +15,7 @@
 .stu-stat span { font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
 .stu-stat + .stu-stat { border-left: 1px solid var(--line); }
 .stu-stat:hover { background: var(--sand); }
-.stu-stat strong { font-size: 56px; line-height: 1; font-weight: 500; letter-spacing: -0.04em; color: var(--neon); font-variant-numeric: tabular-nums; }
+.stu-stat strong { font-size: 56px; line-height: 1; font-weight: 500; letter-spacing: -0.04em; color: var(--link); font-variant-numeric: tabular-nums; }
 .stu-jobs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 .stu-complete { display: grid; gap: 10px; }
 .stu-complete p { margin: 0; }

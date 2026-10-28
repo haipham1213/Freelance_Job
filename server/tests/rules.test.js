@@ -78,6 +78,8 @@ test('business rule sau rà soát', async (t) => {
 
   await t.test('Lọc theo lịch học: giữ việc còn ca rảnh hoặc linh hoạt, hợp nhiều ca lên trước', async () => {
     await closeAll();
+    // Đăng 4 tin, vượt hạn mức 3 tin của gói free
+    await User.updateOne({ _id: emp._id }, { 'employer.premiumUntil': new Date(Date.now() + 86400000) });
     const post = async (title, shifts) => (await api('POST', '/jobs', { ...body, title, shifts }, 'emp')).body.data.job;
     const evenings = await post('Phục vụ tối thứ 2 đến thứ 6', [2, 5, 8, 11, 14]); // tối T2–T6
     const mornings = await post('Phục vụ sáng thứ 2 và thứ 4', [0, 6]); // sáng T2, T4: trùng hết giờ học

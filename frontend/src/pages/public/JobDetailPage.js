@@ -160,47 +160,54 @@ class JobDetailPage extends Component {
     ];
     const bar = status === 'OPEN' && this.actions(true);
     return (
+      <>
+      {/* Dải đầu trang nền abyss như trang Tìm việc: tóm tắt đủ để quyết định (lương, nơi làm, ca làm, độ cạnh tranh, hạn) */}
+      <section className="jd-band">
+        <div className="container">
+          <Link to="/jobs" onClick={this.back} className="jd-back"><ArrowLeft size={16} aria-hidden="true" />{this.props.location.key === 'default' ? 'Danh sách việc' : 'Quay lại kết quả'}</Link>
+          {/* Trái: việc gì, của ai. Phải: thẻ 4 thông tin để quyết định (lương, nơi làm, ca làm, hạn), thẳng cột ứng tuyển bên dưới */}
+          <header className="jd-head">
+            <div className="jd-head-main">
+              {category && <Link to={`/jobs?categoryId=${category._id}`} className="eyebrow-chip jd-cat">{category.name}</Link>}
+              <h1 className="jd-title">{job.title}</h1>
+              <p className="jd-meta">
+                <span className="jd-logo">{company.logoUrl ? <img src={company.logoUrl} alt="" width="40" height="40" /> : <Icon size={20} aria-hidden="true" />}</span>
+                <span className="jd-company">{company.name || employer.fullName}</span>
+                {job.isFeatured && <span className="jt-badge">Nổi bật</span>}
+                {status !== 'OPEN' && <JobBadge status={status} />}
+              </p>
+              <div className="jd-signals">
+                <span><Users size={14} aria-hidden="true" />{job.applicationCount ? `${job.applicationCount} ứng viên` : 'Ứng tuyển đầu tiên'}</span>
+                <span>Đăng {timeAgo(job.createdAt)}</span>
+                <span>{job.viewCount} lượt xem</span>
+                <button type="button" className="jd-copy" onClick={this.copyLink}><Link2 size={14} aria-hidden="true" /><span role="status">{copied ? 'Đã sao chép' : 'Sao chép link'}</span></button>
+              </div>
+            </div>
+            <dl className="jd-facts">
+              <div className="jd-fact jd-fact-pay"><dt>Mức lương</dt><dd>{salary(job)}</dd></div>
+              <div className="jd-fact"><dt><MapPin size={14} aria-hidden="true" />Khu vực</dt><dd>{job.district || job.city}</dd></div>
+              <div className="jd-fact">
+                <dt><Clock size={14} aria-hidden="true" />Ca làm</dt>
+                <dd>{shiftParts(job.shifts).map((p) => {
+                  const PIcon = PERIOD_ICON[p.period];
+                  return <span key={p.period} className="jd-fact-shift"><PIcon size={14} aria-hidden="true" />{p.label} {p.days}</span>;
+                })}{!job.shifts?.length && (hours || 'Linh hoạt')}</dd>
+              </div>
+              <div className="jd-fact">
+                <dt><Hourglass size={14} aria-hidden="true" />Hạn nộp</dt>
+                <dd className={status === 'OPEN' && daysLeft <= 3 ? 'jr-urgent' : ''}>{status === 'OPEN' ? `Còn ${daysLeft} ngày` : date(job.expiresAt)}</dd>
+              </div>
+              <div className="jd-fact"><dt><Users size={14} aria-hidden="true" />Số chỗ</dt><dd>{job.remainingSlots > 0 ? `Còn ${job.remainingSlots}/${job.slots}` : 'Đã đủ người'}</dd></div>
+            </dl>
+          </header>
+        </div>
+      </section>
+
       <div className={`container page jd ${bar ? 'jd-has-bar' : ''}`}>
-        <Link to="/jobs" onClick={this.back} className="jd-back"><ArrowLeft size={16} aria-hidden="true" />{this.props.location.key === 'default' ? 'Danh sách việc' : 'Quay lại kết quả'}</Link>
-
-        {/* Đầu trang trên nền tối: tóm tắt đủ để quyết định — lương, nơi làm, ca làm, ngành, độ cạnh tranh, hạn */}
-        <header className="jd-head">
-          <div className="jd-head-main">
-            {category && <Link to={`/jobs?categoryId=${category._id}`} className="eyebrow-chip jd-cat">{category.name}</Link>}
-            <h1 className="jd-title">{job.title}</h1>
-            <p className="jd-meta">
-              <span className="jd-logo">{company.logoUrl ? <img src={company.logoUrl} alt="" width="40" height="40" /> : <Icon size={20} aria-hidden="true" />}</span>
-              <span className="jd-company">{company.name || employer.fullName}</span>
-              {job.isFeatured && <span className="jt-badge">Nổi bật</span>}
-              {status !== 'OPEN' && <JobBadge status={status} />}
-            </p>
-            <ul className="jr-tags jd-tags">
-              <li className="jr-tag jr-pay">{salary(job)}</li>
-              <li className="jr-tag"><MapPin size={14} aria-hidden="true" />{job.district || job.city}</li>
-              {shiftParts(job.shifts).map((p) => {
-                const PIcon = PERIOD_ICON[p.period];
-                return <li key={p.period} className={`jr-tag jr-p${p.period}`}><PIcon size={15} aria-hidden="true" /><b>{p.label}</b>{p.days}</li>;
-              })}
-            </ul>
-            <p className="jd-signals">
-              <span><Users size={14} aria-hidden="true" />{job.applicationCount ? `${job.applicationCount} ứng viên` : 'Ứng tuyển đầu tiên'}</span>
-              <span>{job.remainingSlots > 0 ? `Còn ${job.remainingSlots}/${job.slots} chỗ` : 'Đã đủ người'}</span>
-              {status === 'OPEN' && <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={14} aria-hidden="true" />Còn {daysLeft} ngày</span>}
-              <span>Đăng {timeAgo(job.createdAt)}</span>
-              <span>{job.viewCount} lượt xem</span>
-            </p>
-          </div>
-          <div className="jd-head-actions">
-            <button type="button" className="jr-save" onClick={this.copyLink} aria-label="Sao chép link tin"><Link2 size={18} aria-hidden="true" /></button>
-            <span className="jd-copied" role="status">{copied ? 'Đã sao chép link' : ''}</span>
-          </div>
-        </header>
-
         <div className="jd-grid">
-          <div className="jd-main">
-            {/* Điểm nhấn của trang: ca làm chồng lên lịch học của người xem, kèm câu kết luận */}
-            <section className="jd-card" aria-labelledby="jd-shift">
-              <span className="eyebrow eyebrow-dot">Lịch làm</span>
+          {/* Một thẻ duy nhất, các phần ngăn bằng vạch mảnh: ca làm so với lịch học, mô tả, yêu cầu */}
+          <article className="jd-card jd-main">
+            <section className="jd-sec" aria-labelledby="jd-shift">
               <h2 id="jd-shift" className="jd-h2">Ca làm và lịch học của bạn</h2>
               {verdict
                 ? <p className={`jd-fit ${verdict.tone}`}><verdict.Icon size={18} aria-hidden="true" />{verdict.text}</p>
@@ -211,19 +218,31 @@ class JobDetailPage extends Component {
               </dl>
             </section>
 
-            {/* Mô tả và yêu cầu: hàng nhãn trái | nội dung phải, ngăn bằng vạch mảnh */}
-            <section className="jd-row" aria-labelledby="jd-desc">
-              <h2 id="jd-desc" className="jd-row-label">Mô tả công việc</h2>
+            <section className="jd-sec" aria-labelledby="jd-desc">
+              <h2 id="jd-desc" className="jd-h2">Mô tả công việc</h2>
               <p className="jd-text">{job.description}</p>
             </section>
             {job.requirements && (
-              <section className="jd-row" aria-labelledby="jd-req">
-                <h2 id="jd-req" className="jd-row-label">Yêu cầu</h2>
+              <section className="jd-sec" aria-labelledby="jd-req">
+                <h2 id="jd-req" className="jd-h2">Yêu cầu</h2>
                 <p className="jd-text">{job.requirements}</p>
               </section>
             )}
 
-            <section className="jd-company-card" aria-labelledby="jd-employer">
+          </article>
+
+          <aside className="jd-aside" aria-label="Ứng tuyển và nhà tuyển dụng">
+            <div className="jd-card jd-apply">
+              <h2 className="jd-h2 jd-apply-title">{status === 'OPEN' ? 'Ứng tuyển việc này' : 'Đã ngừng nhận hồ sơ'}</h2>
+              <Alert type="info">{flash}</Alert>
+              {this.actions(false)}
+              {user?.role === 'STUDENT' && !user.emailVerified && !data.myApplication && <p className="jd-note">Xác thực email để ứng tuyển.</p>}
+              {status !== 'OPEN' && <p className="jd-note">Tin này không còn nhận hồ sơ. Xem các việc tương tự bên dưới.</p>}
+              <ul className="jd-promises">
+                {PROMISES.map((t) => <li key={t}><Check size={16} aria-hidden="true" />{t}</li>)}
+              </ul>
+            </div>
+            <section className="jd-card jd-company-card" aria-labelledby="jd-employer">
               <span className="jd-logo jd-logo-sm">{company.logoUrl ? <img src={company.logoUrl} alt="" width="56" height="56" /> : <Building2 size={22} aria-hidden="true" />}</span>
               <div className="jd-company-body">
                 <h2 id="jd-employer" className="jd-company-name">{company.name || employer.fullName}</h2>
@@ -235,34 +254,13 @@ class JobDetailPage extends Component {
                 {company.description && <p className="jd-text jd-clamp">{company.description}</p>}
               </div>
             </section>
-          </div>
-
-          <aside className="jd-aside" aria-label="Ứng tuyển">
-            <div className="jd-card jd-apply">
-              <span className="eyebrow">Mức lương</span>
-              <strong className="jd-pay">{salary(job)}</strong>
-              <p className="jd-apply-meta">
-                {job.remainingSlots > 0 ? `Còn ${job.remainingSlots}/${job.slots} chỗ` : 'Đã đủ người'}
-                {status === 'OPEN' && <>, hạn còn {daysLeft} ngày</>}
-              </p>
-              <Alert type="info">{flash}</Alert>
-              {this.actions(false)}
-              {user?.role === 'STUDENT' && !user.emailVerified && !data.myApplication && <p className="jd-note">Xác thực email để ứng tuyển.</p>}
-              {status !== 'OPEN' && <p className="jd-note">Tin này không còn nhận hồ sơ. Xem các việc tương tự bên dưới.</p>}
-              <ul className="jd-promises">
-                {PROMISES.map((t) => <li key={t}><Check size={16} aria-hidden="true" />{t}</li>)}
-              </ul>
-            </div>
           </aside>
         </div>
 
         {similar.length > 0 && (
           <section className="jd-similar" aria-labelledby="jd-similar">
             <div className="jd-similar-head">
-              <div>
-                <span className="eyebrow">Có thể bạn quan tâm</span>
-                <h2 id="jd-similar" className="display">Việc tương tự</h2>
-              </div>
+              <h2 id="jd-similar" className="jd-similar-title">Việc tương tự</h2>
               {category && <Link to={`/jobs?categoryId=${category._id}`} className="text-link small">Xem thêm việc {category.name.toLowerCase()} <ArrowRight size={16} aria-hidden="true" /></Link>}
             </div>
             <ul className="jd-similar-list">{similar.map((j) => <li key={j._id}><JobRow job={j} /></li>)}</ul>
@@ -278,6 +276,7 @@ class JobDetailPage extends Component {
 
         {modal === 'apply' && <ApplyModal job={job} cv={user?.student?.cv} onClose={() => this.setState({ modal: null })} onDone={() => { this.setState({ modal: null, flash: 'Đã gửi đơn ứng tuyển. Theo dõi trạng thái trong “Đơn của tôi”.' }); this.load(); }} />}
       </div>
+      </>
     );
   }
 }

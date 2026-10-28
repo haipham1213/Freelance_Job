@@ -1,102 +1,55 @@
 import React, { Component } from 'react';
-import { CalendarClock, CalendarDays, ChevronDown, Clock, Hourglass, MapPin, Search, Users, X } from 'lucide-react';
+import { CalendarDays, MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { categoryIcon } from '../../components/Illustrations';
 import { Spinner, Empty, Pagination, Dropdown, ShiftGrid } from '../../components/ui';
-import JobRow, { FitBadge, MiniWeek, shiftText, plainClick, readWeek, writeWeek } from '../../components/JobRow';
+import JobRow, { readWeek, writeWeek } from '../../components/JobRow';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
-import { date, money, shortMoney, salary, describeShifts, SALARY_TYPE } from '../../utils/format';
+import { money, describeShifts, SALARY_TYPE } from '../../utils/format';
 
 const SALARY_TYPES = [['HOURLY', 'Theo giờ'], ['DAILY', 'Theo ngày'], ['PROJECT', 'Theo dự án']];
 const FILTERS = ['q', 'categoryId', 'city', 'district', 'salaryType', 'salaryMin', 'salaryMax', 'busy', 'page'];
-const HINT_KEY = 'jobsv.hideWeekHint';
-const hintHidden = () => { try { return localStorage.getItem(HINT_KEY) === '1'; } catch { return false; } };
 const slots = (csv) => (csv ? csv.split(',').map(Number) : []);
-const rating1 = new Intl.NumberFormat('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const sameSlots = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 
-// Xem trước bên phải chỉ khi màn hình đủ rộng cho 2 cột; hẹp hơn thì bấm tin là sang trang chi tiết
-const WIDE = '(min-width: 1100px)';
+// Nhóm lựa chọn một giá trị (ngành nghề, hình thức lương): hàng radio, có mục "Tất cả" đứng đầu
+const Choices = ({ name, value, options, onPick }) => (
+  <div className="jx-choices" role="radiogroup">
+    {[{ value: '', label: 'Tất cả' }, ...options].map((o) => (
+      <label key={o.value || 'all'} className={`jx-choice ${value === o.value ? 'on' : ''}`}>
+        <input type="radio" name={name} value={o.value} checked={value === o.value} onChange={() => onPick(o.value)} />
+        <span className="jx-choice-label">{o.label}</span>
+        {o.count !== undefined && <span className="jx-choice-count">{o.count}</span>}
+      </label>
+    ))}
+  </div>
+);
 
-// Khung xem trước tin đang chọn: dữ liệu cơ bản có sẵn từ danh sách, mô tả + trạng thái đã lưu tải thêm từ API-21
-const Preview = ({ job: j, detail, catName, busy }) => {
-  const Icon = categoryIcon(catName[j.categoryId]);
-  const left = j.slots - (j.acceptedCount || 0);
-  const facts = [
-    [Clock, 'Ca làm', shiftText(j) || 'Thỏa thuận khi phỏng vấn'],
-    [MapPin, 'Địa điểm', [j.address, j.district, j.city].filter(Boolean).join(', ')],
-    [CalendarClock, 'Bắt đầu', date(j.startDate)],
-    [Users, 'Số chỗ', left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'],
-    [Hourglass, 'Hạn nhận hồ sơ', date(j.expiresAt)],
-  ];
-  return (
-    <article className="jx-preview" aria-label={`Xem trước: ${j.title}`}>
-      {/* Đầu khung dính khi cuộn đọc mô tả: tên việc và nút ứng tuyển luôn trong tầm mắt */}
-      <div className="jx-preview-top">
-        <div className="jx-preview-head">
-          <span className="jx-logo jx-logo-lg">{j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="64" height="64" /> : <Icon size={26} aria-hidden="true" />}</span>
-          <div>
-            {catName[j.categoryId] && <span className="eyebrow-chip">{catName[j.categoryId]}</span>}
-            <h2>{j.title}</h2>
-            <FitBadge job={j} />
-            <span className="jx-company">{j.companySnapshot?.name}</span>
-            {detail?.employer?.ratingCount > 0 && <span className="jx-rating"> ★ {rating1.format(detail.employer.ratingAvg)} ({detail.employer.ratingCount})</span>}
-          </div>
-        </div>
-        {/* Lương đặt to như giá ở thẻ gói: con số là thứ sinh viên so đầu tiên */}
-        <p className="jx-preview-pay"><span>Mức lương</span><strong>{salary(j)}</strong></p>
-        <div className="jx-preview-actions">
-          <Link to={`/jobs/${j._id}`} className="btn btn-lg jx-apply">Xem chi tiết và ứng tuyển</Link>
-        </div>
-      </div>
-      <dl className="jx-facts">
-        {facts.map(([I, k, v]) => <div key={k}><dt><I size={16} aria-hidden="true" />{k}</dt><dd>{v}</dd></div>)}
-      </dl>
-      {j.shifts?.length > 0 && <><h3>Ca làm trong tuần</h3><MiniWeek shifts={j.shifts} busy={busy} /></>}
-      <h3>Mô tả công việc</h3>
-      {detail ? <p className="jx-desc">{detail.job.description}</p> : <p className="jx-desc jx-loading" aria-busy="true">Đang tải mô tả…</p>}
-      {detail?.job.requirements && <><h3>Yêu cầu</h3><p className="jx-desc">{detail.job.requirements}</p></>}
-    </article>
-  );
-};
-
-// SCR-C04 / FR-SRC-01: bộ lọc nằm trên URL để chia sẻ và quay lại được
+// SCR-C04 / FR-SRC-01: hai cột, bộ lọc bên trái (dính khi cuộn), danh sách tin bên phải; bộ lọc nằm trên URL để chia sẻ và quay lại được
 class JobsPage extends Component {
   static contextType = AuthContext;
-  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, sel: null, details: {}, wide: false, week: null, loading: false, hint: !hintHidden() };
+  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, week: [], loading: false, filtersOpen: false };
 
   params = () => Object.fromEntries(FILTERS.map((k) => [k, this.props.searchParams.get(k) || '']));
 
   async componentDidMount() {
-    // Trang hai cột cần khung rộng hơn; header, nội dung và footer cùng nới để mép thẳng hàng
-    document.body.classList.add('page-wide', 'page-canvas');
-    this.mq = window.matchMedia?.(WIDE);
-    this.mq?.addEventListener?.('change', this.onWide);
-    document.addEventListener('mousedown', this.outsidePay);
-    this.setState({ wide: !!this.mq?.matches });
+    // Lịch học trong cột lọc: lịch đang lọc, nếu chưa có thì lịch đã lưu (hồ sơ sinh viên, rồi trình duyệt)
+    const cur = this.params().busy;
+    const saved = this.context.user?.student?.busySlots;
+    this.setState({ week: cur ? slots(cur) : saved?.length ? saved : readWeek() });
+    // Các nút "Tô lịch học" ở trang chủ và trang chi tiết dẫn tới /jobs#lich-hoc: mở cột lọc và cuộn tới lưới
+    if (this.props.location.hash === '#lich-hoc') {
+      this.setState({ filtersOpen: true }, () => document.getElementById('lich-hoc')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+    }
     const [c, l] = await Promise.all([api.get('/categories'), api.get('/jobs/locations')]);
     this.setState({ categories: c.data, locations: l.data });
     this.load();
-    // Nút "Tìm ca hợp lịch" ở trang chủ dẫn tới /jobs#lich-hoc: mở sẵn bảng lịch học
-    if (this.props.location.hash === '#lich-hoc') this.openWeek();
   }
-
-  componentWillUnmount() {
-    document.body.classList.remove('page-wide', 'page-canvas');
-    this.mq?.removeEventListener?.('change', this.onWide);
-    document.removeEventListener('mousedown', this.outsidePay);
-  }
-
-  // Ô "Mức lương" là <details>: bấm ra ngoài thì đóng
-  pay = React.createRef();
-  outsidePay = (e) => { if (this.pay.current?.open && !this.pay.current.contains(e.target)) this.pay.current.open = false; };
 
   componentDidUpdate(prev) {
     if (prev.location.search !== this.props.location.search) this.load();
   }
-
-  onWide = (e) => this.setState({ wide: e.matches });
 
   load = async () => {
     const p = this.params();
@@ -104,15 +57,6 @@ class JobsPage extends Component {
     this.setState({ loading: true, form: p });
     const r = await api.get(`/jobs${qs({ ...p, limit: 12 })}`);
     this.setState({ jobs: r.data, meta: r.meta, loading: false });
-    if (r.data[0]) this.select(r.data[0]._id);
-  };
-
-  // Chọn tin để xem trước; mô tả tải một lần rồi giữ lại
-  select = async (id) => {
-    this.setState({ sel: id });
-    if (this.state.details[id]) return;
-    const r = await api.get(`/jobs/${id}`).catch(() => null);
-    if (r) this.setState((s) => ({ details: { ...s.details, [id]: r.data } }));
   };
 
   apply = (patch) => {
@@ -121,21 +65,11 @@ class JobsPage extends Component {
     this.props.setSearchParams(Object.fromEntries(Object.entries(next).filter(([, v]) => v)));
     // Chỉ cuộn lên khi chuyển trang; đổi bộ lọc thì giữ nguyên chỗ đang xem
     if (patch.page) window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (this.pay.current) this.pay.current.open = false;
-  };
-
-  // Bảng lịch học: lấy lịch đang lọc, nếu chưa có thì lịch đã lưu (hồ sơ sinh viên, rồi trình duyệt)
-  openWeek = () => {
-    const cur = this.params().busy;
-    const saved = this.context.user?.student?.busySlots;
-    this.setState({ week: cur ? slots(cur) : saved?.length ? saved : readWeek() },
-      () => document.getElementById('jx-week')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
   };
 
   applyWeek = async () => {
     const { week } = this.state;
     writeWeek(week);
-    this.setState({ week: null });
     this.apply({ busy: week.join(',') });
     if (this.context.user?.role === 'STUDENT') {
       await api.put('/students/me/schedule', { busySlots: week }).catch(() => {});
@@ -143,11 +77,7 @@ class JobsPage extends Component {
     }
   };
 
-
-  hideHint = () => {
-    try { localStorage.setItem(HINT_KEY, '1'); } catch { /* trình duyệt chặn lưu trữ */ }
-    this.setState({ hint: false });
-  };
+  clearWeek = () => { this.setState({ week: [] }); this.apply({ busy: '' }); };
 
   set = (k) => (e) => this.setState({ form: { ...this.state.form, [k]: e.target.value } });
   pick = (k) => (e) => this.apply({ [k]: e.target.value });
@@ -169,127 +99,112 @@ class JobsPage extends Component {
   };
 
   render() {
-    const { categories, locations, jobs, meta, form, sel, details, wide, week, loading, hint } = this.state;
+    const { categories, locations, jobs, meta, form, week, loading, filtersOpen } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const districts = locations.find((l) => l.city === form.city)?.districts || [];
     const chips = this.activeChips(catName);
-    const selected = jobs?.find((j) => j._id === sel);
     const user = this.context.user;
-    // Lịch học để so với ca làm trong khung xem trước: đang lọc thì lấy lịch lọc, chưa lọc thì lịch đã lưu
-    const busy = form.busy ? slots(form.busy) : user?.student?.busySlots?.length ? user.student.busySlots : readWeek();
-    const payLabel = form.salaryMin || form.salaryMax
-      ? [form.salaryMin && `Từ ${shortMoney(+form.salaryMin)}`, form.salaryMax && `đến ${shortMoney(+form.salaryMax)}`].filter(Boolean).join(' ')
-      : 'Mức lương';
+    const weekDirty = !sameSlots(week, slots(form.busy));
     return (
       <>
         <section className="jx-band">
           <div className="container">
             <h1 className="display jx-title">Tìm việc part-time</h1>
+            <p className="jx-sub">Lương và ca làm ghi rõ trên từng tin. Tô lịch học để chỉ thấy việc không trùng giờ.</p>
             <form className="hx-search jx-search" onSubmit={(e) => { e.preventDefault(); this.apply({ q: form.q }); }} role="search">
               <label className="hx-field hx-q">
                 <Search size={18} aria-hidden="true" />
                 <input type="search" name="q" autoComplete="off" enterKeyHint="search" value={form.q || ''} onChange={this.set('q')}
                   placeholder="Vị trí hoặc kỹ năng: phục vụ, gia sư, Canva…" aria-label="Từ khóa" />
               </label>
-              <Dropdown className="hx-field" value={form.categoryId || ''} onChange={this.pick('categoryId')} ariaLabel="Ngành nghề" placeholder="Tất cả ngành nghề" searchable
-                options={categories.map((c) => ({ value: c._id, label: c.name, icon: categoryIcon(c.name), count: c.jobCount }))} />
               <Dropdown className="hx-field" value={form.city || ''} onChange={this.pick('city')} ariaLabel="Thành phố" placeholder="Tất cả địa điểm"
                 options={locations.map((l) => ({ value: l.city, label: l.city, icon: MapPin }))} />
               <button className="btn btn-lg">Tìm việc</button>
             </form>
-
-            {/* Hàng bộ lọc cùng một kiểu nút; lịch học đứng đầu vì là bộ lọc đặc trưng của UniShift */}
-            <div className="jx-filters" aria-label="Bộ lọc">
-              <button type="button" className={`jx-fbtn jx-week-btn ${form.busy ? 'on' : ''}`} aria-expanded={!!week} aria-controls="jx-week"
-                onClick={() => (week ? this.setState({ week: null }) : this.openWeek())}>
-                <CalendarDays size={16} aria-hidden="true" />
-                <span>{form.busy ? `Bận: ${describeShifts(slots(form.busy))}` : 'Lịch học: chưa tô'}</span>
-                <ChevronDown size={16} aria-hidden="true" />
-              </button>
-              <Dropdown className={`jx-pill ${form.salaryType ? 'on' : ''}`} value={form.salaryType || ''} onChange={this.pick('salaryType')}
-                ariaLabel="Hình thức lương" placeholder="Hình thức lương" options={SALARY_TYPES.map(([value, label]) => ({ value, label }))} />
-              <details className={`jx-pop ${form.salaryMin || form.salaryMax ? 'on' : ''}`} ref={this.pay}>
-                <summary className="jx-fbtn">{payLabel}<ChevronDown size={16} aria-hidden="true" /></summary>
-                <form className="jx-pop-body" onSubmit={(e) => { e.preventDefault(); this.apply({ salaryMin: form.salaryMin, salaryMax: form.salaryMax }); }}>
-                  <p>Tính theo đơn vị của tin ({form.salaryType ? `mỗi ${SALARY_TYPE[form.salaryType]}` : 'giờ, ngày hoặc dự án'}).</p>
-                  <label>Từ (đồng)<input type="number" name="salaryMin" inputMode="numeric" min="0" step="1000" placeholder="20000" value={form.salaryMin || ''} onChange={this.set('salaryMin')} /></label>
-                  <label>Đến (đồng)<input type="number" name="salaryMax" inputMode="numeric" min="0" step="1000" placeholder="50000" value={form.salaryMax || ''} onChange={this.set('salaryMax')} /></label>
-                  <button className="btn btn-sm">Áp dụng mức lương</button>
-                </form>
-              </details>
-              {districts.length > 0 && (
-                <Dropdown className={`jx-pill ${form.district ? 'on' : ''}`} value={form.district || ''} onChange={this.pick('district')} ariaLabel="Quận / huyện" placeholder="Mọi quận / huyện"
-                  options={districts.map((d) => ({ value: d, label: d }))} />
-              )}
-            </div>
-
-            {week && (
-              <div id="jx-week" className="jx-week">
-                <div className="jx-week-head">
-                  <h2>Tô các buổi bạn có lịch học</h2>
-                  <p>Hệ thống chỉ hiện việc còn ít nhất một ca không trùng giờ học, việc hợp nhiều ca nhất lên đầu.</p>
-                </div>
-                <ShiftGrid tone="busy" value={week} onChange={(v) => this.setState({ week: v })} label="Lịch học trong tuần" />
-                <div className="jx-week-actions">
-                  <button type="button" className="btn" onClick={this.applyWeek}>Tìm ca hợp lịch</button>
-                  {week.length > 0 && <button type="button" className="btn btn-ghost" onClick={() => this.setState({ week: [] })}>Xóa lịch</button>}
-                  <span className="jx-week-note">
-                    {user?.role === 'STUDENT' ? 'Lịch được lưu vào hồ sơ, lần sau mở là có sẵn.' : 'Lịch lưu trên trình duyệt này. Đăng nhập tài khoản sinh viên để dùng trên mọi máy.'}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </section>
 
         <div className="container page jx-page">
-          <div className="jx-summary">
-            <h2 className="h-lg" aria-live="polite">{meta ? `${meta.total} việc ${form.busy ? 'hợp lịch học của bạn' : 'phù hợp'}` : 'Đang tìm…'}</h2>
-            {chips.length > 0 && (
-              <ul className="jx-chips" aria-label="Bộ lọc đang bật">
-                {chips.map(([k, label]) => (
-                  <li key={k}><button type="button" onClick={() => this.apply({ [k]: '' })} aria-label={`Bỏ lọc ${label}`}>{label}<X size={14} aria-hidden="true" /></button></li>
-                ))}
-                <li><button type="button" className="jx-clear" onClick={() => this.props.setSearchParams({})}>Xóa tất cả</button></li>
-              </ul>
-            )}
+          <div className="jx-layout">
+            {/* Cột trái: bộ lọc. Điện thoại: ẩn sau nút "Bộ lọc" */}
+            <button type="button" className="btn btn-ghost jx-filter-toggle" aria-expanded={filtersOpen} aria-controls="jx-side"
+              onClick={() => this.setState({ filtersOpen: !filtersOpen })}>
+              <SlidersHorizontal size={18} aria-hidden="true" />Bộ lọc{chips.length > 0 && ` (${chips.length})`}
+            </button>
+            <aside id="jx-side" className={`jx-side ${filtersOpen ? 'open' : ''}`} aria-label="Bộ lọc">
+              <section id="lich-hoc" className="jx-sec">
+                <h2 className="jx-sec-title"><CalendarDays size={18} aria-hidden="true" />Lịch học</h2>
+                <p className="jx-sec-note">{form.busy ? `Đang lọc: bận ${describeShifts(slots(form.busy))}` : 'Tô các buổi có tiết học, chỉ hiện việc còn ca rảnh.'}</p>
+                <ShiftGrid tone="busy" value={week} onChange={(v) => this.setState({ week: v })} label="Lịch học trong tuần" />
+                <div className="jx-sec-actions">
+                  <button type="button" className="btn btn-sm" onClick={this.applyWeek} disabled={!week.length || !weekDirty}>Lọc theo lịch</button>
+                  {(week.length > 0 || form.busy) && <button type="button" className="btn-link" onClick={this.clearWeek}>Xóa lịch</button>}
+                </div>
+                <p className="jx-sec-hint">{user?.role === 'STUDENT' ? 'Lịch được lưu vào hồ sơ của bạn.' : 'Lịch lưu trên trình duyệt này.'}</p>
+              </section>
+
+              <section className="jx-sec">
+                <h2 className="jx-sec-title">Ngành nghề</h2>
+                <Choices name="categoryId" value={form.categoryId || ''} onPick={(v) => this.apply({ categoryId: v })}
+                  options={categories.map((c) => ({ value: c._id, label: c.name, count: c.jobCount }))} />
+              </section>
+
+              {districts.length > 0 && (
+                <section className="jx-sec">
+                  <h2 className="jx-sec-title">Quận / huyện</h2>
+                  <Dropdown className="select" value={form.district || ''} onChange={this.pick('district')} ariaLabel="Quận / huyện" placeholder="Mọi quận / huyện"
+                    options={districts.map((d) => ({ value: d, label: d }))} />
+                </section>
+              )}
+
+              <section className="jx-sec">
+                <h2 className="jx-sec-title">Hình thức lương</h2>
+                <Choices name="salaryType" value={form.salaryType || ''} onPick={(v) => this.apply({ salaryType: v })}
+                  options={SALARY_TYPES.map(([value, label]) => ({ value, label }))} />
+              </section>
+
+              <section className="jx-sec">
+                <h2 className="jx-sec-title">Mức lương</h2>
+                <form className="jx-pay" onSubmit={(e) => { e.preventDefault(); this.apply({ salaryMin: form.salaryMin, salaryMax: form.salaryMax }); }}>
+                  <label><span>Từ</span><input className="input" type="number" name="salaryMin" inputMode="numeric" min="0" step="1000" placeholder="20.000" value={form.salaryMin || ''} onChange={this.set('salaryMin')} /></label>
+                  <label><span>Đến</span><input className="input" type="number" name="salaryMax" inputMode="numeric" min="0" step="1000" placeholder="50.000" value={form.salaryMax || ''} onChange={this.set('salaryMax')} /></label>
+                  <p className="jx-sec-hint">Đồng, tính theo {form.salaryType ? `mỗi ${SALARY_TYPE[form.salaryType]}` : 'giờ, ngày hoặc dự án của tin'}.</p>
+                  <button className="btn btn-sm btn-ghost">Áp dụng</button>
+                </form>
+              </section>
+            </aside>
+
+            {/* Cột phải: số kết quả, chip bộ lọc đang bật, danh sách tin */}
+            <div className="jx-main">
+              <div className="jx-summary">
+                <h2 className="h-lg" aria-live="polite">{meta ? `${meta.total} việc ${form.busy ? 'hợp lịch học của bạn' : 'phù hợp'}` : 'Đang tìm…'}</h2>
+                {chips.length > 0 && (
+                  <ul className="jx-chips" aria-label="Bộ lọc đang bật">
+                    {chips.map(([k, label]) => (
+                      <li key={k}><button type="button" onClick={() => this.apply({ [k]: '' })} aria-label={`Bỏ lọc ${label}`}>{label}<X size={14} aria-hidden="true" /></button></li>
+                    ))}
+                    <li><button type="button" className="jx-clear" onClick={() => { this.setState({ week: [] }); this.props.setSearchParams({}); }}>Xóa tất cả</button></li>
+                  </ul>
+                )}
+              </div>
+
+              {!jobs ? <Spinner /> : !jobs.length ? (
+                <div className="panel"><Empty title="Không có việc phù hợp">Bỏ bớt một bộ lọc bên trái, hoặc thử từ khóa ngắn hơn như “phục vụ”.</Empty></div>
+              ) : (
+                <ol className={`jx-list ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
+                  {jobs.map((j) => <li key={j._id}><JobRow job={j} category={catName[j.categoryId]} /></li>)}
+                </ol>
+              )}
+              <Pagination meta={meta} onPage={(page) => this.apply({ page: String(page) })} />
+
+              {!user && (
+                <div className="jx-cta">
+                  <div><h2>Chưa thấy việc hợp ý?</h2><p>Tạo hồ sơ và tải CV một lần, có việc mới là ứng tuyển ngay.</p></div>
+                  <Link to="/register" className="btn btn-dark">Tạo hồ sơ miễn phí</Link>
+                </div>
+              )}
+            </div>
           </div>
-
-          {hint && !form.busy && (
-            <div className="jx-hint">
-              <CalendarDays size={20} aria-hidden="true" />
-              <p><strong>Có lịch học cố định?</strong> Tô lịch một lần, chỉ thấy việc còn ca rảnh.</p>
-              <button type="button" className="btn btn-sm" onClick={this.openWeek}>Tô lịch học</button>
-              <button type="button" className="jx-hint-x" onClick={this.hideHint} aria-label="Ẩn gợi ý"><X size={16} aria-hidden="true" /></button>
-            </div>
-          )}
-
-          {!jobs ? <Spinner /> : !jobs.length ? (
-            <div className="panel"><Empty title="Không có việc phù hợp">Bỏ bớt một bộ lọc ở trên, hoặc thử từ khóa ngắn hơn như “phục vụ”.</Empty></div>
-          ) : (
-            <div className={`jx-split ${wide ? 'wide' : ''} ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
-              <ol className="jx-list">
-                {jobs.map((j) => {
-                  const on = wide && j._id === sel;
-                  return (
-                    <li key={j._id}>
-                      <JobRow job={j} category={catName[j.categoryId]} on={on}
-                        onClick={(e) => { if (wide && plainClick(e)) { e.preventDefault(); this.select(j._id); } }} />
-                    </li>
-                  );
-                })}
-              </ol>
-              {wide && selected && <div className="jx-aside"><Preview job={selected} detail={details[selected._id]} catName={catName} busy={busy} /></div>}
-            </div>
-          )}
-          <Pagination meta={meta} onPage={(page) => this.apply({ page: String(page) })} />
-
-          {!user && (
-            <div className="jx-cta">
-              <div><h2>Chưa thấy việc hợp ý?</h2><p>Tạo hồ sơ và tải CV một lần, có việc mới là ứng tuyển ngay.</p></div>
-              <Link to="/register" className="btn btn-dark">Tạo hồ sơ miễn phí</Link>
-            </div>
-          )}
         </div>
       </>
     );
