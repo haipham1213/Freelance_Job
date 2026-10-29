@@ -48,9 +48,22 @@ class FormPage extends Component {
 class Login extends FormPage {
   static contextType = AuthContext;
   submit = (e) => this.run(e, async () => {
-    const user = await this.context.login(this.state.form.email, this.state.form.password);
-    this.props.navigate(this.props.searchParams.get('next') || homeOf(user.role), { replace: true });
+    this.setState({ unverified: false, resent: false });
+    try {
+      const user = await this.context.login(this.state.form.email, this.state.form.password);
+      // next chỉ dùng khi không thuộc khu vực của vai trò khác (SV đăng nhập kèm next=/admin thì về trang của SV)
+      const next = this.props.searchParams.get('next');
+      const allowed = next?.startsWith('/') && !next.startsWith('//') && !['/student', '/employer', '/admin'].some((p) => next.startsWith(p) && p !== homeOf(user.role));
+      this.props.navigate(allowed ? next : homeOf(user.role), { replace: true });
+    } catch (err) {
+      if (err.code === 'EMAIL_NOT_VERIFIED') this.setState({ unverified: true });
+      throw err;
+    }
   });
+  resend = async () => {
+    await api.post('/auth/resend-verification', { email: this.state.form.email }).catch(() => {});
+    this.setState({ resent: true });
+  };
   render() {
     if (!this.context.ready) return <Spinner />;
     if (this.context.user && !this.state.busy) return <Navigate to={homeOf(this.context.user.role)} replace />;
@@ -60,6 +73,9 @@ class Login extends FormPage {
           {this.input('email', 'Email', { type: 'email', required: true, autoComplete: 'email', autoFocus: true })}
           {this.input('password', 'Mật khẩu', { type: 'password', required: true, autoComplete: 'current-password' })}
           <Alert>{this.state.error}</Alert>
+          {this.state.unverified && (this.state.resent
+            ? <Alert type="ok">Đã gửi lại link xác thực tới {this.state.form.email}. Kiểm tra cả mục Spam.</Alert>
+            : <button type="button" className="btn btn-block btn-ghost" onClick={this.resend}>Gửi lại link xác thực</button>)}
           <button className="btn btn-block" disabled={this.state.busy}>Đăng nhập</button>
         </form>
         <div className="row-between small">
@@ -118,12 +134,20 @@ class Register extends FormPage {
 export const RegisterPage = withRouter(Register);
 
 // FR-AUTH-02
+// Token chỉ dùng được 1 lần; StrictMode (dev) mount 2 lần nên dùng chung một request cho mỗi token,
+// tránh lần gọi thứ hai báo "Link không hợp lệ" dù lần đầu đã xác thực xong
+const verifying = new Map();
+const verifyOnce = (token) => {
+  if (!verifying.has(token)) verifying.set(token, api.post('/auth/verify-email', { token }));
+  return verifying.get(token);
+};
+
 class VerifyEmail extends Component {
   static contextType = AuthContext;
   state = { status: 'loading', message: '', email: '', resent: false };
   async componentDidMount() {
     try {
-      const r = await api.post('/auth/verify-email', { token: this.props.searchParams.get('token') });
+      const r = await verifyOnce(this.props.searchParams.get('token'));
       this.setState({ status: 'ok', message: r.data.message });
       if (this.context.user) this.context.reloadUser().catch(() => {});
     } catch (e) {

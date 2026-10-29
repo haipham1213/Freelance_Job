@@ -38,7 +38,7 @@ export default class ApplicationsPage extends Component {
                   <div className="stu-app-main">
                     <div className="h-sm stu-ellipsis stu-app-title">{a.jobSnapshot.title}</div>
                     <div className="muted small stu-ellipsis">{a.jobSnapshot.companyName}</div>
-                    <div className="fog tiny">Nộp {date(a.createdAt)}, bắt đầu {date(a.jobSnapshot.startDate)}</div>
+                    <div className="fog tiny">Nộp {date(a.createdAt)}, cập nhật {date(a.updatedAt)}, bắt đầu {date(a.jobSnapshot.startDate)}</div>
                   </div>
                   <div className="stu-app-side">
                     <AppBadge status={a.status} />

@@ -57,7 +57,7 @@ export default class MyJobsPage extends Component {
                       {j.counts.PENDING ? <span className="chip chip-yellow tiny">{j.counts.PENDING} mới</span> : null}
                     </div>
                     <h2 className="h-sm"><Link to={`/jobs/${j._id}`}>{j.title}</Link></h2>
-                    <div className="emp-meta small"><span className="hl">{salary(j)}</span><span>{j.viewCount} lượt xem</span><span>Đã nhận {j.acceptedCount}/{j.slots}</span><span>Hết hạn {date(j.expiresAt)}</span></div>
+                    <div className="emp-meta small"><span className="hl">{salary(j)}</span><span>{j.viewCount} lượt xem</span><span>Đã nhận {j.acceptedCount}/{j.slots}</span><span>Chờ duyệt {j.counts.PENDING || 0}</span><span>Từ chối {j.counts.REJECTED || 0}</span><span>Hết hạn {date(j.expiresAt)}</span></div>
                     {st === 'HIDDEN' && <div className="small" style={{ color: 'var(--alert)' }}>Lý do: {j.hiddenReason}</div>}
                     <div className="row emp-actions">
                       <Link to={`/employer/jobs/${j._id}/applicants`} className="btn btn-sm btn-ghost">Ứng viên</Link>

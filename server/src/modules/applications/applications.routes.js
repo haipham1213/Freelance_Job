@@ -9,7 +9,7 @@ import { ok, paging, oid } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize, requireVerified } from '../../middlewares/auth.js';
 import { notify } from '../../utils/notify.js';
-import { isVisible, findOwnJob } from '../jobs/jobs.service.js';
+import { isVisible, findOwnJob, publicCompany } from '../jobs/jobs.service.js';
 
 const router = Router();
 const FINISHED = ['COMPLETED', 'NOT_COMPLETED'];
@@ -38,24 +38,28 @@ router.post('/jobs/:id/applications', authenticate, authorize('STUDENT'), requir
     const cvUrl = req.user.student?.cv?.url;
     if (!cvUrl) throw new AppError(400, 'CV_REQUIRED', 'Bạn cần tải CV lên hồ sơ trước khi ứng tuyển');
     const job = await Job.findById(oid(req.params.id));
-    if (!(await isVisible(job))) throw new AppError(409, 'JOB_NOT_OPEN', 'Tin đã đóng, đủ người hoặc hết hạn');
     let app;
     try {
-      app = await Application.create({
-        jobId: job._id,
-        studentId: req.user._id,
-        employerId: job.employerId,
-        jobSnapshot: { title: job.title, companyName: job.companySnapshot?.name, startDate: job.startDate },
-        coverLetter: req.body.coverLetter,
-        cvUrl, // BR-13 snapshot
-        statusHistory: [{ status: 'PENDING', at: new Date(), by: req.user._id }],
+      // Kiểm tra tin còn tuyển và tăng applicationCount cùng transaction: tin vừa đủ người/đóng (cũng ghi vào Job) sẽ gây xung đột,
+      // lần chạy lại thấy tin không còn mở nên không để lại đơn PENDING trên tin đã đủ người
+      await mongoose.connection.transaction(async (session) => {
+        if (!(await isVisible(job, session))) throw new AppError(409, 'JOB_NOT_OPEN', 'Tin đã đóng, đủ người hoặc hết hạn');
+        [app] = await Application.create([{
+          jobId: job._id,
+          studentId: req.user._id,
+          employerId: job.employerId,
+          jobSnapshot: { title: job.title, companyName: job.companySnapshot?.name, startDate: job.startDate },
+          coverLetter: req.body.coverLetter,
+          cvUrl, // BR-13 snapshot
+          statusHistory: [{ status: 'PENDING', at: new Date(), by: req.user._id }],
+        }], { session });
+        await Job.updateOne({ _id: job._id }, { $inc: { applicationCount: 1 } }, { session });
+        await notify(job.employerId, 'NEW_APPLICATION', 'Có đơn ứng tuyển mới', `${req.user.fullName} vừa ứng tuyển "${job.title}"`, `/employer/applications/${app._id}`, session);
       });
     } catch (e) {
       if (e.code === 11000) throw new AppError(409, 'ALREADY_APPLIED', 'Bạn đã ứng tuyển tin này rồi');
       throw e;
     }
-    await Job.updateOne({ _id: job._id }, { $inc: { applicationCount: 1 } });
-    await notify(job.employerId, 'NEW_APPLICATION', 'Có đơn ứng tuyển mới', `${req.user.fullName} vừa ứng tuyển "${job.title}"`, `/employer/applications/${app._id}`);
     ok(res, { application: app }, null, 201);
   });
 
@@ -88,7 +92,7 @@ router.get('/applications/:id', authenticate, async (req, res) => {
     application: app,
     job,
     student: { _id: student._id, fullName: student.fullName, avatarUrl: student.avatarUrl, ratingAvg: student.ratingAvg, ratingCount: student.ratingCount, student: student.student, ...contact(student) },
-    employer: { _id: employer._id, fullName: employer.fullName, company: employer.employer?.company, ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, ...contact(employer), ...(showContact && { phone: employer.employer?.company?.phone || employer.phone }) },
+    employer: { _id: employer._id, fullName: employer.fullName, company: publicCompany(employer), ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, ...contact(employer), ...(showContact && { phone: employer.employer?.company?.phone || employer.phone }) },
   });
 });
 
@@ -101,7 +105,7 @@ router.patch('/applications/:id/accept', authenticate, authorize('EMPLOYER'), re
     await mongoose.connection.transaction(async (session) => {
       // acceptedCount < slots kiểm tra ngay trong lệnh cập nhật để 2 tab bấm cùng lúc chỉ 1 thành công
       const job = await Job.findOneAndUpdate(
-        { _id: app0.jobId, status: 'OPEN', $expr: { $lt: ['$acceptedCount', '$slots'] } },
+        { _id: app0.jobId, status: 'OPEN', expiresAt: { $gt: new Date() }, $expr: { $lt: ['$acceptedCount', '$slots'] } },
         { $inc: { acceptedCount: 1 } },
         { returnDocument: 'after', session },
       );

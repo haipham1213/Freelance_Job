@@ -27,8 +27,9 @@ export default class ProfilePage extends Component {
     e.preventDefault();
     const v = this.state.skill.trim();
     const skills = this.state.form.skills;
-    if (!v || skills.includes(v) || skills.length >= 15) return;
-    this.setState({ form: { ...this.state.form, skills: [...skills, v] }, skill: '' });
+    if (skills.length >= 15) return this.setState({ errors: { ...this.state.errors, skills: 'Tối đa 15 kỹ năng, xóa bớt để thêm kỹ năng mới' } });
+    if (!v || skills.includes(v)) return;
+    this.setState({ form: { ...this.state.form, skills: [...skills, v] }, skill: '', errors: { ...this.state.errors, skills: '' } });
   };
 
   save = async (e) => {
@@ -40,7 +41,10 @@ export default class ProfilePage extends Component {
       this.setState({ completion: data.completion, msg: 'Đã lưu hồ sơ' });
       this.context.reloadUser();
     } catch (err) {
-      this.setState({ error: err.message, errors: fieldErrors(err) });
+      // Lỗi của từng kỹ năng về dạng skills.N → hiện ở ô Kỹ năng
+      const errors = fieldErrors(err);
+      for (const k of Object.keys(errors)) if (k.startsWith('skills.')) errors.skills = errors[k];
+      this.setState({ error: err.message, errors });
     }
     this.setState({ busy: false });
   };

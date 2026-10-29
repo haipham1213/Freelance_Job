@@ -69,8 +69,8 @@ router.get('/students/:id', authenticate, authorize('EMPLOYER', 'ADMIN'), async 
   const u = await User.findOne({ _id: id, role: 'STUDENT' });
   if (!u) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy sinh viên');
   const p = u.toPublic();
-  delete p.email;
-  delete p.phone; // BR-12: liên hệ chỉ lộ qua chi tiết đơn khi đã ACCEPTED
+  // BR-12: liên hệ chỉ lộ qua chi tiết đơn khi đã ACCEPTED; trạng thái tài khoản là việc nội bộ
+  for (const k of ['email', 'phone', 'status', 'lockReason', 'lastLoginAt', 'emailVerified', 'passwordChangedAt']) delete p[k];
   ok(res, { profile: p });
 });
 

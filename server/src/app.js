@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
-import { UPLOAD_DIR } from './utils/files.js';
+import { UPLOAD_DIR, requireSignedFile } from './utils/files.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import categoryRoutes from './modules/categories/categories.routes.js';
 import jobRoutes from './modules/jobs/jobs.routes.js';
@@ -24,7 +24,8 @@ app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 app.get('/api/v1/health', (req, res) => res.json({ success: true, data: { status: 'ok' } }));
-// ponytail: file (kể cả CV) phục vụ công khai theo tên ngẫu nhiên; chuyển sang Cloudinary/URL ký khi deploy thật
+// Logo/ảnh danh mục công khai; CV phải có link ký (utils/files.js signFile), API ký lại mỗi lần trả URL CV
+app.use('/api/v1/files/cv', requireSignedFile);
 app.use('/api/v1/files', express.static(UPLOAD_DIR, { maxAge: '7d' }));
 
 app.use('/api/v1/auth', authRoutes);

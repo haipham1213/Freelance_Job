@@ -1,13 +1,17 @@
 import mongoose from 'mongoose';
 import crypto from 'node:crypto';
 import AppError from './AppError.js';
+import { signFile } from './files.js';
 
 // Danh sách ô buổi (0–20, xem Job.shifts) từ mảng hoặc chuỗi "0,3,14": bỏ ô sai, bỏ trùng, sắp xếp
 export const slotList = (v) => [...new Set((Array.isArray(v) ? v : String(v ?? '').split(',').filter(Boolean)).map(Number))]
   .filter((n) => Number.isInteger(n) && n >= 0 && n <= 20).sort((a, b) => a - b);
 
+// Mọi URL CV trong phản hồi được ký lại mỗi lần trả về (xem signFile)
+// ponytail: quét chuỗi JSON ở một chỗ thay vì ký trong từng route có trả CV
+const CV_URL = /\/api\/v1\/files\/cv\/[0-9a-f]+\.pdf/g;
 export const ok = (res, data, meta, status = 200) =>
-  res.status(status).json(meta ? { success: true, data, meta } : { success: true, data });
+  res.status(status).type('json').send(JSON.stringify(meta ? { success: true, data, meta } : { success: true, data }).replace(CV_URL, (u) => signFile(u)));
 
 // ?page=1&limit=10, limit tối đa 50 (NFR-04)
 export const paging = (q) => {

@@ -92,6 +92,13 @@ test('luồng chính và các business rule quan trọng', async () => {
   await api('POST', '/job-alerts', { email: 'ranh@test.vn', busySlots: [] });
   assert.equal(await JobAlert.countDocuments(), 2);
   const to = async (job) => (await alertsFor(job)).map((a) => a.email).sort();
+  // Chưa bấm link xác nhận trong email thì chưa nhận thông báo
+  assert.deepEqual(await to({}), []);
+  const confirm = async (email) => fetch(`${base}/job-alerts/confirm?token=${(await JobAlert.findOne({ email })).token}`, { redirect: 'manual' });
+  await confirm('ban@test.vn');
+  await confirm('ranh@test.vn');
+  // Người khác gửi lịch mới cho email đã xác nhận: chưa xác nhận thì lịch cũ giữ nguyên
+  await api('POST', '/job-alerts', { email: 'ban@test.vn', busySlots: [] });
   assert.deepEqual(await to({ shifts: [0, 3] }), ['ranh@test.vn']);
   assert.deepEqual(await to({ shifts: [0, 6] }), ['ban@test.vn', 'ranh@test.vn']);
   assert.deepEqual(await to({}), ['ban@test.vn', 'ranh@test.vn']);

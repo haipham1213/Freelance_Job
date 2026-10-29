@@ -96,7 +96,7 @@ const JobRow = ({ job: j, category, on, onClick, badge = true }) => {
           </span>
           <span className="sr-only">Ca làm: {shiftText(j)}</span>
         </div>
-      ) : j.schedule && <p className="jr-sched jr-flex"><Clock size={15} aria-hidden="true" />{j.schedule}</p>}
+      ) : <p className="jr-sched jr-flex"><Clock size={15} aria-hidden="true" />{j.schedule || 'Giờ linh hoạt'}</p>}
       <div className="jr-foot">
         <FitBadge job={j} />
         <span><Users size={14} aria-hidden="true" />{j.applicationCount ? `${j.applicationCount} ứng viên` : 'Ứng tuyển đầu tiên'}</span>

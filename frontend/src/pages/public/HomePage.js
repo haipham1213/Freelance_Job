@@ -164,6 +164,9 @@ const ForYou = ({ user, data, catName }) => {
   );
 };
 
+// Kết quả bấm link Xác nhận / Hủy trong email thông báo việc mới (?alerts=...)
+const ALERT_MSG = { on: 'Đã xác nhận. Bạn sẽ nhận email khi có việc hợp lịch học.', off: 'Bạn đã hủy nhận email thông báo việc mới.', invalid: 'Link không hợp lệ hoặc đăng ký đã bị hủy.' };
+
 class HomePage extends Component {
   static contextType = AuthContext;
   state = {
@@ -262,7 +265,7 @@ class HomePage extends Component {
     const areas = [...locations].sort((a, b) => b.total - a.total).filter((l) => l.total > 0);
     return (
       <>
-        {this.props.searchParams.get('alerts') === 'off' && <div className="container"><Alert type="ok">Bạn đã hủy nhận email thông báo việc mới.</Alert></div>}
+        {ALERT_MSG[this.props.searchParams.get('alerts')] && <div className="container"><Alert type={this.props.searchParams.get('alerts') === 'invalid' ? 'error' : 'ok'}>{ALERT_MSG[this.props.searchParams.get('alerts')]}</Alert></div>}
         {/* Hero kiểu Revolut: bầu trời phủ kín màn hình, khung điện thoại hiện một tin thật. Khi cuộn (desktop),
             hero được ghim lại, bầu trời thu dần vào khung điện thoại, chữ mờ đi và câu kết hiện lên (CSS scroll-driven) */}
         <section className="rv-hero" aria-labelledby="rv-title">
@@ -528,7 +531,7 @@ class HomePage extends Component {
                   <p>{busyOf(user).length ? `Khi có tin còn ca rảnh so với lịch học bạn đã tô (bận ${describeShifts(busyOf(user))}), UniShift gửi email cho bạn.` : 'Có tin còn ca rảnh so với lịch học bạn đã tô, UniShift gửi email cho bạn.'} Hủy bất cứ lúc nào.</p>
                 </div>
                 {alertState === 'done' ? (
-                  <p className="al-done" role="status"><Bell size={18} aria-hidden="true" />Đã đăng ký. Việc mới sẽ được gửi tới {alertEmail}.</p>
+                  <p className="al-done" role="status"><Bell size={18} aria-hidden="true" />Gần xong! Mở email {alertEmail} và bấm Xác nhận để bắt đầu nhận việc mới.</p>
                 ) : (
                   <form className="al-form" onSubmit={this.subscribe}>
                     <label className="sr-only" htmlFor="al-email">Email nhận thông báo</label>

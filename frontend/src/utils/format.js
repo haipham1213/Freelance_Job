@@ -2,7 +2,8 @@ export const money = (n) => (n || n === 0 ? `${Number(n).toLocaleString('vi-VN')
 export const shortMoney = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}tr` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : `${n}`);
 export const date = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
 export const dateTime = (d) => (d ? new Date(d).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '');
-export const toInputDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+// Ngày theo giờ máy người dùng (toISOString là giờ UTC, 0h–7h sáng ở VN sẽ ra ngày hôm qua)
+export const toInputDate = (d) => (d ? new Date(d).toLocaleDateString('sv-SE') : '');
 
 export const timeAgo = (d) => {
   const s = (Date.now() - new Date(d)) / 1000;

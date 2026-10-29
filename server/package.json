@@ -7,7 +7,8 @@
     "start": "node --env-file-if-exists=.env src/server.js",
     "seed": "node --env-file-if-exists=.env seed/index.js",
     "test": "NODE_ENV=test node --test \"tests/**/*.test.js\"",
-    "seed:jobs": "node --env-file-if-exists=.env seed/demo-jobs.js"
+    "seed:jobs": "node --env-file-if-exists=.env seed/demo-jobs.js",
+    "seed:applicants": "node --env-file-if-exists=.env seed/demo-applicants.js"
   },
   "engines": {
     "node": ">=22"
@@ -21,6 +22,7 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.1",
+    "nodemailer": "^10.2.1",
     "zod": "^4.6.5"
   }
 }

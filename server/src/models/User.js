@@ -6,6 +6,8 @@ const userSchema = new Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true, select: false },
+    // Access token phát trước mốc này bị từ chối (BR-08: đặt lại mật khẩu đăng xuất mọi thiết bị ngay)
+    passwordChangedAt: Date,
     role: { type: String, enum: ['STUDENT', 'EMPLOYER', 'ADMIN'], required: true },
     status: { type: String, enum: ['ACTIVE', 'LOCKED'], default: 'ACTIVE' },
     lockReason: { type: String, maxlength: 500 },

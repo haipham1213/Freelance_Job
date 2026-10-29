@@ -13,6 +13,8 @@ const readUser = async (req) => {
   }
   const user = await User.findById(payload.sub);
   if (!user) throw new AppError(401, 'TOKEN_INVALID', 'Tài khoản không tồn tại');
+  if (user.passwordChangedAt && payload.iat < Math.floor(user.passwordChangedAt / 1000))
+    throw new AppError(401, 'TOKEN_INVALID', 'Mật khẩu đã thay đổi, vui lòng đăng nhập lại');
   // BR-06: khóa có hiệu lực ngay ở request kế tiếp
   if (user.status === 'LOCKED') throw new AppError(403, 'ACCOUNT_LOCKED', `Tài khoản đã bị khóa: ${user.lockReason || ''}`);
   return user;

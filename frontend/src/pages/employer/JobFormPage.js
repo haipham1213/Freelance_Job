@@ -16,16 +16,23 @@ class JobFormPage extends Component {
     const cats = (await api.get('/categories')).data;
     let form = { ...EMPTY };
     let locked = false;
+    let noCompany = false;
     if (this.isEdit()) {
-      const { job } = (await api.get(`/jobs/${this.props.params.id}`)).data;
+      const { job, category } = (await api.get(`/jobs/${this.props.params.id}`)).data;
+      // Danh mục đã bị admin ẩn sau khi đăng: vẫn hiện để giữ nguyên khi sửa
+      if (category && !cats.some((c) => c._id === category._id)) cats.push(category);
       form = Object.fromEntries(Object.keys(EMPTY).map((k) => [k, job[k] ?? '']));
       form.startDate = toInputDate(job.startDate);
       form.endDate = toInputDate(job.endDate);
       form.categoryId = String(job.categoryId);
       form.shifts = job.shifts || [];
       locked = job.acceptedCount > 0;
+    } else {
+      // US-13: chưa đủ tên, địa chỉ, SĐT công ty thì nhắc ngay thay vì để điền hết form mới báo lỗi
+      const { company } = (await api.get('/employers/me')).data;
+      noCompany = !(company?.name && company?.address && company?.phone);
     }
-    this.setState({ form, categories: cats, locked });
+    this.setState({ form, categories: cats, locked, noCompany });
   }
 
   set = (k) => (e) => this.setState({ form: { ...this.state.form, [k]: e.target.value }, errors: { ...this.state.errors, [k]: '' } });
@@ -46,8 +53,19 @@ class JobFormPage extends Component {
   };
 
   render() {
-    const { form, categories, locked, errors } = this.state;
+    const { form, categories, locked, errors, noCompany } = this.state;
     if (!form) return <Spinner />;
+    if (noCompany)
+      return (
+        <div className="container page" style={{ maxWidth: 1000 }}>
+          <BackLink to="/employer/jobs">Tin tuyển dụng</BackLink>
+          <div className="card section stack" style={{ marginTop: 16 }}>
+            <h1 className="h-sm">Hoàn thiện hồ sơ công ty trước khi đăng tin</h1>
+            <p className="muted">Tin tuyển dụng cần tên, địa chỉ và số điện thoại công ty để sinh viên tin tưởng ứng tuyển.</p>
+            <Link to="/employer/company" className="btn" style={{ alignSelf: 'flex-start' }}>Cập nhật hồ sơ công ty</Link>
+          </div>
+        </div>
+      );
     const input = (k, label, props = {}) => (
       <Field label={label} error={errors[k]}><input className="input" value={form[k]} onChange={this.set(k)} {...props} /></Field>
     );
@@ -92,8 +110,8 @@ class JobFormPage extends Component {
                   <option value="HOURLY">Theo giờ</option><option value="DAILY">Theo ngày</option><option value="PROJECT">Theo dự án</option>
                 </select>
               </Field>
-              {input('salaryMin', 'Lương từ (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
-              {input('salaryMax', 'Lương đến (VNĐ) *', { type: 'number', required: true, min: 1, step: 1000, disabled: locked })}
+              {input('salaryMin', 'Lương từ (VNĐ) *', { type: 'number', required: true, min: 1, step: 1, disabled: locked })}
+              {input('salaryMax', 'Lương đến (VNĐ) *', { type: 'number', required: true, min: 1, step: 1, disabled: locked })}
               {input('startDate', 'Ngày bắt đầu *', { type: 'date', required: true, disabled: locked, min: this.isEdit() ? undefined : toInputDate(new Date()) })}
               {input('endDate', 'Ngày kết thúc', { type: 'date', min: form.startDate })}
               {input('schedule', 'Giờ làm cụ thể', { maxLength: 200, placeholder: '18h–22h' })}

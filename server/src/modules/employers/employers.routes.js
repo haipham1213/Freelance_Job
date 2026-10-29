@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import Job from '../../models/Job.js';
 import Application from '../../models/Application.js';
-import { ok, paging } from '../../utils/http.js';
+import { ok, paging, unaccent } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { rawFile, saveUpload } from '../../utils/files.js';
@@ -13,10 +13,14 @@ const employer = [authenticate, authorize('EMPLOYER')];
 
 const profile = async (u) => ({ user: u.toPublic(), company: u.employer?.company || {}, premiumUntil: u.employer?.premiumUntil, isPremium: u.isPremium(), quota: await quotaOf(u) });
 
-// Khi đổi tên/logo công ty thì cập nhật snapshot trong các Job (ít xảy ra)
-const syncSnapshots = (u) => {
+// Khi đổi tên/logo công ty thì cập nhật snapshot trong các Job (ít xảy ra); searchText tính lại vì updateMany bỏ qua pre('save')
+const syncSnapshots = async (u) => {
   const c = u.employer.company;
-  return Job.updateMany({ employerId: u._id }, { companySnapshot: { name: c.name, logoUrl: c.logoUrl, city: c.city } });
+  const companySnapshot = { name: c.name, logoUrl: c.logoUrl, city: c.city };
+  const jobs = await Job.find({ employerId: u._id }).select('title');
+  if (jobs.length) await Job.bulkWrite(jobs.map((j) => ({
+    updateOne: { filter: { _id: j._id }, update: { companySnapshot, searchText: unaccent(`${j.title} ${c.name || ''}`) } },
+  })));
 };
 
 // API-15

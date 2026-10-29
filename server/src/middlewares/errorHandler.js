@@ -4,7 +4,10 @@ export const notFound = (req, res) =>
 
 export const errorHandler = (err, req, res, next) => {
   if (err.code === 11000) {
-    err = { status: 409, code: 'DUPLICATE', message: 'Dữ liệu đã tồn tại', details: err.keyValue };
+    // Không trả lại giá trị trùng (keyValue); đăng ký trùng email cùng lúc vẫn ra đúng thông báo ở ô email
+    err = err.keyValue?.email
+      ? { status: 409, code: 'EMAIL_EXISTS', message: 'Email đã được sử dụng', details: [{ field: 'email', message: 'Email đã được sử dụng' }] }
+      : { status: 409, code: 'DUPLICATE', message: 'Dữ liệu đã tồn tại' };
   } else if (err.name === 'CastError') {
     err = { status: 400, code: 'INVALID_ID', message: 'ID không hợp lệ' };
   } else if (err.name === 'ValidationError') {

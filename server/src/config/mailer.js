@@ -1,5 +1,12 @@
-// Gửi email qua Resend REST API (https://resend.com/docs/api-reference/emails/send-email)
+import nodemailer from 'nodemailer';
+
+// Có SMTP_USER/SMTP_PASS (Gmail + App Password) thì gửi qua Gmail SMTP, gửi được tới mọi địa chỉ khi chưa có tên miền;
+// không có thì dùng Resend REST API (https://resend.com/docs/api-reference/emails/send-email)
+const smtp = process.env.SMTP_USER && process.env.SMTP_PASS
+  && nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS.replace(/\s/g, '') } });
+
 export const sendMail = async ({ to, subject, html }) => {
+  if (smtp) return smtp.sendMail({ from: `UniShift <${process.env.SMTP_USER}>`, to, subject, html });
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -40,6 +47,11 @@ export const sendJobAlert = (to, job, token) => {
   const esc = (s = '') => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const body = `${esc(job.companySnapshot?.name)} vừa đăng tin có ca làm không trùng lịch học của bạn.<br><br><a href="${off}" style="color:#93979f">Hủy nhận thông báo</a>`;
   return trySend(to, `Việc mới: ${job.title}`, layout(esc(job.title), body, link, 'Xem tin tuyển dụng'), link);
+};
+
+export const sendAlertConfirm = (to, token) => {
+  const link = `${process.env.API_URL}/api/v1/job-alerts/confirm?token=${token}`;
+  return trySend(to, 'Xác nhận nhận email việc mới', layout('Xác nhận nhận thông báo việc mới', 'Bấm nút bên dưới để bắt đầu nhận email khi có việc hợp lịch học của bạn. Nếu bạn không đăng ký, hãy bỏ qua email này.', link, 'Xác nhận'), link);
 };
 
 export const sendResetEmail = (to, token) => {

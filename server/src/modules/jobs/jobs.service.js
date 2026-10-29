@@ -17,16 +17,18 @@ export const visibleMatch = async () => ({
   employerId: { $nin: await User.find({ role: 'EMPLOYER', status: 'LOCKED' }).distinct('_id') },
 });
 
-export const isVisible = async (job) => !!job && (await Job.exists({ _id: job._id, ...(await visibleMatch()) }));
+export const isVisible = async (job, session) => !!job && (await Job.exists({ _id: job._id, ...(await visibleMatch()) }).session(session || null));
 
 // BR-15: đếm Job OPEN còn hạn
-export const quotaOf = async (employer) => {
-  const used = await Job.countDocuments({ employerId: employer._id, status: 'OPEN', expiresAt: { $gt: new Date() }, deletedAt: null });
+export const quotaOf = async (employer, session) => {
+  const used = await Job.countDocuments({ employerId: employer._id, status: 'OPEN', expiresAt: { $gt: new Date() }, deletedAt: null }).session(session || null);
   return { used, limit: tierOf(employer).quota };
 };
 
-export const assertQuota = async (employer) => {
-  const q = await quotaOf(employer);
+// Gọi trong transaction: ghi vào User để 2 lần đăng/mở tin song song xung đột, lần chạy lại đếm được tin vừa mở
+export const assertQuota = async (employer, session) => {
+  await User.updateOne({ _id: employer._id }, { $set: { updatedAt: new Date() } }, { session, timestamps: false });
+  const q = await quotaOf(employer, session);
   if (q.used >= q.limit) throw new AppError(403, 'QUOTA_EXCEEDED', `Bạn đã dùng hết ${q.limit} tin đang mở. Đóng bớt tin cũ để đăng thêm.`, q);
 };
 
@@ -51,4 +53,20 @@ export const rejectPending = async (job, reason, byId, session) => {
   );
   for (const a of pending)
     await notify(a.studentId, 'APPLICATION_REJECTED', 'Đơn ứng tuyển bị từ chối', `"${job.title}": ${reason}`, `/student/applications/${a._id}`, session);
+};
+
+// BR-12: số điện thoại công ty chỉ lộ cho sinh viên đã được nhận (qua contact ở chi tiết đơn)
+export const publicCompany = (employer) => {
+  const { phone, ...company } = employer.toObject().employer?.company || {};
+  return company;
+};
+
+// Tin OPEN đã quá hạn: từ chối đơn còn chờ; ai được nhận cũng đã có kết quả thì chuyển COMPLETED (ST-06)
+// ponytail: quét lại mọi tin hết hạn mỗi giờ; thêm cờ đã xử lý nếu số tin hết hạn lên hàng chục nghìn
+export const sweepExpired = async () => {
+  for (const job of await Job.find({ status: 'OPEN', expiresAt: { $lt: new Date() }, deletedAt: null })) {
+    await rejectPending(job, 'Tin đã hết hạn', job.employerId);
+    if (job.acceptedCount > 0 && !(await Application.exists({ jobId: job._id, status: 'ACCEPTED' })))
+      await Job.updateOne({ _id: job._id, status: 'OPEN' }, { status: 'COMPLETED' });
+  }
 };

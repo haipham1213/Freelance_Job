@@ -55,7 +55,7 @@ class JobsPage extends Component {
     const p = this.params();
     // Giữ danh sách cũ (làm mờ) trong lúc tải để trang không giật
     this.setState({ loading: true, form: p });
-    const r = await api.get(`/jobs${qs({ ...p, limit: 12 })}`);
+    const r = await api.get(`/jobs${qs({ ...p, limit: 10 })}`);
     this.setState({ jobs: r.data, meta: r.meta, loading: false });
   };
 
@@ -166,8 +166,8 @@ class JobsPage extends Component {
               <section className="jx-sec">
                 <h2 className="jx-sec-title">Mức lương</h2>
                 <form className="jx-pay" onSubmit={(e) => { e.preventDefault(); this.apply({ salaryMin: form.salaryMin, salaryMax: form.salaryMax }); }}>
-                  <label><span>Từ</span><input className="input" type="number" name="salaryMin" inputMode="numeric" min="0" step="1000" placeholder="20.000" value={form.salaryMin || ''} onChange={this.set('salaryMin')} /></label>
-                  <label><span>Đến</span><input className="input" type="number" name="salaryMax" inputMode="numeric" min="0" step="1000" placeholder="50.000" value={form.salaryMax || ''} onChange={this.set('salaryMax')} /></label>
+                  <label><span>Từ</span><input className="input" type="number" name="salaryMin" inputMode="numeric" min="0" step="1" placeholder="20.000" value={form.salaryMin || ''} onChange={this.set('salaryMin')} /></label>
+                  <label><span>Đến</span><input className="input" type="number" name="salaryMax" inputMode="numeric" min="0" step="1" placeholder="50.000" value={form.salaryMax || ''} onChange={this.set('salaryMax')} /></label>
                   <p className="jx-sec-hint">Đồng, tính theo {form.salaryType ? `mỗi ${SALARY_TYPE[form.salaryType]}` : 'giờ, ngày hoặc dự án của tin'}.</p>
                   <button className="btn btn-sm btn-ghost">Áp dụng</button>
                 </form>

@@ -9,7 +9,7 @@ import AppError from '../../utils/AppError.js';
 import { ok, paging, oid, unaccent, escapeRegex, slotList } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, optionalAuth, authorize, requireVerified } from '../../middlewares/auth.js';
-import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending } from './jobs.service.js';
+import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending, publicCompany } from './jobs.service.js';
 
 import { notifyAlerts } from '../alerts/alerts.routes.js';
 const router = Router();
@@ -104,7 +104,7 @@ router.get('/jobs/:id', optionalAuth, async (req, res) => {
   ]);
   ok(res, {
     job: { ...job.toJSON(), isFeatured: job.featuredUntil > new Date(), remainingSlots: job.slots - job.acceptedCount },
-    employer: { _id: employer._id, fullName: employer.fullName, company: employer.employer?.company, ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, isPremium: employer.isPremium() },
+    employer: { _id: employer._id, fullName: employer.fullName, company: publicCompany(employer), ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, isPremium: employer.isPremium() },
     category,
     myApplication: application && { _id: application._id, status: application.status },
   });
@@ -115,14 +115,17 @@ router.post('/jobs', authenticate, authorize('EMPLOYER'), requireVerified, valid
   assertCompany(req.user);
   if (req.body.startDate < today()) throw new AppError(400, 'VALIDATION_ERROR', 'Ngày bắt đầu phải từ hôm nay trở đi');
   await assertCategory(req.body.categoryId);
-  await assertQuota(req.user);
   const c = req.user.employer.company;
-  const job = await Job.create({
-    ...req.body,
-    employerId: req.user._id,
-    companySnapshot: { name: c.name, logoUrl: c.logoUrl, city: c.city },
-    expiresAt: expiryFor(req.user),
-    featuredUntil: req.user.isPremium() ? req.user.employer.premiumUntil : undefined,
+  let job;
+  await mongoose.connection.transaction(async (session) => {
+    await assertQuota(req.user, session);
+    [job] = await Job.create([{
+      ...req.body,
+      employerId: req.user._id,
+      companySnapshot: { name: c.name, logoUrl: c.logoUrl, city: c.city },
+      expiresAt: expiryFor(req.user),
+      featuredUntil: req.user.isPremium() ? req.user.employer.premiumUntil : undefined,
+    }], { session });
   });
   notifyAlerts(job).catch((e) => console.warn(`[alerts] ${e.message}`));
   ok(res, { job }, null, 201);
@@ -130,23 +133,32 @@ router.post('/jobs', authenticate, authorize('EMPLOYER'), requireVerified, valid
 
 // API-23: FR-JOB-02, BR-18 khóa trường khi đã nhận người
 router.put('/jobs/:id', authenticate, authorize('EMPLOYER'), validate(jobBody), async (req, res) => {
-  const job = await findOwnJob(oid(req.params.id), req.user);
-  if (job.status === 'HIDDEN') throw new AppError(409, 'JOB_HIDDEN', 'Tin đã bị quản trị viên ẩn, không sửa được');
-  await assertCategory(req.body.categoryId);
+  const { _id } = await findOwnJob(oid(req.params.id), req.user);
   const b = req.body;
-  const day = (d) => new Date(d).toISOString().slice(0, 10);
-  if (day(b.startDate) === day(job.startDate)) b.startDate = job.startDate; // form gửi ngày, DB lưu cả giờ
-  if (job.acceptedCount > 0) {
-    const locked = ['salaryMin', 'salaryMax', 'salaryType', 'city', 'district', 'address']
-      .filter((k) => String(b[k] ?? '') !== String(job[k] ?? ''));
-    if (+b.startDate !== +job.startDate) locked.push('startDate');
-    if (locked.length) throw new AppError(409, 'FIELD_LOCKED', 'Tin đã nhận người: không được sửa lương, địa điểm, ngày bắt đầu', locked);
-    if (b.slots < job.acceptedCount) throw new AppError(409, 'FIELD_LOCKED', `Số chỗ không được nhỏ hơn số người đã nhận (${job.acceptedCount})`);
-  } else if (+b.startDate !== +job.startDate && b.startDate < today()) {
-    throw new AppError(400, 'VALIDATION_ERROR', 'Ngày bắt đầu phải từ hôm nay trở đi');
-  }
-  job.set(b);
+  let job;
+  // Đọc lại tin trong transaction: bấm Nhận cùng lúc cũng ghi vào Job nên gây xung đột, lần chạy lại thấy acceptedCount mới
   await mongoose.connection.transaction(async (session) => {
+    job = await Job.findById(_id).session(session);
+    if (job.status === 'HIDDEN') throw new AppError(409, 'JOB_HIDDEN', 'Tin đã bị quản trị viên ẩn, không sửa được');
+    if (job.status === 'COMPLETED') throw new AppError(409, 'INVALID_STATUS', 'Tin đã hoàn thành, không sửa được');
+    // Danh mục bị ẩn sau khi đăng vẫn giữ được, chỉ chặn chọn danh mục ẩn mới
+    if (String(b.categoryId) !== String(job.categoryId)) await assertCategory(b.categoryId);
+    const day = (d) => new Date(d).toISOString().slice(0, 10);
+    if (day(b.startDate) === day(job.startDate)) b.startDate = job.startDate; // form gửi ngày, DB lưu cả giờ
+    if (job.acceptedCount > 0) {
+      const locked = ['salaryMin', 'salaryMax', 'salaryType', 'city', 'district', 'address']
+        .filter((k) => String(b[k] ?? '') !== String(job[k] ?? ''));
+      if (+b.startDate !== +job.startDate) locked.push('startDate');
+      if (locked.length) throw new AppError(409, 'FIELD_LOCKED', 'Tin đã nhận người: không được sửa lương, địa điểm, ngày bắt đầu', locked);
+      if (b.slots < job.acceptedCount) throw new AppError(409, 'FIELD_LOCKED', `Số chỗ không được nhỏ hơn số người đã nhận (${job.acceptedCount})`);
+    } else if (+b.startDate !== +job.startDate && b.startDate < today()) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'Ngày bắt đầu phải từ hôm nay trở đi');
+    }
+    // Tin đủ người được tăng số chỗ → tuyển tiếp (tính vào hạn mức tin đang mở)
+    const reopen = job.status === 'FILLED' && b.slots > job.acceptedCount && job.expiresAt > new Date();
+    if (reopen) await assertQuota(req.user, session);
+    job.set(b);
+    if (reopen) job.status = 'OPEN';
     // BR-27: số chỗ vừa giảm bằng số người đã nhận → đủ người
     const full = job.status === 'OPEN' && job.acceptedCount > 0 && job.slots <= job.acceptedCount;
     if (full) job.status = 'FILLED';
@@ -161,7 +173,9 @@ router.patch('/jobs/:id/close', authenticate, authorize('EMPLOYER'), async (req,
   const job = await findOwnJob(oid(req.params.id), req.user);
   if (job.status !== 'OPEN') throw new AppError(409, 'INVALID_STATUS', 'Chỉ đóng được tin đang tuyển');
   await mongoose.connection.transaction(async (session) => {
-    job.status = 'CLOSED';
+    // ST-06: mọi người đã nhận đều đã được xác nhận kết quả → đóng thẳng thành COMPLETED
+    const done = job.acceptedCount > 0 && !(await Application.exists({ jobId: job._id, status: 'ACCEPTED' }).session(session));
+    job.status = done ? 'COMPLETED' : 'CLOSED';
     await job.save({ session });
     await rejectPending(job, 'Nhà tuyển dụng đã đóng tin', req.user._id, session);
   });
@@ -174,9 +188,11 @@ router.patch('/jobs/:id/reopen', authenticate, authorize('EMPLOYER'), async (req
   if (job.status !== 'CLOSED') throw new AppError(409, 'INVALID_STATUS', 'Chỉ mở lại được tin đã đóng');
   if (job.expiresAt < new Date()) throw new AppError(409, 'JOB_EXPIRED', 'Tin đã hết hạn, hãy đăng tin mới');
   if (job.acceptedCount >= job.slots) throw new AppError(409, 'JOB_FULL', 'Tin đã đủ số lượng');
-  await assertQuota(req.user);
-  job.status = 'OPEN';
-  await job.save();
+  await mongoose.connection.transaction(async (session) => {
+    await assertQuota(req.user, session);
+    job.status = 'OPEN';
+    await job.save({ session });
+  });
   ok(res, { job });
 });
 
