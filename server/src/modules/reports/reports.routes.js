@@ -21,7 +21,7 @@ router.post('/reports', authenticate, authorize('STUDENT', 'EMPLOYER'), requireV
   })),
   async (req, res) => {
     const { targetType, targetId } = req.body;
-    const target = targetType === 'JOB' ? await Job.findById(targetId) : await User.findById(targetId);
+    const target = targetType === 'JOB' ? await Job.findOne({ _id: targetId, deletedAt: null }) : await User.findOne({ _id: targetId, role: { $ne: 'ADMIN' } });
     if (!target) throw new AppError(404, 'NOT_FOUND', 'Đối tượng báo cáo không tồn tại');
     const ownerId = targetType === 'JOB' ? target.employerId : target._id;
     if (ownerId.equals(req.user._id)) throw new AppError(400, 'SELF_REPORT', 'Không thể tự báo cáo chính mình');

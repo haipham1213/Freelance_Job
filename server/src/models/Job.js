@@ -40,7 +40,6 @@ const jobSchema = new Schema(
 
 jobSchema.index({ status: 1, expiresAt: 1, categoryId: 1, city: 1 });
 jobSchema.index({ employerId: 1, status: 1 });
-jobSchema.index({ featuredUntil: -1, createdAt: -1 });
 
 jobSchema.pre('save', function () {
   this.searchText = unaccent(`${this.title} ${this.companySnapshot?.name || ''}`);

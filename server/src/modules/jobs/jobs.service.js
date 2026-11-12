@@ -42,6 +42,17 @@ export const findOwnJob = async (id, user) => {
   return job;
 };
 
+// ST-06 / T-01: tin FILLED / CLOSED / hết hạn đã nhận người và không còn đơn ACCEPTED → COMPLETED. Trả true nếu vừa chuyển
+export const completeIfDone = async (jobId, session) => {
+  if (await Application.exists({ jobId, status: 'ACCEPTED' }).session(session || null)) return false;
+  const r = await Job.updateOne(
+    { _id: jobId, acceptedCount: { $gt: 0 }, $or: [{ status: { $in: ['FILLED', 'CLOSED'] } }, { status: 'OPEN', expiresAt: { $lt: new Date() } }] },
+    { status: 'COMPLETED' },
+    { session },
+  );
+  return r.modifiedCount > 0;
+};
+
 // BR-28: đóng/ẩn Job → đơn PENDING thành REJECTED, đơn ACCEPTED giữ nguyên
 export const rejectPending = async (job, reason, byId, session) => {
   const pending = await Application.find({ jobId: job._id, status: 'PENDING' }).session(session || null);

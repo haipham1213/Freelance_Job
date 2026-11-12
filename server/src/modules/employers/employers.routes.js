@@ -8,7 +8,7 @@ import AppError from '../../utils/AppError.js';
 import { ok, paging, oid, unaccent } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
-import { rawFile, saveUpload } from '../../utils/files.js';
+import { rawFile, saveUpload, removeUpload } from '../../utils/files.js';
 import { quotaOf, TIERS, visibleMatch, publicCompany } from '../jobs/jobs.service.js';
 
 const router = Router();
@@ -55,9 +55,11 @@ router.put('/employers/me', ...employer,
 // API-17: logo JPG/PNG ≤ 2 MB
 router.post('/employers/me/logo', ...employer, rawFile(2), async (req, res) => {
   const logoUrl = await saveUpload(req.body, 'logos', ['jpg', 'png']);
+  const old = req.user.employer?.company?.logoUrl;
   req.user.set('employer.company.logoUrl', logoUrl);
   await req.user.save();
   await syncSnapshots(req.user);
+  await removeUpload(old);
   ok(res, { logoUrl });
 });
 

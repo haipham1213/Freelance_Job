@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Check, CircleAlert, Clock, X } from 'lucide-react';
+import { Check, CircleAlert, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -98,7 +98,7 @@ class PaymentResult extends Component {
     if (!payment) return <Spinner />;
     const s = payment.displayStatus;
     const waiting = s === 'PENDING' && this.props.searchParams.get('status') === 'success';
-    const view = { SUCCESS: [Check, 'ok', 'Thanh toán thành công'], FAILED: [X, 'bad', 'Thanh toán không thành công'], EXPIRED: [CircleAlert, '', 'Giao dịch đã hết hạn'], PENDING: [Clock, '', waiting ? 'Đang xác nhận thanh toán' : 'Chờ thanh toán'] }[s];
+    const view = { SUCCESS: [Check, 'ok', 'Thanh toán thành công'], EXPIRED: [CircleAlert, '', 'Giao dịch đã hết hạn'], PENDING: [Clock, '', waiting ? 'Đang xác nhận thanh toán' : 'Chờ thanh toán'] }[s];
     const Icon = view[0];
     return (
       <div className="container page center stack-lg" style={{ maxWidth: 640 }}>

@@ -14,7 +14,7 @@ import { sendVerifyEmail, sendResetEmail } from '../../config/mailer.js';
 const router = Router();
 
 // NFR-07
-const limiter = rateLimit({ windowMs: 60_000, limit: Number(process.env.AUTH_RATE_LIMIT) || 20, standardHeaders: true, legacyHeaders: false,
+const limiter = rateLimit({ windowMs: 60_000, limit: Number(process.env.AUTH_RATE_LIMIT) || 10, standardHeaders: true, legacyHeaders: false, skip: () => process.env.NODE_ENV === 'test',
   handler: (req, res, next) => next(new AppError(429, 'TOO_MANY_REQUESTS', 'Bạn thao tác quá nhanh, thử lại sau 1 phút')) });
 
 // US-05: gửi lại link xác thực tối đa 3 lần/giờ cho mỗi email
@@ -27,7 +27,10 @@ const password = z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự').max(
 const email = z.string().trim().toLowerCase().pipe(z.email('Email không hợp lệ'));
 
 const COOKIE = 'refreshToken';
-const cookieOpts = { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/api/v1/auth' };
+// TB-08: mặc định frontend proxy /api về cùng domain (rewrite) nên 'lax' là đủ. Nếu frontend gọi thẳng API khác site
+// (vd *.vercel.app ↔ *.onrender.com) thì đặt COOKIE_SAMESITE=none — bắt buộc HTTPS
+const sameSite = process.env.COOKIE_SAMESITE || 'lax';
+const cookieOpts = { httpOnly: true, sameSite, secure: sameSite === 'none' || process.env.NODE_ENV === 'production', path: '/api/v1/auth' };
 
 const issueTokens = async (res, user) => {
   const accessToken = jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
@@ -74,7 +77,7 @@ router.post('/register', limiter,
   });
 
 // API-02
-router.post('/verify-email', async (req, res) => {
+router.post('/verify-email', validate(z.object({ token: z.string() })), async (req, res) => {
   const t = await consumeToken(req.body.token, 'VERIFY_EMAIL');
   await User.updateOne({ _id: t.userId }, { emailVerified: true });
   ok(res, { message: 'Xác thực email thành công' });
@@ -142,7 +145,7 @@ router.post('/forgot-password', limiter, validate(z.object({ email })), async (r
 // API-08: BR-08 thu hồi mọi refresh token
 router.post('/reset-password', validate(z.object({ token: z.string(), newPassword: password })), async (req, res) => {
   const t = await consumeToken(req.body.token, 'RESET_PASSWORD');
-  await User.updateOne({ _id: t.userId }, { passwordHash: await bcrypt.hash(req.body.newPassword, 10), passwordChangedAt: new Date() });
+  await User.updateOne({ _id: t.userId }, { passwordHash: await bcrypt.hash(req.body.newPassword, 10), passwordChangedAt: new Date(), emailVerified: true });
   await Token.updateMany({ userId: t.userId, type: 'REFRESH', revokedAt: null }, { revokedAt: new Date() });
   ok(res, { message: 'Đặt lại mật khẩu thành công' });
 });
@@ -153,8 +156,12 @@ router.put('/change-password', authenticate, validate(z.object({ currentPassword
   if (!(await bcrypt.compare(req.body.currentPassword, user.passwordHash)))
     throw new AppError(400, 'WRONG_PASSWORD', 'Mật khẩu hiện tại không đúng', [{ field: 'currentPassword', message: 'Mật khẩu hiện tại không đúng' }]);
   user.passwordHash = await bcrypt.hash(req.body.newPassword, 10);
+  user.passwordChangedAt = new Date();
   await user.save();
-  ok(res, { message: 'Đổi mật khẩu thành công' });
+  // Như BR-08: thu hồi mọi phiên khác, cấp phiên mới cho thiết bị đang dùng
+  await Token.updateMany({ userId: user._id, type: 'REFRESH', revokedAt: null }, { revokedAt: new Date() });
+  const { accessToken } = await issueTokens(res, user);
+  ok(res, { message: 'Đổi mật khẩu thành công', accessToken });
 });
 
 // API-10

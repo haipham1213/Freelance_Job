@@ -30,7 +30,7 @@ export const REPORT_REASONS = {
   SCAM: 'Lừa đảo / thu phí', WRONG_INFO: 'Thông tin sai', HARASSMENT: 'Quấy rối', UNPAID_OR_ABSENT: 'Không trả lương / bỏ việc', OTHER: 'Khác',
 };
 export const PAY_STATUS = {
-  PENDING: ['Đang xử lý', 'chip-yellow'], SUCCESS: ['Thành công', 'chip-green'], FAILED: ['Thất bại', 'chip-red'], EXPIRED: ['Hết hạn', ''],
+  PENDING: ['Đang xử lý', 'chip-yellow'], SUCCESS: ['Thành công', 'chip-green'], EXPIRED: ['Hết hạn', ''],
 };
 export const ROLE = { STUDENT: 'Sinh viên', EMPLOYER: 'Nhà tuyển dụng', ADMIN: 'Quản trị viên' };
 export const jobStatusOf = (j) => (j.status === 'OPEN' && new Date(j.expiresAt) < new Date() ? 'EXPIRED' : j.status);

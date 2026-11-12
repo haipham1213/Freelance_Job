@@ -12,6 +12,8 @@ export const errorHandler = (err, req, res, next) => {
     err = { status: 400, code: 'INVALID_ID', message: 'ID không hợp lệ' };
   } else if (err.name === 'ValidationError') {
     err = { status: 400, code: 'VALIDATION_ERROR', message: Object.values(err.errors)[0]?.message };
+  } else if (err.type === 'entity.parse.failed') {
+    err = { status: 400, code: 'INVALID_JSON', message: 'Dữ liệu gửi lên không đúng định dạng JSON' };
   } else if (err.type === 'entity.too.large') {
     err = { status: 413, code: 'FILE_TOO_LARGE', message: 'File vượt quá dung lượng cho phép' };
   }

@@ -9,7 +9,7 @@ const paymentSchema = new Schema(
     planSnapshot: { code: String, name: String, durationDays: Number },
     amount: { type: Number, required: true },
     txnRef: { type: String, required: true, unique: true },
-    status: { type: String, enum: ['PENDING', 'SUCCESS', 'FAILED', 'EXPIRED'], default: 'PENDING' },
+    status: { type: String, enum: ['PENDING', 'SUCCESS'], default: 'PENDING' },
     expiresAt: { type: Date, required: true },
     gatewayRef: String, // SePay: id giao dịch; gatewayCode: mã tham chiếu ngân hàng
     gatewayCode: String,

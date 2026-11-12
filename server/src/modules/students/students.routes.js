@@ -7,7 +7,7 @@ import AppError from '../../utils/AppError.js';
 import { ok, paging, oid, slotList } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
-import { rawFile, saveUpload } from '../../utils/files.js';
+import { rawFile, saveUpload, removeUpload } from '../../utils/files.js';
 import { visibleMatch } from '../jobs/jobs.service.js';
 
 const router = Router();
@@ -58,8 +58,11 @@ router.put('/students/me/schedule', ...student,
 // API-13: BR-10 PDF ≤ 5 MB; đơn cũ giữ link CV cũ (BR-13) vì file cũ không bị xóa
 router.post('/students/me/cv', ...student, rawFile(5), async (req, res) => {
   const url = await saveUpload(req.body, 'cv', ['pdf']);
+  const old = req.user.student.cv?.url;
   req.user.student.cv = { url, fileName: String(req.query.fileName || 'CV.pdf').slice(0, 120), uploadedAt: new Date() };
   await req.user.save();
+  // BR-13: CV cũ đã gắn vào đơn nào thì giữ, chưa dùng thì xóa
+  if (old && !(await Application.exists({ cvUrl: old }))) await removeUpload(old);
   ok(res, { cv: req.user.student.cv, completion: completion(req.user) });
 });
 
@@ -73,6 +76,7 @@ router.get('/students/:id', authenticate, authorize('EMPLOYER', 'ADMIN'), async 
   const p = u.toPublic();
   // BR-12: liên hệ chỉ lộ qua chi tiết đơn khi đã ACCEPTED; trạng thái tài khoản là việc nội bộ
   for (const k of ['email', 'phone', 'status', 'lockReason', 'lastLoginAt', 'emailVerified', 'passwordChangedAt']) delete p[k];
+  if (p.student) { delete p.student.savedJobIds; delete p.student.busySlots; } // T-09: dữ liệu riêng của SV
   ok(res, { profile: p });
 });
 

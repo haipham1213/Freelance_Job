@@ -21,6 +21,13 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+// NFR-20: log mỗi request (bỏ query string để không ghi token/chữ ký vào log)
+if (process.env.NODE_ENV !== 'test')
+  app.use((req, res, next) => {
+    const t = Date.now();
+    res.on('finish', () => console.log(`${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Date.now() - t}ms`));
+    next();
+  });
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 

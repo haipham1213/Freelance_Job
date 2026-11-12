@@ -6,15 +6,14 @@ import User from '../../models/User.js';
 import Category from '../../models/Category.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid, unaccent, escapeRegex, slotList } from '../../utils/http.js';
+import { ok, paging, oid, unaccent, escapeRegex, slotList, vnDay } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, optionalAuth, authorize, requireVerified } from '../../middlewares/auth.js';
-import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending, publicCompany } from './jobs.service.js';
+import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending, publicCompany, completeIfDone } from './jobs.service.js';
 
 import { notifyAlerts } from '../alerts/alerts.routes.js';
 const router = Router();
 
-const today = () => new Date(new Date().toDateString());
 
 // BR-14
 const jobBody = z.object({
@@ -52,7 +51,7 @@ router.get('/jobs', async (req, res) => {
   const { page, limit, skip } = paging(req.query);
   const q = req.query;
   const match = await visibleMatch();
-  if (q.q) match.searchText = { $regex: escapeRegex(unaccent(q.q)) }; // ponytail: regex quét toàn bộ, đủ cho ~1.000 Job; đổi sang text index/Atlas Search khi dữ liệu lớn
+  if (q.q) match.searchText = { $regex: escapeRegex(unaccent(String(q.q))) }; // ponytail: regex quét toàn bộ, đủ cho ~1.000 Job; đổi sang text index/Atlas Search khi dữ liệu lớn
   if (q.categoryId) match.categoryId = oid(q.categoryId);
   if (q.city) match.city = q.city;
   if (q.district) match.district = q.district;
@@ -114,7 +113,7 @@ router.get('/jobs/:id', optionalAuth, async (req, res) => {
 // API-22: FR-JOB-01
 router.post('/jobs', authenticate, authorize('EMPLOYER'), requireVerified, validate(jobBody), async (req, res) => {
   assertCompany(req.user);
-  if (req.body.startDate < today()) throw new AppError(400, 'VALIDATION_ERROR', 'Ngày bắt đầu phải từ hôm nay trở đi');
+  if (vnDay(req.body.startDate) < vnDay()) throw new AppError(400, 'VALIDATION_ERROR', 'Ngày bắt đầu phải từ hôm nay trở đi');
   await assertCategory(req.body.categoryId);
   const c = req.user.employer.company;
   let job;
@@ -152,7 +151,7 @@ router.put('/jobs/:id', authenticate, authorize('EMPLOYER'), validate(jobBody), 
       if (+b.startDate !== +job.startDate) locked.push('startDate');
       if (locked.length) throw new AppError(409, 'FIELD_LOCKED', 'Tin đã nhận người: không được sửa lương, địa điểm, ngày bắt đầu', locked);
       if (b.slots < job.acceptedCount) throw new AppError(409, 'FIELD_LOCKED', `Số chỗ không được nhỏ hơn số người đã nhận (${job.acceptedCount})`);
-    } else if (+b.startDate !== +job.startDate && b.startDate < today()) {
+    } else if (+b.startDate !== +job.startDate && vnDay(b.startDate) < vnDay()) {
       throw new AppError(400, 'VALIDATION_ERROR', 'Ngày bắt đầu phải từ hôm nay trở đi');
     }
     // Tin đủ người được tăng số chỗ → tuyển tiếp (tính vào hạn mức tin đang mở)
@@ -165,20 +164,24 @@ router.put('/jobs/:id', authenticate, authorize('EMPLOYER'), validate(jobBody), 
     if (full) job.status = 'FILLED';
     await job.save({ session });
     if (full) await rejectPending(job, 'Đã đủ số lượng', req.user._id, session);
+    // T-01(a): giảm số chỗ bằng số đã nhận khi mọi đơn đã có kết quả → hoàn thành luôn
+    if (full && (await completeIfDone(job._id, session))) job.status = 'COMPLETED';
   });
   ok(res, { job });
 });
 
 // API-24: FR-JOB-03
 router.patch('/jobs/:id/close', authenticate, authorize('EMPLOYER'), async (req, res) => {
-  const job = await findOwnJob(oid(req.params.id), req.user);
-  if (job.status !== 'OPEN') throw new AppError(409, 'INVALID_STATUS', 'Chỉ đóng được tin đang tuyển');
+  let job = await findOwnJob(oid(req.params.id), req.user);
   await mongoose.connection.transaction(async (session) => {
-    // ST-06: mọi người đã nhận đều đã được xác nhận kết quả → đóng thẳng thành COMPLETED
-    const done = job.acceptedCount > 0 && !(await Application.exists({ jobId: job._id, status: 'ACCEPTED' }).session(session));
-    job.status = done ? 'COMPLETED' : 'CLOSED';
+    // T-03: đọc lại trong transaction — nhận người cuối cùng lúc (ghi FILLED vào Job) sẽ xung đột, lần chạy lại thấy trạng thái mới
+    job = await Job.findById(job._id).session(session);
+    if (job.status !== 'OPEN') throw new AppError(409, 'INVALID_STATUS', 'Chỉ đóng được tin đang tuyển');
+    job.status = 'CLOSED';
     await job.save({ session });
     await rejectPending(job, 'Nhà tuyển dụng đã đóng tin', req.user._id, session);
+    // ST-06: mọi người đã nhận đều đã được xác nhận kết quả → COMPLETED
+    if (await completeIfDone(job._id, session)) job.status = 'COMPLETED';
   });
   ok(res, { job });
 });
@@ -200,9 +203,9 @@ router.patch('/jobs/:id/reopen', authenticate, authorize('EMPLOYER'), async (req
 // API-26: BR-19 chỉ xóa mềm Job chưa có đơn
 router.delete('/jobs/:id', authenticate, authorize('EMPLOYER'), async (req, res) => {
   const job = await findOwnJob(oid(req.params.id), req.user);
-  if (await Application.exists({ jobId: job._id })) throw new AppError(409, 'JOB_HAS_APPLICATIONS', 'Tin đã có người ứng tuyển, chỉ được đóng');
-  job.deletedAt = new Date();
-  await job.save();
+  // T-02: điều kiện chưa có đơn nằm ngay trong lệnh ghi, tránh ứng tuyển chen vào giữa
+  const r = await Job.updateOne({ _id: job._id, applicationCount: 0, deletedAt: null }, { deletedAt: new Date() });
+  if (!r.modifiedCount) throw new AppError(409, 'JOB_HAS_APPLICATIONS', 'Tin đã có người ứng tuyển, chỉ được đóng');
   res.status(204).end();
 });
 

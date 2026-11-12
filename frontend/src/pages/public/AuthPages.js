@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { ArrowLeft, Check, GraduationCap, Store } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
-import { api, fieldErrors } from '../../api';
+import { api, fieldErrors, setAccessToken } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Field, Alert, Spinner } from '../../components/ui';
 import { homeOf } from '../../utils/format';
@@ -238,7 +238,9 @@ class ChangePassword extends FormPage {
   submit = (e) => this.run(e, async () => {
     const { currentPassword, newPassword, confirm } = this.state.form;
     if (newPassword !== confirm) throw new Error('Mật khẩu xác nhận không khớp');
-    await api.put('/auth/change-password', { currentPassword, newPassword });
+    // Server thu hồi mọi phiên khác và cấp token mới cho thiết bị này
+    const { data } = await api.put('/auth/change-password', { currentPassword, newPassword });
+    setAccessToken(data.accessToken);
     this.setState({ done: 'Đổi mật khẩu thành công', form: {} });
   });
   render() {

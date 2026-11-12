@@ -12,15 +12,15 @@ import Violation from '../../models/Violation.js';
 import Application from '../../models/Application.js';
 import Category from '../../models/Category.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid, escapeRegex, slugify, DAY } from '../../utils/http.js';
+import { ok, paging, oid, escapeRegex, slugify, DAY, VN_OFFSET, vnDay } from '../../utils/http.js';
 import AuditLog from '../../models/AuditLog.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { notify } from '../../utils/notify.js';
 import { recomputeRating } from '../../utils/rating.js';
-import { rawFile, saveUpload } from '../../utils/files.js';
-import { quotaOf, rejectPending, visibleMatch } from '../jobs/jobs.service.js';
-import { extendPremium } from '../payments/payments.service.js';
+import { rawFile, saveUpload, removeUpload } from '../../utils/files.js';
+import { quotaOf, rejectPending, visibleMatch, completeIfDone } from '../jobs/jobs.service.js';
+import { extendPremium, settle } from '../payments/payments.service.js';
 
 const router = Router();
 router.use('/admin', authenticate, authorize('ADMIN'));
@@ -37,13 +37,19 @@ const list = async (Model, filter, q, sort = '-createdAt', populate) => {
 
 // API-51: 6 chỉ số FR-ADM-01
 router.get('/admin/dashboard', async (req, res) => {
-  const since30 = new Date(Date.now() - 30 * DAY);
-  const since12m = new Date(new Date().getFullYear(), new Date().getMonth() - 11, 1);
+  // API-51: ?from=YYYY-MM-DD&to=YYYY-MM-DD (giờ VN) cho số đơn/tỉ lệ nhận; mặc định 30 ngày gần nhất
+  const isDay = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s || '') && !Number.isNaN(Date.parse(s));
+  const { from, to } = req.query;
+  const range = { $gte: isDay(from) ? new Date(Date.parse(from) - VN_OFFSET) : new Date(Date.now() - 30 * DAY), ...(isDay(to) && { $lt: new Date(Date.parse(to) + DAY - VN_OFFSET) }) };
+  // T-04: 12 tháng tính theo lịch Việt Nam, khớp với $dateToString timezone +07:00
+  const [y, m] = vnDay().split('-').map(Number);
+  const monthStart = (i) => new Date(Date.UTC(y, m - 12 + i, 1));
+  const since12m = new Date(+monthStart(0) - VN_OFFSET);
   const [users, openJobs, apps30, accepted30, openReports, revenue] = await Promise.all([
     User.aggregate([{ $group: { _id: '$role', n: { $sum: 1 } } }]),
     Job.countDocuments(await visibleMatch()),
-    Application.countDocuments({ createdAt: { $gte: since30 } }),
-    Application.countDocuments({ createdAt: { $gte: since30 }, status: { $in: ['ACCEPTED', 'COMPLETED', 'NOT_COMPLETED'] } }),
+    Application.countDocuments({ createdAt: range }),
+    Application.countDocuments({ createdAt: range, status: { $in: ['ACCEPTED', 'COMPLETED', 'NOT_COMPLETED'] } }),
     Report.countDocuments({ status: 'OPEN' }),
     Payment.aggregate([
       { $match: { status: 'SUCCESS', paidAt: { $gte: since12m } } },
@@ -52,8 +58,7 @@ router.get('/admin/dashboard', async (req, res) => {
     ]),
   ]);
   const months = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(since12m.getFullYear(), since12m.getMonth() + i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const key = monthStart(i).toISOString().slice(0, 7);
     const r = revenue.find((x) => x._id === key);
     return { month: key, total: r?.total || 0, count: r?.count || 0 };
   });
@@ -86,7 +91,18 @@ const lockUser = async (u, why, adminId, session) => {
   if (u.employer?.premiumUntil) u.set('employer.premiumUntil', null);
   await u.save({ session });
   await Token.updateMany({ userId: u._id, type: 'REFRESH', revokedAt: null }, { revokedAt: new Date() }, { session });
+  if (u.role === 'STUDENT') {
+    // Employer không nhận được ứng viên đã bị khóa
+    const pending = await Application.find({ studentId: u._id, status: 'PENDING' }).session(session);
+    await Application.updateMany({ _id: { $in: pending.map((a) => a._id) } },
+      { status: 'REJECTED', rejectReason: 'Tài khoản ứng viên đã bị khóa', $push: { statusHistory: { status: 'REJECTED', at: new Date(), by: adminId } } }, { session });
+    return;
+  }
   if (u.role !== 'EMPLOYER') return;
+  await Job.updateMany({ employerId: u._id }, { $unset: { featuredUntil: 1 } }, { session });
+  // Sinh viên đã được nhận cần biết để tự cân nhắc (thường khóa vì lừa đảo — V3)
+  for (const a of await Application.find({ employerId: u._id, status: 'ACCEPTED' }).session(session))
+    await notify(a.studentId, 'VIOLATION', 'Nhà tuyển dụng đã bị khóa', `"${a.jobSnapshot?.title || 'Công việc'}": nhà tuyển dụng đã bị khóa tài khoản do vi phạm. Hãy cẩn trọng trước khi tiếp tục đi làm.`, `/student/applications/${a._id}`, session);
   for (const job of await Job.find({ employerId: u._id, status: 'OPEN', deletedAt: null }).session(session)) {
     job.status = 'CLOSED';
     await job.save({ session });
@@ -114,8 +130,8 @@ router.patch('/admin/users/:id/unlock', async (req, res) => {
 
 // API-55
 router.get('/admin/jobs', async (req, res) => {
-  const { q, status } = req.query;
-  const filter = { deletedAt: null, ...(status && { status }), ...(q && { title: { $regex: escapeRegex(q), $options: 'i' } }) };
+  const { q, status, employerId } = req.query;
+  const filter = { deletedAt: null, ...(status && { status }), ...(employerId && { employerId: oid(employerId) }), ...(q && { title: { $regex: escapeRegex(q), $options: 'i' } }) };
   const [items, meta] = await list(Job, filter, req.query);
   ok(res, items, meta);
 });
@@ -133,7 +149,10 @@ const hideJob = async (job, why, adminId, session) => {
 router.patch('/admin/jobs/:id/hide', validate(reason), async (req, res) => {
   const job = await Job.findById(oid(req.params.id));
   if (!job) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy tin');
-  await mongoose.connection.transaction((session) => hideJob(job, req.body.reason, req.user._id, session));
+  await mongoose.connection.transaction(async (session) => {
+    await hideJob(job, req.body.reason, req.user._id, session);
+    await notify(job.employerId, 'VIOLATION', 'Tin tuyển dụng bị ẩn', `"${job.title}": ${req.body.reason}`, '/employer/jobs', session);
+  });
   await audit(req, 'JOB_HIDE', 'JOB', job._id, { reason: req.body.reason });
   ok(res, job);
 });
@@ -150,6 +169,8 @@ router.patch('/admin/jobs/:id/unhide', async (req, res) => {
   }
   job.hiddenReason = undefined;
   await job.save();
+  // T-01(b): kết quả đã được xác nhận hết trong lúc tin bị ẩn
+  if (await completeIfDone(job._id)) job.status = 'COMPLETED';
   await audit(req, 'JOB_UNHIDE', 'JOB', job._id);
   ok(res, job);
 });
@@ -173,6 +194,7 @@ const dupCategory = (e) => {
 // API-58
 router.post('/admin/categories', validate(z.object({ name: categoryName })), async (req, res) => {
   const c = await Category.create({ name: req.body.name, slug: slugify(req.body.name) }).catch(dupCategory);
+  await audit(req, 'CATEGORY_CREATE', 'CATEGORY', c._id, req.body);
   ok(res, c, null, 201);
 });
 
@@ -181,13 +203,17 @@ router.put('/admin/categories/:id', validate(z.object({ name: categoryName.optio
   const update = { ...req.body, ...(req.body.name && { slug: slugify(req.body.name) }) };
   const c = await Category.findByIdAndUpdate(oid(req.params.id), update, { returnDocument: 'after', runValidators: true }).catch(dupCategory);
   if (!c) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy danh mục');
+  await audit(req, 'CATEGORY_UPDATE', 'CATEGORY', c._id, req.body);
   ok(res, c);
 });
 
 router.post('/admin/categories/:id/image', rawFile(2), async (req, res) => {
   const imageUrl = await saveUpload(req.body, 'categories', ['jpg', 'png']);
-  const c = await Category.findByIdAndUpdate(oid(req.params.id), { imageUrl }, { returnDocument: 'after' });
-  ok(res, c);
+  const old = await Category.findByIdAndUpdate(oid(req.params.id), { imageUrl });
+  if (!old) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy danh mục');
+  await removeUpload(old.imageUrl);
+  await audit(req, 'CATEGORY_IMAGE', 'CATEGORY', old._id, { imageUrl });
+  ok(res, { ...old.toObject(), imageUrl });
 });
 
 // API-60: kèm thông tin đối tượng bị báo cáo
@@ -202,7 +228,14 @@ router.get('/admin/reports', async (req, res) => {
     User.find({ _id: { $in: userIds } }).select('fullName email role status'),
   ]);
   const byId = Object.fromEntries([...jobs, ...users].map((x) => [x._id, x]));
-  ok(res, items.map((r) => ({ ...r.toObject(), target: byId[r.targetId] || null })), meta);
+  // TB-04: số lần vi phạm của người chịu trách nhiệm (chủ tin hoặc user bị báo cáo) để Admin quyết V3 khi tái phạm
+  const offenderOf = (r) => String(r.targetType === 'JOB' ? byId[r.targetId]?.employerId || '' : r.targetId);
+  const counts = await Violation.aggregate([
+    { $match: { userId: { $in: [...new Set(items.map(offenderOf).filter(Boolean))].map((id) => new mongoose.Types.ObjectId(id)) } } },
+    { $group: { _id: '$userId', n: { $sum: 1 } } },
+  ]);
+  const vio = Object.fromEntries(counts.map((c) => [c._id, c.n]));
+  ok(res, items.map((r) => ({ ...r.toObject(), target: byId[r.targetId] || null, violationCount: vio[offenderOf(r)] || 0 })), meta);
 });
 
 // API-61: DISMISS | V1 cảnh cáo | V2 ẩn nội dung | V3 khóa tài khoản
@@ -228,6 +261,13 @@ router.patch('/admin/reports/:id/resolve',
       if (decision === 'V3') {
         const u = await User.findById(offenderId).session(session);
         if (u && u.role !== 'ADMIN') await lockUser(u, `Vi phạm nghiêm trọng: ${note}`, req.user._id, session);
+        // Các báo cáo khác đang chờ về cùng người (hoặc tin của họ) được đóng theo
+        const theirJobs = await Job.find({ employerId: offenderId }).distinct('_id').session(session);
+        await Report.updateMany(
+          { status: 'OPEN', $or: [{ targetType: 'USER', targetId: offenderId }, { targetType: 'JOB', targetId: { $in: theirJobs } }] },
+          { status: 'RESOLVED', resolution: { level: 'V3', note: `Đã khóa tài khoản theo báo cáo ${report._id}`, adminId: req.user._id, at: new Date() } },
+          { session },
+        );
       }
       const label = { V1: 'Cảnh cáo', V2: 'Ẩn nội dung vi phạm', V3: 'Khóa tài khoản' }[decision];
       await notify(offenderId, 'VIOLATION', `Xử lý vi phạm: ${label}`, note, null, session);
@@ -276,6 +316,9 @@ router.put('/admin/plans/:id', validate(z.object({ price: z.number().int().posit
 router.get('/admin/payments', async (req, res) => {
   const { status, month } = req.query;
   const filter = { ...(status && { status }) };
+  // EXPIRED là trạng thái tính toán: DB vẫn lưu PENDING đã quá hạn
+  if (status === 'EXPIRED') Object.assign(filter, { status: 'PENDING', expiresAt: { $lt: new Date() } });
+  else if (status === 'PENDING') Object.assign(filter, { expiresAt: { $gte: new Date() } });
   if (/^\d{4}-\d{2}$/.test(month || '')) {
     const [y, m] = month.split('-').map(Number);
     filter.createdAt = { $gte: new Date(Date.UTC(y, m - 1, 1) - 7 * 3600_000), $lt: new Date(Date.UTC(y, m, 1) - 7 * 3600_000) };
@@ -290,15 +333,27 @@ router.get('/admin/payments', async (req, res) => {
 });
 
 // API-66: FR-ADM-08 kích hoạt thủ công, ghi audit log (ai, khi nào, lý do)
-router.post('/admin/employers/:id/premium', validate(reason.extend({ planCode: z.string() })), async (req, res) => {
-  const [u, plan] = await Promise.all([User.findOne({ _id: oid(req.params.id), role: 'EMPLOYER' }), Plan.findOne({ code: req.body.planCode })]);
-  if (!u) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy nhà tuyển dụng');
-  if (u.status === 'LOCKED') throw new AppError(409, 'ACCOUNT_LOCKED', 'Tài khoản đang bị khóa');
-  if (!plan) throw new AppError(400, 'INVALID_PLAN', 'Gói không tồn tại');
-  const premiumUntil = await extendPremium(u._id, plan.durationDays);
-  await audit(req, 'PREMIUM_MANUAL', 'USER', u._id, { planCode: plan.code, reason: req.body.reason, premiumUntil });
-  await notify(u._id, 'PAYMENT_SUCCESS', 'Premium đã được kích hoạt', `${plan.name} có hiệu lực đến ${premiumUntil.toLocaleDateString('vi-VN')}`, '/employer');
-  ok(res, { premiumUntil });
+// T-05: kèm paymentId (giao dịch lệch tiền / IPN không đến) → chốt luôn giao dịch đó SUCCESS để doanh thu đúng
+router.post('/admin/employers/:id/premium',
+  validate(reason.extend({ planCode: z.string().optional(), paymentId: z.string().optional() }).refine((b) => b.planCode || b.paymentId, { message: 'Chọn gói hoặc giao dịch', path: ['planCode'] })),
+  async (req, res) => {
+    const u = await User.findOne({ _id: oid(req.params.id), role: 'EMPLOYER' });
+    if (!u) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy nhà tuyển dụng');
+    if (u.status === 'LOCKED') throw new AppError(409, 'ACCOUNT_LOCKED', 'Tài khoản đang bị khóa');
+    if (req.body.paymentId) {
+      const payment = await Payment.findOne({ _id: oid(req.body.paymentId), employerId: u._id, status: 'PENDING' });
+      if (!payment) throw new AppError(409, 'INVALID_STATUS', 'Giao dịch không tồn tại hoặc đã được xử lý');
+      await settle(payment, { gatewayCode: 'MANUAL' });
+      const premiumUntil = (await User.findById(u._id)).employer.premiumUntil;
+      await audit(req, 'PREMIUM_MANUAL', 'PAYMENT', payment._id, { paymentId: payment._id, reason: req.body.reason, premiumUntil });
+      return ok(res, { premiumUntil });
+    }
+    const plan = await Plan.findOne({ code: req.body.planCode });
+    if (!plan) throw new AppError(400, 'INVALID_PLAN', 'Gói không tồn tại');
+    const premiumUntil = await extendPremium(u._id, plan.durationDays);
+    await audit(req, 'PREMIUM_MANUAL', 'USER', u._id, { planCode: plan.code, reason: req.body.reason, premiumUntil });
+    await notify(u._id, 'PAYMENT_SUCCESS', 'Premium đã được kích hoạt', `${plan.name} có hiệu lực đến ${premiumUntil.toLocaleDateString('vi-VN')}`, '/employer');
+    ok(res, { premiumUntil });
 });
 
 export default router;

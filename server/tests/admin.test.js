@@ -76,12 +76,12 @@ test('admin: báo cáo, gói, giao dịch, Premium thủ công, trang công khai
   // Giao dịch: lọc tháng + trạng thái, doanh thu chỉ tính SUCCESS
   const now = new Date();
   await Payment.create({ employerId: emp._id, planId: plan._id, planSnapshot: { code: plan.code, name: plan.name, durationDays: 30 }, amount: 99000, status: 'SUCCESS', txnRef: 'T1', expiresAt: new Date(Date.now() + 9e5) }).catch((e) => assert.fail(`tạo Payment: ${e.message}`));
-  await Payment.create({ employerId: emp._id, planId: plan._id, planSnapshot: { code: plan.code, name: plan.name, durationDays: 30 }, amount: 99000, status: 'FAILED', txnRef: 'T2', expiresAt: new Date(Date.now() + 9e5) });
+  await Payment.create({ employerId: emp._id, planId: plan._id, planSnapshot: { code: plan.code, name: plan.name, durationDays: 30 }, amount: 99000, txnRef: 'T2', expiresAt: new Date(Date.now() + 9e5) });
   const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const all = await api('GET', `/admin/payments?month=${ym}`, null, 'admin');
   assert.equal(all.body.meta.total, 2);
   assert.equal(all.body.meta.revenue, 99000);
-  assert.equal((await api('GET', '/admin/payments?status=FAILED', null, 'admin')).body.meta.total, 1);
+  assert.equal((await api('GET', '/admin/payments?status=PENDING', null, 'admin')).body.meta.total, 1);
   assert.equal((await api('GET', '/admin/payments?month=1999-01', null, 'admin')).body.meta.total, 0);
   assert.equal((await api('GET', '/admin/payments?month=$ne', null, 'admin')).status, 200, 'month sai định dạng bị bỏ qua, không lỗi');
 

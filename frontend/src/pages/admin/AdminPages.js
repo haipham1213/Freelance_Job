@@ -260,6 +260,7 @@ class ResolveModal extends Component {
     return (
       <Modal title="Kết luận báo cáo" onClose={this.props.onClose}>
         <form className="stack" onSubmit={this.submit}>
+          <div className="muted tiny">Người vi phạm đã bị xử lý <strong>{this.props.violationCount || 0}</strong> lần{this.props.violationCount >= 2 ? ' — tái phạm lần này có thể áp dụng V3' : ''}.</div>
           {opts.map(([v, l, d]) => (
             <label key={v} className="card-sm row" style={{ cursor: 'pointer', flexWrap: 'nowrap', boxShadow: this.state.decision === v ? 'inset 0 0 0 1.5px var(--ink)' : 'var(--hairline)' }}>
               <input type="radio" checked={this.state.decision === v} onChange={() => this.setState({ decision: v })} />
@@ -290,6 +291,7 @@ export class ReportsPage extends ListPage {
               <td>
                 <span className="chip tiny">{r.targetType === 'JOB' ? 'Tin' : 'Người dùng'}</span>{' '}
                 {r.targetType === 'JOB' ? <Link to={`/jobs/${r.targetId}`}>{r.target?.title || '(đã xóa)'}</Link> : <span>{r.target?.fullName} <span className="fog tiny">{r.target?.email}</span></span>}
+                {r.violationCount > 0 && <div className="fog tiny">Đã vi phạm {r.violationCount} lần</div>}
               </td>
               <td>{REPORT_REASONS[r.reason]}{r.description && <div className="fog tiny">{r.description}</div>}</td>
               <td>{r.reporterId?.fullName}</td>
@@ -309,7 +311,7 @@ export class ReportsPage extends ListPage {
         <Head title="Báo cáo vi phạm" sub="Xem xét và kết luận các báo cáo từ người dùng." />
         <div className="adm-toolbar"><Tabs items={[['OPEN', 'Chờ xử lý'], ['RESOLVED', 'Đã xử lý'], ['DISMISSED', 'Bác bỏ'], ['', 'Tất cả']]} value={f.status ?? ''} onChange={(status) => this.filter({ status })} /></div>
         {this.body()}
-        {modal && <ResolveModal onClose={this.closeModal} onSubmit={(body) => this.act(() => api.patch(`/admin/reports/${modal._id}/resolve`, body), 'Đã xử lý báo cáo')} />}
+        {modal && <ResolveModal violationCount={modal.violationCount} onClose={this.closeModal} onSubmit={(body) => this.act(() => api.patch(`/admin/reports/${modal._id}/resolve`, body), 'Đã xử lý báo cáo')} />}
       </div>
     );
   }
@@ -444,7 +446,7 @@ export class AdminPaymentsPage extends ListPage {
   table(items) {
     return (
       <table className="table">
-        <thead><tr><th>Thời gian</th><th>Nhà tuyển dụng</th><th>Gói</th><th>Số tiền</th><th>Mã GD</th><th>Trạng thái</th></tr></thead>
+        <thead><tr><th>Thời gian</th><th>Nhà tuyển dụng</th><th>Gói</th><th>Số tiền</th><th>Mã GD</th><th>Trạng thái</th><th /></tr></thead>
         <tbody>
           {items.map((p) => (
             <tr key={p._id}>
@@ -454,6 +456,11 @@ export class AdminPaymentsPage extends ListPage {
               <td>{money(p.amount)}</td>
               <td className="fog tiny">{p.txnRef}</td>
               <td><PayBadge status={p.displayStatus} /></td>
+              {/* FR-ADM-08: tiền đã vào nhưng lệch số / IPN không đến → chốt tay giao dịch này */}
+              <td>{p.status === 'PENDING' && p.employerId?._id && <button className="btn btn-sm btn-ghost" onClick={() => {
+                const reason = window.prompt('Lý do kích hoạt thủ công (ghi vào nhật ký):');
+                if (reason?.trim()) this.act(() => api.post(`/admin/employers/${p.employerId._id}/premium`, { paymentId: p._id, reason }), 'Đã kích hoạt Premium').catch(() => {});
+              }}>Kích hoạt</button>}</td>
             </tr>
           ))}
         </tbody>
@@ -483,7 +490,7 @@ export class AdminPaymentsPage extends ListPage {
         </div>
         <div>
           <div className="adm-toolbar">
-            <Tabs items={[['', 'Tất cả'], ['SUCCESS', 'Thành công'], ['PENDING', 'Đang xử lý'], ['FAILED', 'Thất bại']]} value={f.status || ''} onChange={(status) => this.filter({ status })} />
+            <Tabs items={[['', 'Tất cả'], ['SUCCESS', 'Thành công'], ['PENDING', 'Đang xử lý'], ['EXPIRED', 'Hết hạn']]} value={f.status || ''} onChange={(status) => this.filter({ status })} />
             <div className="row adm-toolbar-end">
               <select className="pill-select" value={f.month || ''} onChange={(e) => this.filter({ month: e.target.value })} aria-label="Lọc theo tháng">
                 <option value="">Mọi tháng</option>

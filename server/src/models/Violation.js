@@ -13,4 +13,6 @@ const violationSchema = new Schema(
   { timestamps: true },
 );
 
+violationSchema.index({ userId: 1 });
+
 export default mongoose.model('Violation', violationSchema);

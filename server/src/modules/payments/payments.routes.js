@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import mongoose from 'mongoose';
+import rateLimit from 'express-rate-limit';
 import User from '../../models/User.js';
 import Plan from '../../models/Plan.js';
 import Payment from '../../models/Payment.js';
@@ -23,6 +24,9 @@ router.post('/payments', authenticate, authorize('EMPLOYER'), requireVerified, v
   if (!isConfigured()) throw new AppError(503, 'PAYMENT_NOT_CONFIGURED', 'Chưa cấu hình SePay (SEPAY_MERCHANT_ID, SEPAY_SECRET_KEY)');
   const plan = await Plan.findOne({ code: req.body.planCode, isActive: true });
   if (!plan) throw new AppError(400, 'INVALID_PLAN', 'Gói không tồn tại hoặc đã ngừng bán');
+  // T-07: còn giao dịch chờ cùng gói, cùng giá và chưa hết hạn thì dùng lại, không tạo thêm
+  const open = await Payment.findOne({ employerId: req.user._id, planId: plan._id, amount: plan.price, status: 'PENDING', expiresAt: { $gt: new Date() } });
+  if (open) return ok(res, { paymentId: open._id });
   const payment = await Payment.create({
     employerId: req.user._id,
     planId: plan._id,
@@ -35,9 +39,11 @@ router.post('/payments', authenticate, authorize('EMPLOYER'), requireVerified, v
 });
 
 // API-47: IPN của SePay (BR-36). Xác thực sai → 401; còn lại luôn trả 200 {"success":true} để SePay không gọi lại vô ích
-router.post('/payments/sepay-ipn', async (req, res) => {
+// TB-03: endpoint công khai → giới hạn tần suất; production bắt buộc có X-Secret-Key
+const ipnLimiter = rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false });
+router.post('/payments/sepay-ipn', ipnLimiter, async (req, res) => {
   const trusted = verifyIpn(req);
-  if (!isConfigured() || trusted === false) return res.status(401).json({ success: false, message: 'Unauthorized' });
+  if (!isConfigured() || trusted === false || (trusted === null && process.env.NODE_ENV === 'production' && process.env.SEPAY_IPN_SECRET)) return res.status(401).json({ success: false, message: 'Unauthorized' });
   let { notification_type: type, order = {}, transaction = {} } = req.body || {};
   // Không có secret: lấy trạng thái + số tiền thật từ SePay thay vì tin nội dung IPN
   if (trusted === null && type === 'ORDER_PAID') {
@@ -46,7 +52,8 @@ router.post('/payments/sepay-ipn', async (req, res) => {
     transaction = real?.transactions?.[0] || {};
   }
   const done = async (message, payment) => {
-    await AuditLog.create({ action: 'PAYMENT_IPN', targetType: 'PAYMENT', targetId: payment?._id, detail: { message, type, invoice: order.order_invoice_number, amount: order.order_amount } });
+    // Chỉ ghi log khi khớp giao dịch thật, tránh bị dùng để ghi rác
+    if (payment) await AuditLog.create({ action: 'PAYMENT_IPN', targetType: 'PAYMENT', targetId: payment?._id, detail: { message, type, invoice: order.order_invoice_number, amount: order.order_amount } });
     res.json({ success: true });
   };
   if (type !== 'ORDER_PAID' || order.order_status !== 'CAPTURED') return done('Ignored');
@@ -55,7 +62,7 @@ router.post('/payments/sepay-ipn', async (req, res) => {
   if (payment.status !== 'PENDING') return done('Already processed', payment);
   // Số tiền SePay báo phải khớp đơn; lệch thì để PENDING cho admin kích hoạt thủ công (FR-ADM-08)
   if (Number(order.order_amount) !== payment.amount) return done('Amount mismatch', payment);
-  await settle(payment, { success: true, gatewayRef: String(transaction.transaction_id || transaction.id || ''), gatewayCode: order.order_status, raw: req.body });
+  await settle(payment, { gatewayRef: String(transaction.transaction_id || transaction.id || ''), gatewayCode: order.order_status, raw: req.body });
   done('OK', payment);
 });
 
@@ -77,7 +84,7 @@ router.get('/payments/:id', authenticate, authorize('EMPLOYER'), async (req, res
   if (payment.status === 'PENDING' && isConfigured()) {
     const real = await fetchOrder(payment.txnRef);
     if (real?.order_status === 'CAPTURED' && Number(real.order_amount) === payment.amount) {
-      await settle(payment, { success: true, gatewayRef: String(real.transactions?.[0]?.transaction_id || ''), gatewayCode: real.order_status, raw: real });
+      await settle(payment, { gatewayRef: String(real.transactions?.[0]?.transaction_id || ''), gatewayCode: real.order_status, raw: real });
       payment = await find();
     }
   }

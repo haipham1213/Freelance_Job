@@ -94,7 +94,11 @@ test('luồng chính và các business rule quan trọng', async () => {
   const to = async (job) => (await alertsFor(job)).map((a) => a.email).sort();
   // Chưa bấm link xác nhận trong email thì chưa nhận thông báo
   assert.deepEqual(await to({}), []);
-  const confirm = async (email) => fetch(`${base}/job-alerts/confirm?token=${(await JobAlert.findOne({ email })).token}`, { redirect: 'manual' });
+  const post = (action, token) => fetch(`${base}/job-alerts/${action}`, { method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `token=${token}` });
+  const confirm = async (email) => post('confirm', (await JobAlert.findOne({ email })).token);
+  // Mở link (GET) chỉ hiện nút, chưa xác nhận — bộ quét link trong hộp thư không tự bật được
+  assert.equal((await fetch(`${base}/job-alerts/confirm?token=${(await JobAlert.findOne({ email: 'ban@test.vn' })).token}`)).status, 200);
+  assert.deepEqual(await to({}), []);
   await confirm('ban@test.vn');
   await confirm('ranh@test.vn');
   // Người khác gửi lịch mới cho email đã xác nhận: chưa xác nhận thì lịch cũ giữ nguyên
@@ -103,8 +107,8 @@ test('luồng chính và các business rule quan trọng', async () => {
   assert.deepEqual(await to({ shifts: [0, 6] }), ['ban@test.vn', 'ranh@test.vn']);
   assert.deepEqual(await to({}), ['ban@test.vn', 'ranh@test.vn']);
   const { token } = await JobAlert.findOne({ email: 'ranh@test.vn' });
-  const off = await fetch(`${base}/job-alerts/unsubscribe?token=${token}`, { redirect: 'manual' });
-  assert.equal(off.status, 302);
+  const off = await post('unsubscribe', token);
+  assert.equal(off.status, 303);
   assert.equal(await JobAlert.exists({ email: 'ranh@test.vn' }), null);
 
   // Khoảng lương phổ biến theo ngành (3 tin cùng 25k–30k/giờ)

@@ -6,12 +6,12 @@ import User from '../../models/User.js';
 import Review from '../../models/Review.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid, DAY } from '../../utils/http.js';
+import { ok, paging, oid, DAY, vnDay } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize, requireVerified } from '../../middlewares/auth.js';
 import { notify } from '../../utils/notify.js';
 import { recomputeRating } from '../../utils/rating.js';
-import { isVisible, findOwnJob, publicCompany } from '../jobs/jobs.service.js';
+import { isVisible, findOwnJob, publicCompany, completeIfDone } from '../jobs/jobs.service.js';
 
 const router = Router();
 const FINISHED = ['COMPLETED', 'NOT_COMPLETED'];
@@ -90,7 +90,7 @@ router.get('/applications/:id', authenticate, async (req, res) => {
   if (!side) throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền xem đơn này');
   const showContact = side === 'ADMIN' || CONTACT_OPEN.includes(app.status);
   const [student, employer, job, reviews] = await Promise.all([
-    User.findById(app.studentId), User.findById(app.employerId), Job.findById(app.jobId).select('-searchText'), Review.find({ applicationId: app._id }),
+    User.findById(app.studentId), User.findById(app.employerId), Job.findById(app.jobId).select('-searchText'), Review.find({ applicationId: app._id, ...(side !== 'ADMIN' && { isHidden: false }) }).select(side === 'ADMIN' ? '' : '-hiddenReason'),
   ]);
   const contact = (x) => (showContact ? { email: x.email, phone: x.phone } : {});
   const deadline = app.finishedAt && new Date(+app.finishedAt + REVIEW_WINDOW);
@@ -98,7 +98,7 @@ router.get('/applications/:id', authenticate, async (req, res) => {
   ok(res, {
     application: app,
     job,
-    student: { _id: student._id, fullName: student.fullName, avatarUrl: student.avatarUrl, ratingAvg: student.ratingAvg, ratingCount: student.ratingCount, student: student.student, ...contact(student) },
+    student: { _id: student._id, fullName: student.fullName, avatarUrl: student.avatarUrl, ratingAvg: student.ratingAvg, ratingCount: student.ratingCount, student: (({ savedJobIds, busySlots, ...s }) => s)(student.toObject().student || {}), ...contact(student) },
     employer: { _id: employer._id, fullName: employer.fullName, company: publicCompany(employer), ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, ...contact(employer), ...(showContact && { phone: employer.employer?.company?.phone || employer.phone }) },
     reviews,
     canReview: side !== 'ADMIN' && FINISHED.includes(app.status) && !reviewed && deadline > new Date(),
@@ -172,18 +172,13 @@ router.patch('/applications/:id/result', authenticate, authorize('EMPLOYER'),
   async (req, res) => {
     const app0 = await loadForEmployer(req.params.id, req.user);
     const job = await Job.findById(app0.jobId);
-    if (job.startDate > new Date()) throw new AppError(409, 'JOB_NOT_STARTED', 'Chưa tới ngày bắt đầu công việc');
+    if (vnDay(job.startDate) > vnDay()) throw new AppError(409, 'JOB_NOT_STARTED', 'Chưa tới ngày bắt đầu công việc');
     const { result, reason } = req.body;
     const app = await transition(
       { _id: app0._id, status: 'ACCEPTED' },
       { status: result, finishedAt: new Date(), ...(result === 'NOT_COMPLETED' && { notCompletedReason: reason }), ...history(result, req.user._id) },
     );
-    // ST-06: FILLED / CLOSED / EXPIRED (= OPEN quá expiresAt) → COMPLETED khi không còn đơn ACCEPTED
-    if (!(await Application.exists({ jobId: job._id, status: 'ACCEPTED' })))
-      await Job.updateOne(
-        { _id: job._id, $or: [{ status: { $in: ['FILLED', 'CLOSED'] } }, { status: 'OPEN', expiresAt: { $lt: new Date() } }] },
-        { status: 'COMPLETED' },
-      );
+    await completeIfDone(job._id);
     await notify(app.studentId, 'WORK_RESULT', 'Kết quả công việc',
       `"${job.title}": ${result === 'COMPLETED' ? 'Hoàn thành' : 'Không hoàn thành'}. Bạn có 14 ngày để đánh giá nhà tuyển dụng.`, `/student/applications/${app._id}`);
     ok(res, { application: app });

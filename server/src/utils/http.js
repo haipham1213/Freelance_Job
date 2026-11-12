@@ -37,3 +37,7 @@ export const slugify = (s) => unaccent(s).replace(/[^a-z0-9]+/g, '-').replace(/^
 export const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const DAY = 24 * 60 * 60 * 1000;
+
+// T-04: ngày lịch theo giờ Việt Nam (UTC+7, không có giờ mùa hè), dạng YYYY-MM-DD — không phụ thuộc múi giờ của server
+export const VN_OFFSET = 7 * 3600_000;
+export const vnDay = (d = new Date()) => new Date(+new Date(d) + VN_OFFSET).toISOString().slice(0, 10);
