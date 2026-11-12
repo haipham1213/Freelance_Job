@@ -3,7 +3,7 @@ import { CalendarDays, MapPin, Search, SlidersHorizontal, X } from 'lucide-react
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { Spinner, Empty, Pagination, Dropdown, ShiftGrid } from '../../components/ui';
-import JobRow, { readWeek, writeWeek } from '../../components/JobRow';
+import JobRow, { loadSavedIds, saveToggler, readWeek, writeWeek } from '../../components/JobRow';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 import { money, describeShifts, SALARY_TYPE } from '../../utils/format';
@@ -29,7 +29,7 @@ const Choices = ({ name, value, options, onPick }) => (
 // SCR-C04 / FR-SRC-01: hai cột, bộ lọc bên trái (dính khi cuộn), danh sách tin bên phải; bộ lọc nằm trên URL để chia sẻ và quay lại được
 class JobsPage extends Component {
   static contextType = AuthContext;
-  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, week: [], loading: false, filtersOpen: false };
+  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, week: [], loading: false, filtersOpen: false, savedIds: new Set() };
 
   params = () => Object.fromEntries(FILTERS.map((k) => [k, this.props.searchParams.get(k) || '']));
 
@@ -42,6 +42,7 @@ class JobsPage extends Component {
     if (this.props.location.hash === '#lich-hoc') {
       this.setState({ filtersOpen: true }, () => document.getElementById('lich-hoc')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
     }
+    this.syncSaved();
     const [c, l] = await Promise.all([api.get('/categories'), api.get('/jobs/locations')]);
     this.setState({ categories: c.data, locations: l.data });
     this.load();
@@ -49,7 +50,20 @@ class JobsPage extends Component {
 
   componentDidUpdate(prev) {
     if (prev.location.search !== this.props.location.search) this.load();
+    this.syncSaved();
   }
+
+  // Tin đã lưu của sinh viên (FR-SAV-01); tải lại khi phiên đăng nhập khôi phục xong hoặc đổi tài khoản
+  syncSaved = () => {
+    const u = this.context.user;
+    const key = u?.role === 'STUDENT' ? u._id : null;
+    if (key === this.savedFor) return;
+    this.savedFor = key;
+    if (key) loadSavedIds().then((savedIds) => this.setState({ savedIds }));
+    else this.setState({ savedIds: new Set() });
+  };
+
+  toggleSave = saveToggler(this);
 
   load = async () => {
     const p = this.params();
@@ -99,7 +113,7 @@ class JobsPage extends Component {
   };
 
   render() {
-    const { categories, locations, jobs, meta, form, week, loading, filtersOpen } = this.state;
+    const { categories, locations, jobs, meta, form, week, loading, filtersOpen, savedIds } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const districts = locations.find((l) => l.city === form.city)?.districts || [];
     const chips = this.activeChips(catName);
@@ -192,7 +206,12 @@ class JobsPage extends Component {
                 <div className="panel"><Empty title="Không có việc phù hợp">Bỏ bớt một bộ lọc bên trái, hoặc thử từ khóa ngắn hơn như “phục vụ”.</Empty></div>
               ) : (
                 <ol className={`jx-list ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
-                  {jobs.map((j) => <li key={j._id}><JobRow job={j} category={catName[j.categoryId]} /></li>)}
+                  {jobs.map((j) => (
+                    <li key={j._id}>
+                      <JobRow job={j} category={catName[j.categoryId]} saved={savedIds.has(j._id)}
+                        onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined} saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${j._id}`)}`} />
+                    </li>
+                  ))}
                 </ol>
               )}
               <Pagination meta={meta} onPage={(page) => this.apply({ page: String(page) })} />

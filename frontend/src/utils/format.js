@@ -24,7 +24,13 @@ export const JOB_STATUS = {
 };
 export const APP_STATUS = {
   PENDING: ['Đang chờ', 'chip-yellow'], ACCEPTED: ['Được nhận', 'chip-green'], REJECTED: ['Bị từ chối', 'chip-red'],
-  COMPLETED: ['Hoàn thành', 'chip-purple'], NOT_COMPLETED: ['Không hoàn thành', 'chip-red'],
+  WITHDRAWN: ['Đã rút', ''], COMPLETED: ['Hoàn thành', 'chip-purple'], NOT_COMPLETED: ['Không hoàn thành', 'chip-red'],
+};
+export const REPORT_REASONS = {
+  SCAM: 'Lừa đảo / thu phí', WRONG_INFO: 'Thông tin sai', HARASSMENT: 'Quấy rối', UNPAID_OR_ABSENT: 'Không trả lương / bỏ việc', OTHER: 'Khác',
+};
+export const PAY_STATUS = {
+  PENDING: ['Đang xử lý', 'chip-yellow'], SUCCESS: ['Thành công', 'chip-green'], FAILED: ['Thất bại', 'chip-red'], EXPIRED: ['Hết hạn', ''],
 };
 export const ROLE = { STUDENT: 'Sinh viên', EMPLOYER: 'Nhà tuyển dụng', ADMIN: 'Quản trị viên' };
 export const jobStatusOf = (j) => (j.status === 'OPEN' && new Date(j.expiresAt) < new Date() ? 'EXPIRED' : j.status);

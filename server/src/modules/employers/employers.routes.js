@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import User from '../../models/User.js';
 import Job from '../../models/Job.js';
+import Review from '../../models/Review.js';
 import Application from '../../models/Application.js';
-import { ok, paging, unaccent } from '../../utils/http.js';
+import AppError from '../../utils/AppError.js';
+import { ok, paging, oid, unaccent } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { rawFile, saveUpload } from '../../utils/files.js';
-import { quotaOf, TIERS, visibleMatch } from '../jobs/jobs.service.js';
+import { quotaOf, TIERS, visibleMatch, publicCompany } from '../jobs/jobs.service.js';
 
 const router = Router();
 const employer = [authenticate, authorize('EMPLOYER')];
@@ -101,6 +104,25 @@ router.get('/employers/hiring', async (req, res) => {
     { $limit: Math.min(24, Number(req.query.limit) || 12) },
   ]);
   ok(res, rows.map((r) => ({ _id: r._id, name: r.company?.name, logoUrl: r.company?.logoUrl, city: r.company?.city, jobs: r.jobs })));
+});
+
+// API-18: trang công khai (FR-PRO-04), 10 nhận xét mỗi trang
+router.get('/employers/:id', async (req, res) => {
+  const u = await User.findOne({ _id: oid(req.params.id), role: 'EMPLOYER' });
+  if (!u || u.status === 'LOCKED') throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy nhà tuyển dụng');
+  const { page } = paging(req.query);
+  const limit = 10;
+  const filter = { revieweeId: u._id, isHidden: false };
+  const [openJobs, reviews, total] = await Promise.all([
+    Job.find({ ...(await visibleMatch()), employerId: u._id }).select('-searchText -description').sort('-createdAt').limit(20),
+    Review.find(filter).sort('-createdAt').skip((page - 1) * limit).limit(limit).populate('reviewerId', 'fullName avatarUrl'),
+    Review.countDocuments(filter),
+  ]);
+  ok(res, {
+    employer: { _id: u._id, fullName: u.fullName, company: publicCompany(u), ratingAvg: u.ratingAvg, ratingCount: u.ratingCount, isPremium: u.isPremium(), createdAt: u.createdAt },
+    openJobs,
+    reviews,
+  }, { page, limit, total });
 });
 
 export default router;

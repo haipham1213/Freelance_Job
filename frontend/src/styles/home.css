@@ -156,16 +156,9 @@ body.page-home :focus-visible { outline-color: var(--forest); }
 
 /* Dành cho bạn (sinh viên): dải trắng ngà tràn viền, hàng số liệu chữ có chân chia vạch dọc */
 .page-home .band { background: var(--paper); border-radius: 0; padding: 88px 0 96px; box-shadow: 0 0 0 100vmax var(--paper); clip-path: inset(0 -100vmax); }
-.fy .sec-head { margin-bottom: 40px; }
-.fy-stats { list-style: none; margin: 0; padding: 0; }
-.fy-stat { display: block; color: var(--ink); }
 .page-home .stat-num { font-weight: 600; font-size: 72px; letter-spacing: -0.03em; color: var(--forest); }
 .page-home .stat-label { color: var(--body); }
 .page-home .stat-row > * + * { box-shadow: inset 1px 0 0 var(--line); }
-.fy-stat:hover .stat-num { color: var(--moss); }
-.fy-stat:hover .stat-label { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
-.fy-stat:focus-visible { outline: 2px solid var(--forest); outline-offset: 6px; border-radius: 8px; }
-.fy-jobs { margin-top: 64px; }
 .fy-h3 { margin: 0 0 16px; font-size: 28px; font-weight: 700; letter-spacing: -0.015em; }
 .fy-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 16px 0 0; color: var(--muted); font-size: 15px; }
 
@@ -341,7 +334,6 @@ main:has(> .bd:last-child) ~ .footer { margin-top: 0; }
   .sh-row .sh-save { grid-column: 3; grid-row: 1; }
   .page-home .band { padding: 64px 0 72px; }
   .page-home .stat-num { font-size: 52px; }
-  .fy-jobs { margin-top: 48px; }
   /* Một cột, chỉ giữ 6 ngành nhiều tin nhất, mỗi ngành một hàng ngăn bằng vạch ngang */
   .gn-cats { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
   .gn-cats > li:nth-child(n+7) { display: none; }

@@ -18,7 +18,7 @@
 /* Hai cột: bộ lọc 280px dính dưới menu (cuộn riêng nếu dài), danh sách chiếm phần còn lại */
 .jx-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 32px; align-items: start; }
 .jx-filter-toggle { display: none; }
-.jx-side { position: sticky; top: 88px; max-height: calc(100vh - 104px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+.jx-side { position: sticky; top: 88px; max-height: calc(100 * var(--vh) - 104px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
   background: #fff; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--line); padding: 4px 20px; }
 .jx-sec { padding: 20px 0; scroll-margin-top: 96px; }
 .jx-sec + .jx-sec { border-top: 1px solid var(--line); }

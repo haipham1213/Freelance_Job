@@ -203,8 +203,8 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--line); border-radiu
    Hero cao 2 màn hình; khung sân khấu dính dưới thanh menu trong suốt quãng cuộn đó (dải "contain" của view-timeline) */
 @media (min-width: 1101px) and (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    :scope { height: calc(200vh - 68px); view-timeline: --rv block; }
-    .rv-stage { position: sticky; top: 68px; height: calc(100vh - 68px); min-height: 0; }
+    :scope { height: calc(200 * var(--vh) - 68px); view-timeline: --rv block; }
+    .rv-stage { position: sticky; top: 68px; height: calc(100 * var(--vh) - 68px); min-height: 0; }
     .rv-sky, .rv-copy, .rv-after, .rv-float { animation: linear both; animation-timeline: --rv; }
     /* Bầu trời co lại đúng bằng khung điện thoại */
     .rv-sky { animation-name: rv-shrink; animation-range: contain 0% contain 70%; }

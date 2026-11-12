@@ -12,6 +12,7 @@ import employerRoutes from './modules/employers/employers.routes.js';
 import applicationRoutes from './modules/applications/applications.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
 import paymentRoutes from './modules/payments/payments.routes.js';
+import reportRoutes from './modules/reports/reports.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import alertRoutes from './modules/alerts/alerts.routes.js';
 
@@ -29,7 +30,7 @@ app.use('/api/v1/files/cv', requireSignedFile);
 app.use('/api/v1/files', express.static(UPLOAD_DIR, { maxAge: '7d' }));
 
 app.use('/api/v1/auth', authRoutes);
-for (const r of [categoryRoutes, jobRoutes, studentRoutes, employerRoutes, applicationRoutes, notificationRoutes, paymentRoutes, adminRoutes, alertRoutes])
+for (const r of [categoryRoutes, jobRoutes, studentRoutes, employerRoutes, applicationRoutes, notificationRoutes, paymentRoutes, reportRoutes, adminRoutes, alertRoutes])
   app.use('/api/v1', r);
 
 app.use(notFound);

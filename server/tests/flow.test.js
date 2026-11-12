@@ -1,4 +1,4 @@
-// Luồng demo end-to-end trên DB test riêng: đăng ký → đăng tin → ứng tuyển → duyệt → kết quả → admin
+// Luồng demo end-to-end trên DB test riêng: đăng ký → đăng tin → ứng tuyển → duyệt → kết quả → đánh giá → admin
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
@@ -48,7 +48,7 @@ after(async () => {
 test('luồng chính và các business rule quan trọng', async () => {
   const cat = await Category.create({ name: 'Phục vụ', slug: 'phuc-vu' });
   const emp = await register('emp', 'EMPLOYER');
-  await register('sv1', 'STUDENT');
+  const s1 = await register('sv1', 'STUDENT');
   await register('sv2', 'STUDENT');
   await register('sv3', 'STUDENT');
 
@@ -118,6 +118,9 @@ test('luồng chính và các business rule quan trọng', async () => {
   // BR-10: chưa có CV
   assert.equal((await api('POST', `/jobs/${job._id}/applications`, {}, 'sv1')).body.error.code, 'CV_REQUIRED');
   await User.updateMany({ role: 'STUDENT' }, { 'student.cv': { url: '/cv.pdf', fileName: 'cv.pdf', uploadedAt: new Date() } });
+  // Có CV nhưng chưa có SĐT
+  assert.equal((await api('POST', `/jobs/${job._id}/applications`, {}, 'sv1')).body.error.code, 'PHONE_REQUIRED');
+  await User.updateMany({ role: 'STUDENT' }, { phone: '0912345678' });
   const a1 = (await api('POST', `/jobs/${job._id}/applications`, { coverLetter: 'Em làm được' }, 'sv1')).body.data.application;
   const a2 = (await api('POST', `/jobs/${job._id}/applications`, {}, 'sv2')).body.data.application;
   const a3 = (await api('POST', `/jobs/${job._id}/applications`, {}, 'sv3')).body.data.application;
@@ -143,9 +146,42 @@ test('luồng chính và các business rule quan trọng', async () => {
   await api('PATCH', `/applications/${a2._id}/result`, { result: 'NOT_COMPLETED', reason: 'Không đến' }, 'emp');
   assert.equal((await Job.findById(job._id)).status, 'COMPLETED');
 
+  // FR-REV-01 AC1/AC2: 5★ và 3★ → 4.0
+  await api('POST', `/applications/${a1._id}/reviews`, { rating: 5, comment: 'Tốt' }, 'sv1');
+  assert.equal((await api('POST', `/applications/${a1._id}/reviews`, { rating: 5 }, 'sv1')).body.error.code, 'ALREADY_REVIEWED');
+  await api('POST', `/applications/${a2._id}/reviews`, { rating: 3 }, 'sv2');
+  const empReviews = (await api('GET', `/users/${emp._id}/reviews`)).body.meta;
+  assert.deepEqual([empReviews.ratingAvg, empReviews.ratingCount], [4, 2]);
+  // Đánh giá gần đây ở trang chủ: chỉ câu có nội dung, kèm tên việc; điểm trung bình tính trên mọi đánh giá của sinh viên
+  const recent = (await api('GET', '/reviews/recent')).body;
+  assert.deepEqual([recent.data.length, recent.data[0].jobId.title, recent.meta.ratingCount, recent.meta.ratingAvg], [1, job.title, 2, 4]);
+
   // Chỉ Admin quản lý danh mục
   await User.create({ email: 'admin@test.vn', passwordHash: await (await import('bcryptjs')).default.hash('Matkhau123', 10), role: 'ADMIN', fullName: 'Admin', emailVerified: true });
   tokens.admin = (await api('POST', '/auth/login', { email: 'admin@test.vn', password: 'Matkhau123' })).body.data.accessToken;
   assert.equal((await api('GET', '/admin/categories', null, 'emp')).status, 403);
   assert.equal((await api('GET', '/admin/categories', null, 'admin')).status, 200);
+
+  // FR-PRO-04: trang công khai có điểm + nhận xét; FR-ADM-06: ẩn đánh giá 3★ → điểm còn 5.0
+  assert.deepEqual((({ ratingAvg, ratingCount }) => [ratingAvg, ratingCount])((await api('GET', `/employers/${emp._id}`)).body.data.employer), [4, 2]);
+  const r3 = (await api('GET', '/admin/reviews?rating=3', null, 'admin')).body.data[0];
+  await api('PATCH', `/admin/reviews/${r3._id}/hide`, { reason: 'Sai sự thật' }, 'admin');
+  const pub = (await api('GET', `/employers/${emp._id}`)).body;
+  assert.deepEqual([pub.data.employer.ratingAvg, pub.data.employer.ratingCount, pub.meta.total], [5, 1, 1]);
+
+  // FR-RPT-01: không tự báo cáo mình, không báo cáo trùng khi chưa xử lý
+  assert.equal((await api('POST', '/reports', { targetType: 'USER', targetId: s1._id, reason: 'OTHER' }, 'sv1')).status, 400);
+  const rep = (await api('POST', '/reports', { targetType: 'JOB', targetId: job._id, reason: 'SCAM' }, 'sv3')).body.data.report;
+  assert.equal((await api('POST', '/reports', { targetType: 'JOB', targetId: job._id, reason: 'OTHER' }, 'sv3')).body.error.code, 'ALREADY_REPORTED');
+
+  // FR-ADM-01
+  assert.equal((await api('GET', '/admin/dashboard', null, 'emp')).status, 403);
+  const dash = (await api('GET', '/admin/dashboard', null, 'admin')).body.data;
+  assert.deepEqual([dash.openReports, dash.users.STUDENT, dash.users.EMPLOYER, dash.revenueByMonth.length], [1, 3, 1, 12]);
+
+  // FR-ADM-05: V3 → khóa, request kế tiếp bị chặn (BR-06), có thông báo + vi phạm; xử lý lại → 409
+  await api('PATCH', `/admin/reports/${rep._id}/resolve`, { decision: 'V3', note: 'Lừa đảo' }, 'admin');
+  assert.equal((await api('PATCH', `/admin/reports/${rep._id}/resolve`, { decision: 'V1', note: 'x' }, 'admin')).body.error.code, 'ALREADY_RESOLVED');
+  assert.equal((await api('GET', '/employers/me', null, 'emp')).body.error.code, 'ACCOUNT_LOCKED');
+  assert.equal((await api('GET', `/employers/${emp._id}`)).status, 404);
 });

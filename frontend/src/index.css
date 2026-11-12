@@ -5,6 +5,9 @@
    Hero trang chủ (.rv-hero) được đóng băng trong styles/hero.css: mọi quy tắc ở đây nằm trong @scope (:root) to (.rv-hero)
    nên không chạm vào bên trong hero. */
 
+/* Thu phóng toàn trang 80%. Trong Chrome, zoom làm vh co theo (100vh chỉ còn 80% màn hình), nên mọi chỗ dùng var(--vh) thay cho 1vh */
+html { zoom: .8; --vh: calc(1vh / .8); }
+
 @scope (:root) to (.rv-hero) {
 
 /* Bộ màu chung theo trang chủ (styles/home.css): nền sáng #f5f8fc, thẻ trắng, xanh trời #0b4fa8 cho nút chính và link,
@@ -95,7 +98,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; color: var(--ink); }
 
 /* .container lo trục ngang, .page lo trục dọc */
 .container { max-width: var(--page); margin: 0 auto; padding-left: 24px; padding-right: 24px; }
-.page { padding-top: 48px; padding-bottom: 96px; min-height: 70vh; }
+.page { padding-top: 48px; padding-bottom: 96px; min-height: calc(70 * var(--vh)); }
 .section { margin-top: 48px; }
 .stack > * + * { margin-top: 12px; }
 .stack-lg > * + * { margin-top: 24px; }
@@ -287,7 +290,7 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 .modal-x { flex-shrink: 0; width: 40px; height: 40px; margin: -8px -12px 0 0; display: grid; place-items: center; background: none; border: 0; border-radius: 999px; color: var(--ink); cursor: pointer; transition: background .15s; }
 .modal-x:hover { background: var(--sand); }
 .modal-backdrop { overscroll-behavior: contain; position: fixed; inset: 0; background: rgba(7, 15, 15, .72); display: grid; place-items: center; padding: 16px; z-index: 100; animation: fade .2s; }
-.modal { background: var(--mint-frost); border-radius: 32px; padding: 40px; width: min(540px, 100%); max-height: 90vh; overflow: auto; animation: rise .25s cubic-bezier(.16, 1, .3, 1); }
+.modal { background: var(--mint-frost); border-radius: 32px; padding: 40px; width: min(540px, 100%); max-height: calc(90 * var(--vh)); overflow: auto; animation: rise .25s cubic-bezier(.16, 1, .3, 1); }
 @media (max-width: 640px) { .modal { border-radius: 24px; padding: 24px; } }
 /* Hàng lựa chọn (radio) trong hộp thoại: khung trắng, chọn rồi viền obsidian */
 .radio-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 16px; background: #fff; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; transition: box-shadow .15s; }
@@ -329,8 +332,8 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 .pill-select:focus { box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 3px var(--aqua-mist); outline: none; }
 
 /* Admin: thanh bên abyss, mục đang chọn viên thuốc neon */
-.admin-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
-.sidebar { background: var(--abyss); box-shadow: 1px 0 0 var(--line); padding: 20px 14px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.admin-shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: calc(100 * var(--vh)); }
+.sidebar { background: var(--abyss); box-shadow: 1px 0 0 var(--line); padding: 20px 14px; position: sticky; top: 0; height: calc(100 * var(--vh)); overflow-y: auto; }
 .side-link { display: flex; gap: 10px; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--body); margin-top: 4px; font-size: 14px; font-weight: 500; transition: color .15s, background .15s; }
 .side-link.active { background: var(--neon); color: var(--obsidian); }
 .side-link:not(.active):hover { background: var(--sand); color: var(--ink); }

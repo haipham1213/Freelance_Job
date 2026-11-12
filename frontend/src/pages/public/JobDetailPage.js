@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Building2, CalendarClock, Check, CheckCircle2, Clock, FileText, Hourglass, Link2, MapPin, Users, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Building2, CalendarClock, Check, CheckCircle2, Clock, FileText, Flag, Heart, Hourglass, Link2, MapPin, Users, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Stars, JobBadge, AppBadge, Modal, Field, Alert } from '../../components/ui';
 import JobRow, { MiniWeek, PERIOD_ICON, busyOf } from '../../components/JobRow';
 import { categoryIcon } from '../../components/Illustrations';
+import ReportModal from '../../components/ReportModal';
 import ErrorPage from './ErrorPage';
 import { date, salary, timeAgo, jobStatusOf, shiftParts } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
@@ -44,6 +45,7 @@ class ApplyModal extends Component {
             <Alert>
               {error.message}{' '}
               {error.code === 'CV_REQUIRED' && <Link to="/student/profile" className="accent ico-row" style={{ display: 'inline-flex' }}>Tải CV ngay <ArrowRight size={16} aria-hidden="true" /></Link>}
+              {error.code === 'PHONE_REQUIRED' && <Link to="/student/profile" className="accent ico-row" style={{ display: 'inline-flex' }}>Thêm số điện thoại <ArrowRight size={16} aria-hidden="true" /></Link>}
             </Alert>
           )}
           <button className="btn" disabled={busy}>{busy ? 'Đang gửi…' : 'Gửi đơn ứng tuyển'}</button>
@@ -55,7 +57,7 @@ class ApplyModal extends Component {
 
 const DAY = 864e5;
 // Hai cam kết liên quan trực tiếp tới lúc nộp đơn (BR-12, không thu phí)
-const PROMISES = ['Không phí, không đặt cọc khi ứng tuyển.', 'Số điện thoại hai bên chỉ hiện khi bạn được nhận.'];
+const PROMISES = ['Không phí, không đặt cọc. Bị đòi tiền thì báo cáo tin ngay.', 'Số điện thoại hai bên chỉ hiện khi bạn được nhận.'];
 
 class JobDetailPage extends Component {
   static contextType = AuthContext;
@@ -65,7 +67,7 @@ class JobDetailPage extends Component {
   componentDidMount() { document.body.classList.add('page-canvas'); this.load(); }
   componentWillUnmount() { document.body.classList.remove('page-canvas'); clearTimeout(this.copyTimer); }
   // Tải lại khi đổi tin hoặc khi phiên đăng nhập vừa khôi phục xong (mở thẳng link: API gọi trước khi có token,
-  // nên myApplication của sinh viên bị thiếu)
+  // nên myApplication / isSaved của sinh viên bị thiếu)
   componentDidUpdate(prev) {
     if (prev.params.id !== this.props.params.id || (this.context.user?._id || null) !== this.loadedFor) this.load();
   }
@@ -86,6 +88,18 @@ class JobDetailPage extends Component {
       this.setState({ similar });
     } catch (error) {
       this.setState({ error });
+    }
+  };
+
+  // FR-SAV-01
+  toggleSave = async () => {
+    const { data } = this.state;
+    const path = `/students/me/saved-jobs/${data.job._id}`;
+    try {
+      await (data.isSaved ? api.del(path) : api.put(path));
+      this.setState({ data: { ...data, isSaved: !data.isSaved } });
+    } catch (e) {
+      this.setState({ flash: e.message });
     }
   };
 
@@ -115,7 +129,12 @@ class JobDetailPage extends Component {
       const main = myApplication
         ? <Link to={`/student/applications/${myApplication._id}`} className="btn btn-lg btn-block btn-ghost">Đã ứng tuyển, xem đơn <AppBadge status={myApplication.status} /></Link>
         : open ? <button type="button" className="btn btn-lg btn-block" onClick={() => this.setState({ modal: 'apply' })} disabled={!user.emailVerified}>Ứng tuyển ngay</button> : null;
-      return <div className={compact ? 'jd-bar-actions' : 'jd-actions'}>{main}</div>;
+      const save = (
+        <button type="button" className={`btn btn-ghost ${compact ? 'jd-icon-btn' : 'btn-lg btn-block'}`} onClick={this.toggleSave} aria-pressed={!!data.isSaved} aria-label={data.isSaved ? 'Bỏ lưu tin' : 'Lưu tin'}>
+          <Heart size={18} fill={data.isSaved ? 'currentColor' : 'none'} aria-hidden="true" />{!compact && (data.isSaved ? 'Đã lưu' : 'Lưu tin')}
+        </button>
+      );
+      return <div className={compact ? 'jd-bar-actions' : 'jd-actions'}>{main}{save}</div>;
     }
     if (user.role === 'EMPLOYER' && String(job.employerId) === String(user._id)) {
       return (
@@ -147,6 +166,7 @@ class JobDetailPage extends Component {
     const { user } = this.context;
     const status = jobStatusOf(job);
     const company = employer.company || {};
+    const canReport = user && ['STUDENT', 'EMPLOYER'].includes(user.role) && String(job.employerId) !== String(user._id);
     const daysLeft = Math.max(0, Math.ceil((new Date(job.expiresAt) - Date.now()) / DAY));
     const Icon = categoryIcon(category?.name);
     const busy = busyOf(user);
@@ -172,7 +192,7 @@ class JobDetailPage extends Component {
               <h1 className="jd-title">{job.title}</h1>
               <p className="jd-meta">
                 <span className="jd-logo">{company.logoUrl ? <img src={company.logoUrl} alt="" width="40" height="40" /> : <Icon size={20} aria-hidden="true" />}</span>
-                <span className="jd-company">{company.name || employer.fullName}</span>
+                <Link to={`/employers/${employer._id}`} className="jd-company">{company.name || employer.fullName}</Link>
                 {job.isFeatured && <span className="jt-badge">Nổi bật</span>}
                 {status !== 'OPEN' && <JobBadge status={status} />}
               </p>
@@ -241,17 +261,19 @@ class JobDetailPage extends Component {
               <ul className="jd-promises">
                 {PROMISES.map((t) => <li key={t}><Check size={16} aria-hidden="true" />{t}</li>)}
               </ul>
+              {canReport && <button type="button" className="jd-report" onClick={() => this.setState({ modal: 'report' })}><Flag size={14} aria-hidden="true" />Báo cáo tin này</button>}
             </div>
             <section className="jd-card jd-company-card" aria-labelledby="jd-employer">
               <span className="jd-logo jd-logo-sm">{company.logoUrl ? <img src={company.logoUrl} alt="" width="56" height="56" /> : <Building2 size={22} aria-hidden="true" />}</span>
               <div className="jd-company-body">
-                <h2 id="jd-employer" className="jd-company-name">{company.name || employer.fullName}</h2>
+                <h2 id="jd-employer" className="jd-company-name"><Link to={`/employers/${employer._id}`}>{company.name || employer.fullName}</Link></h2>
                 <div className="jd-company-meta">
                   <Stars value={employer.ratingAvg} count={employer.ratingCount} />
                   {employer.isPremium && <span className="chip chip-featured tiny">★ Premium</span>}
                 </div>
                 {company.address && <p className="jd-muted"><MapPin size={14} aria-hidden="true" />{[company.address, company.district, company.city].filter(Boolean).join(', ')}</p>}
                 {company.description && <p className="jd-text jd-clamp">{company.description}</p>}
+                <Link to={`/employers/${employer._id}`} className="text-link small">Xem trang công ty và các tin khác <ArrowRight size={16} aria-hidden="true" /></Link>
               </div>
             </section>
           </aside>
@@ -275,6 +297,7 @@ class JobDetailPage extends Component {
         )}
 
         {modal === 'apply' && <ApplyModal job={job} cv={user?.student?.cv} onClose={() => this.setState({ modal: null })} onDone={() => { this.setState({ modal: null, flash: 'Đã gửi đơn ứng tuyển. Theo dõi trạng thái trong “Đơn của tôi”.' }); this.load(); }} />}
+        {modal === 'report' && <ReportModal targetType="JOB" targetId={job._id} onClose={() => this.setState({ modal: null })} />}
       </div>
       </>
     );

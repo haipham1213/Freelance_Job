@@ -50,7 +50,7 @@ export const TermsPage = () => (
     ['nha-tuyen-dung', 'Với nhà tuyển dụng', [
       'Tin tuyển dụng phải ghi rõ mức lương, địa điểm và ca làm thật.',
       'Không được thu bất kỳ khoản phí, tiền cọc hay tiền đồng phục nào từ sinh viên.',
-      'Gói Premium thanh toán qua cổng VNPay và không hoàn tiền trong hệ thống.',
+      'Gói Premium thanh toán qua cổng SePay và không hoàn tiền trong hệ thống.',
     ]],
     ['bao-cao', 'Báo cáo lừa đảo và vi phạm', [
       'Gặp tin đòi đặt cọc, thu phí hoặc thông tin sai: bấm "Báo cáo tin này" ở trang chi tiết việc, chọn lý do phù hợp.',
@@ -77,7 +77,7 @@ export const PrivacyPage = () => (
       'Mỗi email đều có link hủy nhận. Hủy xong, đăng ký của bạn bị xóa.',
     ]],
     ['thanh-toan', 'Thanh toán', [
-      'Thanh toán Premium được xử lý tại cổng VNPay. UniShift không nhận và không lưu thông tin thẻ.',
+      'Thanh toán Premium được thực hiện bằng chuyển khoản ngân hàng qua app của bạn. UniShift không nhận và không lưu thông tin thẻ.',
     ]],
   ]} />
 );
