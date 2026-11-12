@@ -1,0 +1,10 @@
+server/uploads
+server/tests
+frontend/build
+frontend/ds-dist
+docs
+Claude outputs
+.agents
+.claude
+ds-bundle
+.design-sync

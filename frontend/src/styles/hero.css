@@ -205,7 +205,8 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--line); border-radiu
   @supports (animation-timeline: view()) {
     :scope { height: calc(200 * var(--vh) - 68px); view-timeline: --rv block; }
     .rv-stage { position: sticky; top: 68px; height: calc(100 * var(--vh) - 68px); min-height: 0; }
-    .rv-sky, .rv-copy, .rv-after, .rv-float { animation: linear both; animation-timeline: --rv; }
+    /* Longhand, không dùng shorthand animation: cssnano khi build đảo thứ tự, shorthand đứng sau sẽ xóa animation-timeline */
+    .rv-sky, .rv-copy, .rv-after, .rv-float { animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --rv; }
     /* Bầu trời co lại đúng bằng khung điện thoại */
     .rv-sky { animation-name: rv-shrink; animation-range: contain 0% contain 70%; }
     .rv-copy { animation-name: rv-out; animation-range: contain 0% contain 40%; }

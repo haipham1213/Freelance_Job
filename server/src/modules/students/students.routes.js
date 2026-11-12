@@ -55,8 +55,8 @@ router.put('/students/me/schedule', ...student,
     ok(res, { busySlots: req.user.student.busySlots });
   });
 
-// API-13: BR-10 PDF ≤ 5 MB; đơn cũ giữ link CV cũ (BR-13) vì file cũ không bị xóa
-router.post('/students/me/cv', ...student, rawFile(5), async (req, res) => {
+// API-13: BR-10 PDF ≤ 4 MB (Vercel giới hạn body 4,5 MB); đơn cũ giữ link CV cũ (BR-13) vì file cũ không bị xóa
+router.post('/students/me/cv', ...student, rawFile(4), async (req, res) => {
   const url = await saveUpload(req.body, 'cv', ['pdf']);
   const old = req.user.student.cv?.url;
   req.user.student.cv = { url, fileName: String(req.query.fileName || 'CV.pdf').slice(0, 120), uploadedAt: new Date() };

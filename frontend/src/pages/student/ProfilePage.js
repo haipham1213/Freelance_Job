@@ -54,7 +54,7 @@ export default class ProfilePage extends Component {
     e.target.value = '';
     if (!file) return;
     if (file.type !== 'application/pdf') return this.setState({ cvMsg: 'Chỉ nhận file PDF' });
-    if (file.size > 5 * 1024 * 1024) return this.setState({ cvMsg: 'File vượt quá 5 MB' });
+    if (file.size > 4 * 1024 * 1024) return this.setState({ cvMsg: 'File vượt quá 4 MB' });
     this.setState({ cvMsg: 'Đang tải lên…' });
     try {
       const { data } = await api.post(`/students/me/cv?fileName=${encodeURIComponent(file.name)}`, file);
@@ -91,7 +91,7 @@ export default class ProfilePage extends Component {
           </section>
           <section className="card stu-cv">
             <h2 className="h-sm">CV của bạn</h2>
-            <p className="muted small">PDF, tối đa 5 MB. Dùng lại cho mọi đơn ứng tuyển.</p>
+            <p className="muted small">PDF, tối đa 4 MB. Dùng lại cho mọi đơn ứng tuyển.</p>
             {cv?.url ? (
               <div className="stu-cv-file">
                 <FileText size={20} aria-hidden="true" />

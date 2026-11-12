@@ -1,15 +1,12 @@
 import express from 'express';
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import crypto from 'node:crypto';
 import AppError from './AppError.js';
-
-// TB-08: khi deploy trỏ UPLOAD_DIR vào đĩa bền (Render Persistent Disk…), không thì file mất mỗi lần khởi động lại
-export const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || 'uploads');
+import File from '../models/File.js';
 
 // File gửi thẳng trong body (Content-Type: application/pdf | image/*), không cần multipart
 export const rawFile = (maxMb) => express.raw({ type: () => true, limit: `${maxMb}mb` });
 
+const TYPES = { pdf: 'application/pdf', jpg: 'image/jpeg', png: 'image/png' };
 const SIGNATURES = {
   pdf: (b) => b.subarray(0, 4).toString() === '%PDF',
   jpg: (b) => b[0] === 0xff && b[1] === 0xd8,
@@ -22,15 +19,21 @@ export const saveUpload = async (buf, folder, allowed) => {
   const ext = allowed.find((e) => SIGNATURES[e](buf));
   if (!ext) throw new AppError(400, 'INVALID_FILE_TYPE', `Chỉ chấp nhận file ${allowed.join(', ').toUpperCase()}`);
   const name = `${crypto.randomBytes(16).toString('hex')}.${ext}`;
-  await fs.mkdir(path.join(UPLOAD_DIR, folder), { recursive: true });
-  await fs.writeFile(path.join(UPLOAD_DIR, folder, name), buf);
+  await File.create({ _id: `${folder}/${name}`, contentType: TYPES[ext], data: buf });
   return `/api/v1/files/${folder}/${name}`;
 };
 
 // T-11: xóa file cũ khi đã thay; bỏ qua nếu file không còn
 export const removeUpload = (url) => {
-  const m = /^\/api\/v1\/files\/(\w+)\/([a-f0-9]{32}\.\w+)$/.exec(url || '');
-  return m ? fs.rm(path.join(UPLOAD_DIR, m[1], m[2]), { force: true }) : Promise.resolve();
+  const m = /^\/api\/v1\/files\/(\w+\/[a-f0-9]{32}\.\w+)$/.exec(url || '');
+  return m ? File.deleteOne({ _id: m[1] }) : Promise.resolve();
+};
+
+// GET /api/v1/files/:folder/:name — CV đã qua requireSignedFile (cache 1 giờ); logo/ảnh danh mục công khai, cache 7 ngày
+export const serveFile = async (req, res, next) => {
+  const f = await File.findById(`${req.params.folder}/${req.params.name}`);
+  if (!f) return next();
+  res.set({ 'Content-Type': f.contentType, 'Cache-Control': req.params.folder === 'cv' ? 'private, max-age=3600' : 'public, max-age=604800', 'X-Content-Type-Options': 'nosniff' }).send(f.data);
 };
 
 // CV chỉ mở được bằng link có chữ ký, hết hạn sau 1–2 giờ. Mốc hết hạn làm tròn theo giờ để trình duyệt vẫn cache được trong giờ đó

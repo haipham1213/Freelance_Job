@@ -16,3 +16,5 @@ skills-lock.json
 
 # Tài liệu do Claude xuất ra, không đưa lên repo
 Claude outputs/
+.vercel
+.env*

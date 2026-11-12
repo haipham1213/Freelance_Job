@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
-import { UPLOAD_DIR, requireSignedFile } from './utils/files.js';
+import { requireSignedFile, serveFile } from './utils/files.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import categoryRoutes from './modules/categories/categories.routes.js';
 import jobRoutes from './modules/jobs/jobs.routes.js';
@@ -34,7 +34,7 @@ app.use(cookieParser());
 app.get('/api/v1/health', (req, res) => res.json({ success: true, data: { status: 'ok' } }));
 // Logo/ảnh danh mục công khai; CV phải có link ký (utils/files.js signFile), API ký lại mỗi lần trả URL CV
 app.use('/api/v1/files/cv', requireSignedFile);
-app.use('/api/v1/files', express.static(UPLOAD_DIR, { maxAge: '7d' }));
+app.get('/api/v1/files/:folder/:name', serveFile);
 
 app.use('/api/v1/auth', authRoutes);
 for (const r of [categoryRoutes, jobRoutes, studentRoutes, employerRoutes, applicationRoutes, notificationRoutes, paymentRoutes, reportRoutes, adminRoutes, alertRoutes])
