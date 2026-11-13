@@ -44,8 +44,8 @@
 .emp-form .emp-form-sec:first-child { padding-top: 0; box-shadow: none; }
 /* Ô ca làm: chưa chọn là khung nét đứt như ô trống để bấm, đã chọn tô neon kèm dấu tick obsidian */
 .emp-form .shift-cell { background: transparent; box-shadow: none; border: 1.5px dashed var(--stone-border); display: flex; align-items: center; justify-content: center; gap: 4px; }
-@media (hover: hover) { .emp-form .shift-cell:hover { background: var(--sand); border-color: var(--obsidian); box-shadow: none; } }
-.emp-form .shift-cell[aria-pressed='true'] { border: 1.5px solid var(--pay); }
+.emp-form .shift-cell:hover { background: var(--sand); border-color: var(--obsidian); box-shadow: none; }
+.emp-form .shift-cell[aria-pressed='true'] { border: 1.5px solid var(--primary); }
 .emp-form .shift-cell[aria-pressed='true']::before { content: ''; width: 14px; height: 14px; flex-shrink: 0; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 .emp-premium-head { max-width: 760px; margin: 0 auto 16px; text-align: center; align-items: center; }
