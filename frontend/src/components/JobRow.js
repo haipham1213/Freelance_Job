@@ -1,22 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Heart, Hourglass, MapPin, Moon, Sun, Sunset, Users } from 'lucide-react';
+import { Clock, Heart, Moon, Sun, Sunset } from 'lucide-react';
 import { categoryIcon } from './Illustrations';
-import { describeShifts, shiftParts, salary, timeAgo, DAYS, PERIODS } from '../utils/format';
+import { describeShifts, salary, timeAgo, DAYS, PERIODS } from '../utils/format';
 import { api } from '../api';
 
 // "Ca làm": có ô buổi thì ghi buổi + khung giờ lấy từ ghi chú ("Tối T2–T6, 18h–22h"), không lặp lại ngày;
 // không có ô buổi thì dùng nguyên ghi chú của nhà tuyển dụng
-const HOURS = /\d{1,2}h(\d{2})?\s*[–-]\s*\d{1,2}h(\d{2})?/;
+export const HOURS = /\d{1,2}h(\d{2})?\s*[–-]\s*\d{1,2}h(\d{2})?/;
+export const hoursOf = (j) => j.schedule?.match(HOURS)?.[0];
 export const shiftText = (j) => {
   const d = describeShifts(j.shifts);
   if (!d) return j.schedule || '';
-  const h = j.schedule?.match(HOURS)?.[0];
+  const h = hoursOf(j);
   return h ? `${d}, ${h}` : d;
 };
-
-// Bấm kèm Cmd/Ctrl/Shift hoặc chuột giữa thì để trình duyệt mở tab mới như link thường
-export const plainClick = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
 // Nhãn mức hợp lịch, chỉ có khi đang lọc theo lịch học (API trả fit/shiftCount)
 export const FitBadge = ({ job: j }) => (j.fit === undefined ? null
@@ -62,11 +60,13 @@ export const MiniWeek = ({ shifts, busy }) => {
 };
 // Icon theo buổi: sáng mặt trời, chiều hoàng hôn, tối mặt trăng — nhìn icon là biết ca sáng hay tối
 export const PERIOD_ICON = [Sun, Sunset, Moon];
-const DAY = 864e5;
 
-// Tin đã lưu của sinh viên (để tô tim trên thẻ) và lưu / bỏ lưu một tin
-export const loadSavedIds = () => api.get('/students/me/saved-jobs').then((r) => new Set(r.data.map((j) => j._id))).catch(() => new Set());
-// Lưu / bỏ lưu cho component có state.savedIds: đổi ngay trên giao diện rồi mới gọi API, lỗi thì trả lại như cũ
+// Tin đã lưu của sinh viên (để tô tim trên thẻ). Lỗi tải thì trả Set rỗng có cờ unknown = true: trang biết là "chưa rõ"
+// (không ghi đè trạng thái đang có) thay vì coi như người dùng chưa lưu tin nào
+export const loadSavedIds = () => api.get('/students/me/saved-jobs').then((r) => new Set(r.data.map((j) => j._id)))
+  .catch(() => Object.assign(new Set(), { unknown: true }));
+// Lưu / bỏ lưu cho component có state.savedIds: đổi ngay trên giao diện rồi mới gọi API; lỗi thì trả lại như cũ
+// và ghi state.saveError (trang hiển thị bằng <Alert>)
 export const saveToggler = (comp) => async (id, saved) => {
   const flip = (on) => comp.setState((s) => {
     const savedIds = new Set(s.savedIds);
@@ -74,73 +74,28 @@ export const saveToggler = (comp) => async (id, saved) => {
     return { savedIds };
   });
   flip(!saved);
-  await (saved ? api.del : api.put)(`/students/me/saved-jobs/${id}`).catch(() => flip(saved));
-};
-
-// Thẻ việc (trang Tìm việc, việc tương tự). Đọc từ trên xuống theo thứ tự sinh viên quyết định: việc gì ở đâu, lương bao nhiêu,
-// làm ngày nào buổi nào (dải 7 ngày, ngày có ca tô xanh), rồi các tín hiệu phụ trên một dòng mảnh. Cả thẻ bấm được nhờ link tên việc
-// phủ toàn thẻ (::after), nút tim nằm trên lớp đó. Lưu tin: sinh viên truyền onSave + saved; khách truyền saveHref; nhà tuyển dụng không truyền gì.
-const JobRow = ({ job: j, category, on, onClick, badge = true, saved, onSave, saveHref }) => {
-  const Icon = categoryIcon(category);
-  const left = j.slots - (j.acceptedCount || 0);
-  const daysLeft = Math.ceil((new Date(j.expiresAt) - Date.now()) / DAY);
-  const isNew = Date.now() - new Date(j.createdAt) < 2 * DAY;
-  const featured = badge && j.isFeatured;
-  const workDays = new Set((j.shifts || []).map((i) => Math.floor(i / 3)));
-  return (
-    <article className={`jx-row ${on ? 'on' : ''}`}>
-      <span className="jx-logo">
-        {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="48" height="48" loading="lazy" /> : <Icon size={22} aria-hidden="true" />}
-      </span>
-      <div className="jr-head">
-        <h3 className="jr-title">
-          <Link to={`/jobs/${j._id}`} className="jr-link" aria-current={on ? 'true' : undefined} onClick={onClick}>{j.title}</Link>
-        </h3>
-        <p className="jr-company">
-          <span>{j.companySnapshot?.name}</span>
-          <span className="jr-where"><MapPin size={13} aria-hidden="true" />{j.district || j.city}</span>
-        </p>
-      </div>
-      {onSave ? (
-        <button type="button" className={`jr-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={saved ? 'Bỏ lưu tin' : 'Lưu tin'} onClick={() => onSave(j._id, saved)}>
-          <Heart size={18} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
-        </button>
-      ) : saveHref && (
-        <Link to={saveHref} className="jr-save" aria-label="Đăng nhập để lưu tin"><Heart size={18} aria-hidden="true" /></Link>
-      )}
-      <p className="jr-salary">{salary(j)}{featured && <span className="jt-badge">Nổi bật</span>}{isNew && <span className="jr-new">Mới</span>}</p>
-      {j.shifts?.length > 0 ? (
-        <div className="jr-sched">
-          <ol className="jr-days" aria-hidden="true">{DAYS.map((d, i) => <li key={d} className={workDays.has(i) ? 'on' : ''}>{d}</li>)}</ol>
-          <span className="jr-periods" aria-hidden="true">
-            {shiftParts(j.shifts).map((p) => { const PIcon = PERIOD_ICON[p.period]; return <span key={p.period} className={`jr-p${p.period}`}><PIcon size={15} />{p.label}</span>; })}
-          </span>
-          <span className="sr-only">Ca làm: {shiftText(j)}</span>
-        </div>
-      ) : <p className="jr-sched jr-flex"><Clock size={15} aria-hidden="true" />{j.schedule || 'Giờ linh hoạt'}</p>}
-      <div className="jr-foot">
-        <FitBadge job={j} />
-        <span><Users size={14} aria-hidden="true" />{j.applicationCount ? `${j.applicationCount} ứng viên` : 'Ứng tuyển đầu tiên'}</span>
-        <span>{left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'}</span>
-        <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={14} aria-hidden="true" />{daysLeft <= 0 ? 'Hết hạn hôm nay' : `Còn ${daysLeft} ngày`}</span>
-      </div>
-    </article>
-  );
+  comp.setState({ saveError: '' });
+  try {
+    await (saved ? api.del : api.put)(`/students/me/saved-jobs/${id}`);
+  } catch (e) {
+    flip(saved);
+    comp.setState({ saveError: e.message || 'Không lưu được tin này. Thử lại sau.' });
+  }
 };
 
 // Thẻ việc dạng lưới (trang Tìm việc): logo + tên + "công ty • số ứng viên" + tim; chip ngành / hình thức / nơi làm;
 // 2 dòng mô tả; vạch mảnh; lương lớn bên trái, thời gian đăng bên phải. Cả thẻ bấm được nhờ link tên việc phủ thẻ
-export const JobCard = ({ job: j, category, saved, onSave, saveHref }) => {
+export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
   const Icon = categoryIcon(category);
   const [amount, unit] = salary(j).split('/');
   return (
-    <article className="jc">
+    <article className={`jc ${on ? 'on' : ''}`}>
       <div className="jc-head">
         <span className="jc-logo">
           {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="48" height="48" loading="lazy" /> : <Icon size={22} aria-hidden="true" />}
         </span>
         <div className="jc-title-wrap">
-          <h3 className="jc-title"><Link to={`/jobs/${j._id}`} className="jr-link">{j.title}</Link></h3>
+          <h3 className="jc-title"><Link to={`/jobs/${j._id}`} state={{ from: window.location.pathname }} className="jr-link" aria-current={on ? 'true' : undefined}>{j.title}</Link></h3>
           <p className="jc-meta">
             <span className="jc-company">{j.companySnapshot?.name}</span>
             <span aria-hidden="true">•</span>
@@ -148,17 +103,17 @@ export const JobCard = ({ job: j, category, saved, onSave, saveHref }) => {
           </p>
         </div>
         {onSave ? (
-          <button type="button" className={`jc-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={saved ? 'Bỏ lưu tin' : 'Lưu tin'} onClick={() => onSave(j._id, saved)}>
+          <button type="button" className={`jc-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={`Lưu tin: ${j.title}`} onClick={() => onSave(j._id, saved)}>
             <Heart size={20} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
           </button>
         ) : saveHref && (
-          <Link to={saveHref} className="jc-save" aria-label="Đăng nhập để lưu tin"><Heart size={20} aria-hidden="true" /></Link>
+          <Link to={saveHref} className="jc-save" aria-label={`Đăng nhập để lưu tin: ${j.title}`}><Heart size={20} aria-hidden="true" /></Link>
         )}
       </div>
       <ul className="jc-tags">
         {j.isFeatured && <li className="jc-tag t-gold">Nổi bật</li>}
         {category && <li className="jc-tag t-plum">{category}</li>}
-        <li className="jc-tag t-mint">{j.shifts?.length ? describeShifts(j.shifts).split(';')[0] : 'Giờ linh hoạt'}</li>
+        <li className="jc-tag t-mint t-shift">{j.shifts?.length ? describeShifts(j.shifts) : 'Giờ linh hoạt'}</li>
         {j.applicationCount > 0 && <li className="jc-tag t-peach">{j.applicationCount} ứng viên</li>}
         {j.fit !== undefined && j.shiftCount > 0 && <li className="jc-tag t-ink">Hợp {j.fit}/{j.shiftCount} ca</li>}
       </ul>
@@ -170,5 +125,3 @@ export const JobCard = ({ job: j, category, saved, onSave, saveHref }) => {
     </article>
   );
 };
-
-export default JobRow;

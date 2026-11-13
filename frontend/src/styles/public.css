@@ -263,3 +263,61 @@
 }
 
 }
+
+/* Rà soát UI/UX 13/11: ErrorPage focus vào h1, trang nhà tuyển dụng, liên kết ngoài */
+.pub-error-code:focus { outline: none; }
+.pub-co-site { max-width: 100%; }
+.pub-co-site span { overflow-wrap: anywhere; }
+.pub-open-all { margin-top: 24px; }
+.pub-open-grid { list-style: none; padding: 0; margin: 40px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 20px; }
+.pub-open-grid > li { display: grid; min-width: 0; }
+.pub-empty-card { margin-top: 24px; }
+.pub-muted-gap { margin-top: 16px; }
+.pub-voice-cap { flex-wrap: nowrap; }
+.pub-review-err { margin-top: 16px; }
+@media (max-width: 640px) { .pub-open-grid { margin-top: 24px; } }
+.pub-logo-lg .avatar { width: 100%; height: 100%; border-radius: 0; font-size: inherit; }
+
+/* Rà soát UI/UX 13/11: thông báo là <ul><li>, nội dung trong button dùng span */
+ul.pub-notifs { list-style: none; margin: 0; padding: 0; }
+.pub-notif-title, .pub-notif-msg { display: block; }
+.pub-notif.static { cursor: default; }
+.pub-notif.static:hover { background: none; }
+.jv-title, .jv-company-name, .jd-text, .jv-bullets li, .jv-pills li, .jv-dl dd, .jc-title, .jc-company { overflow-wrap: anywhere; }
+
+/* Navbar: dropdown chuông / tài khoản, mục menu mobile */
+.dd-head { padding: 4px 12px 8px; }
+.dd-pad { padding: 12px; }
+.dd-wide { width: 260px; }
+.dropdown:focus { outline: none; }
+.menu-item-unread .small { font-weight: 700; }
+.menu-danger { color: var(--alert); }
+a.menu-item { box-sizing: border-box; }
+.nav-m-login, .nav-m-emp { display: none; }
+@media (max-width: 480px) { .nav-m-login { display: block; } }
+@media (max-width: 640px) { .nav-m-emp { display: block; } }
+
+/* Rà soát UI/UX 13/11: form đăng nhập / đăng ký */
+.pw-toggle { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 6px; padding: 6px 0; border: 0; background: none; color: var(--link); font-size: 14px; cursor: pointer; }
+.pw-toggle:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pub-role-set { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.pub-role-set legend { grid-column: 1 / -1; padding: 0; margin-bottom: 8px; }
+.pub-role-set .radio-row { margin: 0; }
+.pub-auth-back { justify-content: center; }
+
+/* Rà soát UI/UX 13/11: trang chi tiết việc */
+@media (min-width: 1241px) { .jv-list { order: -1; } }
+.jd-inline { display: inline-flex; }
+.jd-flash { position: relative; margin-bottom: 14px; }
+.jd-flash:focus { outline: none; }
+.jd-flash:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 12px; }
+.jd-flash .alert { padding-right: 44px; }
+.jd-flash-x { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; border: 0; background: none; color: inherit; cursor: pointer; border-radius: 8px; }
+.jd-copy-url { width: 100%; font-size: 13px; }
+.jd-sk-back { width: 120px; margin-bottom: 20px; }
+.jd-sk-title { width: 55%; height: 34px; }
+.jd-sk-first { margin-top: 36px; }
+.jd-sk-next { margin-top: 14px; }
+.sk-w35 { width: 35%; } .sk-w40 { width: 40%; } .sk-w55 { width: 55%; } .sk-w60 { width: 60%; } .sk-w70 { width: 70%; }
+.sk-w90 { width: 90%; } .sk-w95 { width: 95%; } .sk-w100 { width: 100%; }
+.jv-premium { flex-shrink: 0; }

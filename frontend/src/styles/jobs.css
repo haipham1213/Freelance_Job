@@ -215,3 +215,20 @@
 }
 
 }
+
+/* Rà soát UI/UX 13/11: thẻ việc hiện đủ buổi (chip xuống dòng thay vì bị cắt), lưới tuần có ký tự ngoài màu */
+.jc-tags { flex-wrap: wrap; overflow: visible; }
+.jc-tag.t-shift { flex-shrink: 1; min-width: 0; white-space: normal; text-overflow: clip; overflow: visible; }
+.jx-mini-cell { display: grid; place-items: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--ink); }
+.jx-mini-cell.w::after { content: 'L'; }
+.jx-mini-cell.h::after { content: 'H'; }
+.jx-mini-cell.x { color: #fff; }
+.jx-mini-cell.x::after { content: '!'; }
+.jx-mini figcaption .jx-mini-cell { font-size: 9px; }
+.jx-pay-err { grid-column: 1 / -1; margin: 0; color: var(--alert); font-size: 13px; }
+.jx-empty-action { margin-top: 12px; }
+.jx-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.jx-sec-head .jx-sec-title { margin: 0; }
+.jx-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 20px; }
+.jx-skel .sk-card { height: 220px; }
+.jx-flash-wrap { margin-bottom: 12px; }
