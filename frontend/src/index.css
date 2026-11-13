@@ -467,3 +467,7 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--line); border-radiu
 .skip-link { position: absolute; left: 8px; top: -100px; z-index: 200; background: var(--ink); color: var(--white); padding: 12px 16px; border-radius: 8px; font-weight: 600; }
 .skip-link:focus { top: 8px; }
 main:focus { outline: none; }
+/* Nút chọn file: input ẩn bằng sr-only (vẫn focus được bằng bàn phím), viền focus hiện trên nhãn */
+.file-pick { position: relative; cursor: pointer; }
+.file-pick:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+.file-pick.is-disabled { opacity: .6; cursor: not-allowed; }

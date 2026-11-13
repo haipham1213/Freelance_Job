@@ -248,6 +248,15 @@ export class ConfirmModal extends Component {
   }
 }
 
+// Cảnh báo khi đóng tab/tải lại lúc form chưa lưu: <LeaveGuard when={this.state.dirty} />
+// (BrowserRouter không chặn được điều hướng nội bộ; chỉ bắt đóng tab / reload)
+export class LeaveGuard extends Component {
+  onUnload = (e) => { if (this.props.when) { e.preventDefault(); e.returnValue = ''; } };
+  componentDidMount() { window.addEventListener('beforeunload', this.onUnload); }
+  componentWillUnmount() { window.removeEventListener('beforeunload', this.onUnload); }
+  render() { return null; }
+}
+
 // Modal nhập lý do (khóa user, ẩn tin, từ chối đơn…)
 export class ReasonModal extends Component {
   state = { reason: '', error: '', busy: false };
