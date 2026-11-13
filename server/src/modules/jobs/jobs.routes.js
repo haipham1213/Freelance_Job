@@ -59,19 +59,26 @@ router.get('/jobs', async (req, res) => {
   if (q.salaryType) match.salaryType = q.salaryType;
   if (q.salaryMin) match.salaryMax = { $gte: Number(q.salaryMin) };
   if (q.salaryMax) match.salaryMin = { $lte: Number(q.salaryMax) };
-  // Lọc theo lịch học (busy = các ô buổi bận): giữ việc còn ít nhất 1 ca rảnh hoặc không có ca cố định (linh hoạt);
-  // xếp việc hợp nhiều ca lên trước, việc linh hoạt xuống sau. fit/shiftCount trả về để hiện "Hợp 3/5 ca"
+  // Lọc theo lịch học (busy = các ô buổi bận): giữ việc không có ca cố định (linh hoạt) hoặc có ca rảnh rơi vào ít nhất
+  // minDays ngày khác nhau (mặc định 1 = còn ít nhất 1 ca rảnh); tin chỉ có ca trong ít ngày hơn thì cần rảnh đủ mọi ngày đó.
+  // Xếp việc hợp nhiều ca lên trước, việc linh hoạt xuống sau. fit/shiftCount/fitDays trả về để hiện "Hợp 3/5 ca"
   const busy = q.busy !== undefined ? slotList(q.busy) : null;
+  const minDays = Math.min(Math.max(parseInt(q.minDays, 10) || 1, 1), 7);
+  const days = (cells) => ({ $size: { $setUnion: [{ $map: { input: cells, in: { $floor: { $divide: ['$$this', 3] } } } }, []] } });
   const bySchedule = busy ? [
-    { $addFields: { shiftCount: { $size: { $ifNull: ['$shifts', []] } }, fit: { $size: { $setDifference: [{ $ifNull: ['$shifts', []] }, busy] } } } },
-    { $match: { $or: [{ shiftCount: 0 }, { fit: { $gt: 0 } }] } },
+    { $addFields: { free: { $setDifference: [{ $ifNull: ['$shifts', []] }, busy] }, shiftCount: { $size: { $ifNull: ['$shifts', []] } } } },
+    { $addFields: { fit: { $size: '$free' }, fitDays: days('$free'), jobDays: days({ $ifNull: ['$shifts', []] }) } },
+    { $match: { $or: [{ shiftCount: 0 }, { $expr: { $and: [{ $gt: ['$fit', 0] }, { $gte: ['$fitDays', { $min: [minDays, '$jobDays'] }] }] } }] } },
     { $addFields: { flexible: { $eq: ['$shiftCount', 0] } } },
+    { $project: { free: 0, jobDays: 0 } },
   ] : [];
   const [r] = await Job.aggregate([
     { $match: match },
     ...bySchedule,
     { $addFields: { isFeatured: { $gt: ['$featuredUntil', new Date()] } } },
     { $sort: busy ? { flexible: 1, fit: -1, isFeatured: -1, createdAt: -1 } : { isFeatured: -1, createdAt: -1 } },
+    // Bỏ mô tả đầy đủ cho nhẹ, chỉ gửi đoạn đầu để thẻ việc hiện 2 dòng tóm tắt
+    { $addFields: { excerpt: { $substrCP: [{ $ifNull: ['$description', ''] }, 0, 160] } } },
     { $project: { searchText: 0, description: 0, requirements: 0 } },
     { $facet: { items: [{ $skip: skip }, { $limit: limit }], total: [{ $count: 'n' }] } },
   ]);
@@ -104,7 +111,7 @@ router.get('/jobs/:id', optionalAuth, async (req, res) => {
   ]);
   ok(res, {
     job: { ...job.toJSON(), isFeatured: job.featuredUntil > new Date(), remainingSlots: job.slots - job.acceptedCount },
-    employer: { _id: employer._id, fullName: employer.fullName, company: publicCompany(employer), ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, isPremium: employer.isPremium() },
+    employer: { _id: employer._id, fullName: employer.fullName, company: publicCompany(employer), ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, isPremium: employer.isPremium(), createdAt: employer.createdAt },
     category,
     myApplication: application && { _id: application._id, status: application.status },
     isSaved: !!req.user?.student?.savedJobIds?.some((j) => j.equals(job._id)),

@@ -211,7 +211,7 @@ class HomePage extends Component {
     if (u?.role !== 'STUDENT') return this.setState({ forYou: null, savedIds: new Set() });
     loadSavedIds().then((savedIds) => this.setState({ savedIds }));
     const busy = u.student?.busySlots || [];
-    api.get(`/jobs${qs({ limit: 4, busy: busy.length ? busy.join(',') : undefined })}`)
+    api.get(`/jobs${qs({ limit: 4, busy: busy.length ? busy.join(',') : undefined, minDays: busy.length ? 3 : undefined })}`)
       .then((jb) => this.setState({ forYou: { jobs: jb.data } })).catch(() => {});
   };
 

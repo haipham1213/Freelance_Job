@@ -34,11 +34,7 @@
 .stu-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .stu-saved { position: relative; }
-.stu-saved .jt { height: 100%; padding-right: 52px; }
-.stu-saved.off .jt { opacity: .6; }
-.stu-saved.off .jt-time { visibility: hidden; }
-.stu-unsave { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--obsidian); border-color: #d0d3d3; cursor: pointer; }
-.stu-unsave:hover { color: var(--alert); border-color: var(--alert); }
+.stu-saved.off .jc { opacity: .6; }
 .stu-off { position: absolute; right: 12px; bottom: 12px; }
 
 /* Hồ sơ */

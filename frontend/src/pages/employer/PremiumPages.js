@@ -148,14 +148,18 @@ class PaymentHistory extends Component {
     if (!items) return <Spinner />;
     return (
       <div className="container page stack-lg">
-        <div className="stack">
-          <h1 className="display">Lịch sử giao dịch</h1>
-          <p className="lede muted">Các lần mua gói Premium của bạn.</p>
-        </div>
+        <header className="emp-head">
+          <div>
+            <span className="eyebrow eyebrow-dot">Nhà tuyển dụng</span>
+            <h1 className="display">Lịch sử giao dịch</h1>
+            <p className="muted">Các lần mua gói Premium của bạn.</p>
+          </div>
+          <Link to="/employer/premium" className="btn btn-ghost">Gói Premium</Link>
+        </header>
         {items.length === 0 ? (
-          <Empty title="Chưa có giao dịch nào"><Link to="/employer/premium" className="btn">Xem gói Premium</Link></Empty>
+          <div className="card"><Empty title="Chưa có giao dịch nào"><Link to="/employer/premium" className="btn">Xem gói Premium</Link></Empty></div>
         ) : (
-          <table className="table">
+          <div className="card table-wrap"><table className="table">
             <thead><tr><th>Ngày</th><th>Gói</th><th>Số tiền</th><th>Mã GD</th><th>Trạng thái</th><th /></tr></thead>
             <tbody>
               {items.map((p) => (
@@ -169,7 +173,7 @@ class PaymentHistory extends Component {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
         <Pagination meta={meta} onPage={this.load} />
       </div>

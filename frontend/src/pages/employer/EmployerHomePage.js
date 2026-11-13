@@ -24,7 +24,7 @@ export default class EmployerHomePage extends Component {
     ];
     return (
       <div className="container page stack-lg">
-        <header className="emp-head" style={{ marginBottom: 0 }}>
+        <header className="emp-head">
           <div>
             <span className="eyebrow eyebrow-dot">Nhà tuyển dụng</span>
             <h1 className="display">{hello}, {user.fullName.trim().split(' ').pop()}</h1>

@@ -1,17 +1,16 @@
 import React, { Component } from 'react';
-import { ArrowRight, Heart } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { Spinner, Empty } from '../../components/ui';
-import JobTile from '../../components/JobTile';
+import { JobCard } from '../../components/JobRow';
 
 // SCR-S07 / FR-SAV-01
 export default class SavedJobsPage extends Component {
   state = { jobs: null };
   componentDidMount() { this.load(); }
   load = async () => this.setState({ jobs: (await api.get('/students/me/saved-jobs')).data });
-  remove = async (e, id) => {
-    e.preventDefault();
+  remove = async (id) => {
     await api.del(`/students/me/saved-jobs/${id}`);
     this.load();
   };
@@ -31,15 +30,14 @@ export default class SavedJobsPage extends Component {
           {!jobs ? <Spinner /> : !jobs.length ? (
             <div className="card"><Empty title="Chưa lưu việc nào"><Link to="/jobs" className="accent ico-row" style={{ justifyContent: 'center' }}>Khám phá việc làm <ArrowRight size={16} /></Link></Empty></div>
           ) : (
-            <div className="jobs-grid">
+            <ul className="jx-grid">
               {jobs.map((j) => (
-                <div key={j._id} className={`stu-saved ${j.isAvailable ? '' : 'off'}`}>
-                  <JobTile job={j} />
-                  <button className="stu-unsave" onClick={(e) => this.remove(e, j._id)} aria-label={`Bỏ lưu ${j.title}`} title="Bỏ lưu"><Heart size={16} fill="currentColor" /></button>
+                <li key={j._id} className={`stu-saved ${j.isAvailable ? '' : 'off'}`}>
+                  <JobCard job={j} saved onSave={this.remove} />
                   {!j.isAvailable && <span className="chip chip-dark tiny stu-off">Không còn tuyển</span>}
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>

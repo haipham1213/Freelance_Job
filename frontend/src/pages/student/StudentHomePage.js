@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, AppBadge, Empty } from '../../components/ui';
-import JobTile from '../../components/JobTile';
+import { JobCard } from '../../components/JobRow';
 import { timeAgo } from '../../utils/format';
 
 const greeting = () => {
@@ -58,7 +58,7 @@ export default class StudentHomePage extends Component {
               <h2 className="h-lg">Việc làm phù hợp</h2>
               <Link to="/jobs" className="accent ico-row small">Xem tất cả <ArrowRight size={16} aria-hidden="true" /></Link>
             </div>
-            {!jobs ? <Spinner /> : <div className="stu-jobs">{jobs.map((j) => <JobTile key={j._id} job={j} badge />)}</div>}
+            {!jobs ? <Spinner /> : <div className="stu-jobs">{jobs.map((j) => <JobCard key={j._id} job={j} />)}</div>}
           </section>
 
           <aside className="stack">

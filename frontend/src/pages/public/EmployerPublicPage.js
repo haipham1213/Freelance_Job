@@ -3,7 +3,7 @@ import { Flag, Globe, MapPin } from 'lucide-react';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, Stars, Empty, Avatar, Pagination } from '../../components/ui';
-import JobTile from '../../components/JobTile';
+import { JobCard } from '../../components/JobRow';
 import ReportModal from '../../components/ReportModal';
 import ErrorPage from './ErrorPage';
 import { date, timeAgo } from '../../utils/format';
@@ -68,7 +68,7 @@ class EmployerPublicPage extends Component {
           <span className="eyebrow">Việc làm</span>
           <h2 id="pub-open" className="display">Đang tuyển ({openJobs.length})</h2>
           {openJobs.length ? (
-            <div className="jobs-grid">{openJobs.map((j) => <JobTile key={j._id} job={j} badge />)}</div>
+            <div className="jobs-grid">{openJobs.map((j) => <JobCard key={j._id} job={j} />)}</div>
           ) : <div className="card" style={{ marginTop: 24 }}><Empty title="Chưa có tin đang tuyển" /></div>}
         </section>
 

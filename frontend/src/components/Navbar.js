@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { ArrowRight, Bell as BellIcon, ChevronRight, Menu } from 'lucide-react';
+import { Bell as BellIcon, ChevronRight, Menu } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { api } from '../api';
@@ -119,11 +119,6 @@ class Navbar extends Component {
     const links = LINKS[user?.role || 'GUEST'] || LINKS.GUEST;
     return (
       <>
-      {!user && this.props.location.pathname !== '/' && (
-        <div className="promo-bar">
-          <Link to="/jobs" className="ico-row" style={{ justifyContent: 'center' }}>Mới: Việc làm thêm dịp Tết, lương cao gấp đôi <ArrowRight size={16} /></Link>
-        </div>
-      )}
       <header className="nav">
         <div className="container nav-inner">
           <Link to="/" className="logo" aria-label="UniShift, về trang chủ"><span className="logo-mark" aria-hidden="true" /><span>Uni<span className="logo-shift">Shift</span></span></Link>

@@ -107,6 +107,14 @@ test('business rule sau rà soát', async (t) => {
     // busy rỗng = chưa bận buổi nào: mọi việc đều hiện
     assert.equal((await api('GET', '/jobs?busy=')).body.data.length, 4);
 
+    // minDays=3: ca rảnh phải rơi vào ≥ 3 ngày; tin chỉ có ca trong 2 ngày (cuối tuần) rảnh đủ cả 2 thì vẫn giữ
+    const partial = await post('Phụ bếp sáng T2, T3 và chiều cuối tuần', [0, 3, 16, 19]); // rảnh T7, CN: 2/4 ngày
+    assert.ok((await api('GET', `/jobs?busy=${busy}`)).body.data.some((j) => j._id === partial._id), 'mặc định: còn 1 ca rảnh là hiện');
+    const r3 = (await api('GET', `/jobs?busy=${busy}&minDays=3`)).body.data;
+    assert.deepEqual(r3.map((j) => j._id), [evenings._id, weekend._id, flexible._id], 'rảnh 4 ngày, cuối tuần đủ 2/2 ngày, linh hoạt');
+    assert.equal(r3[0].fitDays, 4);
+    await Job.updateOne({ _id: partial._id }, { status: 'CLOSED' });
+
     // Sinh viên lưu lịch: ô sai bị bỏ, trùng bị gộp
     const saved = await api('PUT', '/students/me/schedule', { busySlots: [3, 0, 3] }, 'sv1');
     assert.deepEqual(saved.body.data.busySlots, [0, 3]);

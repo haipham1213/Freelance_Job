@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
-import { CalendarDays, MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
+import { CalendarDays, Check, MapPin, Search, SlidersHorizontal, Sparkle, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { Spinner, Empty, Pagination, Dropdown, ShiftGrid } from '../../components/ui';
-import JobRow, { loadSavedIds, saveToggler, readWeek, writeWeek } from '../../components/JobRow';
+import { JobCard, loadSavedIds, saveToggler, readWeek, writeWeek } from '../../components/JobRow';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 import { money, describeShifts, SALARY_TYPE } from '../../utils/format';
@@ -19,6 +19,7 @@ const Choices = ({ name, value, options, onPick }) => (
     {[{ value: '', label: 'Tất cả' }, ...options].map((o) => (
       <label key={o.value || 'all'} className={`jx-choice ${value === o.value ? 'on' : ''}`}>
         <input type="radio" name={name} value={o.value} checked={value === o.value} onChange={() => onPick(o.value)} />
+        <span className="jx-box" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
         <span className="jx-choice-label">{o.label}</span>
         {o.count !== undefined && <span className="jx-choice-count">{o.count}</span>}
       </label>
@@ -69,7 +70,8 @@ class JobsPage extends Component {
     const p = this.params();
     // Giữ danh sách cũ (làm mờ) trong lúc tải để trang không giật
     this.setState({ loading: true, form: p });
-    const r = await api.get(`/jobs${qs({ ...p, limit: 10 })}`);
+    // Lọc theo lịch học: chỉ hiện việc có ca rảnh rơi vào ít nhất 3 ngày trong tuần
+    const r = await api.get(`/jobs${qs({ ...p, limit: 12, minDays: p.busy ? 3 : undefined })}`);
     this.setState({ jobs: r.data, meta: r.meta, loading: false });
   };
 
@@ -90,6 +92,8 @@ class JobsPage extends Component {
       this.context.reloadUser?.();
     }
   };
+
+  clearAll = () => { this.setState({ week: [] }); this.props.setSearchParams({}); };
 
   clearWeek = () => { this.setState({ week: [] }); this.apply({ busy: '' }); };
 
@@ -123,7 +127,7 @@ class JobsPage extends Component {
       <>
         <section className="jx-band">
           <div className="container">
-            <h1 className="display jx-title">Tìm việc part-time</h1>
+            <h1 className="display jx-title">Tìm việc part-time hợp lịch học<Sparkle className="jx-spark" size={40} fill="currentColor" aria-hidden="true" /></h1>
             <p className="jx-sub">Lương và ca làm ghi rõ trên từng tin. Tô lịch học để chỉ thấy việc không trùng giờ.</p>
             <form className="hx-search jx-search" onSubmit={(e) => { e.preventDefault(); this.apply({ q: form.q }); }} role="search">
               <label className="hx-field hx-q">
@@ -139,6 +143,10 @@ class JobsPage extends Component {
         </section>
 
         <div className="container page jx-page">
+          <div className="jx-summary-head">
+            <h2 className="jx-h2">{form.busy ? 'Việc hợp lịch học của bạn' : 'Việc làm gợi ý'}</h2>
+            <span className="jx-count" aria-live="polite">{meta ? `${meta.total} việc` : 'Đang tìm…'}</span>
+          </div>
           <div className="jx-layout">
             {/* Cột trái: bộ lọc. Điện thoại: ẩn sau nút "Bộ lọc" */}
             <button type="button" className="btn btn-ghost jx-filter-toggle" aria-expanded={filtersOpen} aria-controls="jx-side"
@@ -147,8 +155,10 @@ class JobsPage extends Component {
             </button>
             <aside id="jx-side" className={`jx-side ${filtersOpen ? 'open' : ''}`} aria-label="Bộ lọc">
               <section id="lich-hoc" className="jx-sec">
-                <h2 className="jx-sec-title"><CalendarDays size={18} aria-hidden="true" />Lịch học</h2>
-                <p className="jx-sec-note">{form.busy ? `Đang lọc: bận ${describeShifts(slots(form.busy))}` : 'Tô các buổi có tiết học, chỉ hiện việc còn ca rảnh.'}</p>
+                <h2 className="jx-sec-title"><CalendarDays size={18} aria-hidden="true" />Lịch học
+                  {chips.length > 0 && <button type="button" className="jx-clear-all" onClick={this.clearAll}>Xóa tất cả</button>}
+                </h2>
+                <p className="jx-sec-note">{form.busy ? `Đang lọc: bận ${describeShifts(slots(form.busy))}` : 'Tô các buổi có tiết học, chỉ hiện việc có ca rảnh ít nhất 3 ngày trong tuần.'}</p>
                 <ShiftGrid tone="busy" value={week} onChange={(v) => this.setState({ week: v })} label="Lịch học trong tuần" />
                 <div className="jx-sec-actions">
                   <button type="button" className="btn btn-sm" onClick={this.applyWeek} disabled={!week.length || !weekDirty}>Lọc theo lịch</button>
@@ -190,25 +200,26 @@ class JobsPage extends Component {
 
             {/* Cột phải: số kết quả, chip bộ lọc đang bật, danh sách tin */}
             <div className="jx-main">
+              {chips.length > 0 && (
               <div className="jx-summary">
-                <h2 className="h-lg" aria-live="polite">{meta ? `${meta.total} việc ${form.busy ? 'hợp lịch học của bạn' : 'phù hợp'}` : 'Đang tìm…'}</h2>
                 {chips.length > 0 && (
                   <ul className="jx-chips" aria-label="Bộ lọc đang bật">
                     {chips.map(([k, label]) => (
                       <li key={k}><button type="button" onClick={() => this.apply({ [k]: '' })} aria-label={`Bỏ lọc ${label}`}>{label}<X size={14} aria-hidden="true" /></button></li>
                     ))}
-                    <li><button type="button" className="jx-clear" onClick={() => { this.setState({ week: [] }); this.props.setSearchParams({}); }}>Xóa tất cả</button></li>
+                    <li><button type="button" className="jx-clear" onClick={this.clearAll}>Xóa tất cả</button></li>
                   </ul>
                 )}
               </div>
+              )}
 
               {!jobs ? <Spinner /> : !jobs.length ? (
                 <div className="panel"><Empty title="Không có việc phù hợp">Bỏ bớt một bộ lọc bên trái, hoặc thử từ khóa ngắn hơn như “phục vụ”.</Empty></div>
               ) : (
-                <ol className={`jx-list ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
+                <ol className={`jx-grid ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
                   {jobs.map((j) => (
                     <li key={j._id}>
-                      <JobRow job={j} category={catName[j.categoryId]} saved={savedIds.has(j._id)}
+                      <JobCard job={j} category={catName[j.categoryId]} saved={savedIds.has(j._id)}
                         onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined} saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${j._id}`)}`} />
                     </li>
                   ))}

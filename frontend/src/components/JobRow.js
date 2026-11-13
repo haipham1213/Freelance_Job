@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Heart, Hourglass, MapPin, Moon, Sun, Sunset, Users } from 'lucide-react';
 import { categoryIcon } from './Illustrations';
-import { describeShifts, shiftParts, salary, DAYS, PERIODS } from '../utils/format';
+import { describeShifts, shiftParts, salary, timeAgo, DAYS, PERIODS } from '../utils/format';
 import { api } from '../api';
 
 // "Ca làm": có ô buổi thì ghi buổi + khung giờ lấy từ ghi chú ("Tối T2–T6, 18h–22h"), không lặp lại ngày;
@@ -123,6 +123,49 @@ const JobRow = ({ job: j, category, on, onClick, badge = true, saved, onSave, sa
         <span><Users size={14} aria-hidden="true" />{j.applicationCount ? `${j.applicationCount} ứng viên` : 'Ứng tuyển đầu tiên'}</span>
         <span>{left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'}</span>
         <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={14} aria-hidden="true" />{daysLeft <= 0 ? 'Hết hạn hôm nay' : `Còn ${daysLeft} ngày`}</span>
+      </div>
+    </article>
+  );
+};
+
+// Thẻ việc dạng lưới (trang Tìm việc): logo + tên + "công ty • số ứng viên" + tim; chip ngành / hình thức / nơi làm;
+// 2 dòng mô tả; vạch mảnh; lương lớn bên trái, thời gian đăng bên phải. Cả thẻ bấm được nhờ link tên việc phủ thẻ
+export const JobCard = ({ job: j, category, saved, onSave, saveHref }) => {
+  const Icon = categoryIcon(category);
+  const [amount, unit] = salary(j).split('/');
+  return (
+    <article className="jc">
+      <div className="jc-head">
+        <span className="jc-logo">
+          {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="48" height="48" loading="lazy" /> : <Icon size={22} aria-hidden="true" />}
+        </span>
+        <div className="jc-title-wrap">
+          <h3 className="jc-title"><Link to={`/jobs/${j._id}`} className="jr-link">{j.title}</Link></h3>
+          <p className="jc-meta">
+            <span className="jc-company">{j.companySnapshot?.name}</span>
+            <span aria-hidden="true">•</span>
+            <span>{j.district || j.city}</span>
+          </p>
+        </div>
+        {onSave ? (
+          <button type="button" className={`jc-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={saved ? 'Bỏ lưu tin' : 'Lưu tin'} onClick={() => onSave(j._id, saved)}>
+            <Heart size={20} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
+          </button>
+        ) : saveHref && (
+          <Link to={saveHref} className="jc-save" aria-label="Đăng nhập để lưu tin"><Heart size={20} aria-hidden="true" /></Link>
+        )}
+      </div>
+      <ul className="jc-tags">
+        {j.isFeatured && <li className="jc-tag t-gold">Nổi bật</li>}
+        {category && <li className="jc-tag t-plum">{category}</li>}
+        <li className="jc-tag t-mint">{j.shifts?.length ? describeShifts(j.shifts).split(';')[0] : 'Giờ linh hoạt'}</li>
+        {j.applicationCount > 0 && <li className="jc-tag t-peach">{j.applicationCount} ứng viên</li>}
+        {j.fit !== undefined && j.shiftCount > 0 && <li className="jc-tag t-ink">Hợp {j.fit}/{j.shiftCount} ca</li>}
+      </ul>
+      {j.excerpt && <p className="jc-desc">{j.excerpt}</p>}
+      <div className="jc-foot">
+        <p className="jc-pay">{amount}<span>/{unit}</span></p>
+        <span className="jc-time"><Clock size={16} aria-hidden="true" />Đăng {timeAgo(j.createdAt)}</span>
       </div>
     </article>
   );

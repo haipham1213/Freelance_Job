@@ -1,6 +1,6 @@
-/* Hệ giao diện UniShift, đồng bộ với trang chủ (styles/home.css): nền sáng #f5f8fc, thẻ trắng viền mảnh,
+/* Hệ giao diện UniShift, đồng bộ với trang chủ (styles/home.css): nền xanh xám nhạt #f1f6fb, thẻ trắng viền mảnh,
    xanh trời #0b4fa8 cho nút chính và link, xanh lá #3fd68a cho trạng thái đang chọn. Nút và tab bo tròn (viên thuốc), không gradient.
-   Font Be Vietnam Pro, tiêu đề 600–700.
+   Một font Inter cho toàn trang (Google Fonts, đủ dấu tiếng Việt), tiêu đề 600–700.
 
    Hero trang chủ (.rv-hero) được đóng băng trong styles/hero.css: mọi quy tắc ở đây nằm trong @scope (:root) to (.rv-hero)
    nên không chạm vào bên trong hero. */
@@ -10,7 +10,7 @@ html { zoom: .8; --vh: calc(1vh / .8); }
 
 @scope (:root) to (.rv-hero) {
 
-/* Bộ màu chung theo trang chủ (styles/home.css): nền sáng #f5f8fc, thẻ trắng, xanh trời #0b4fa8 cho nút chính và link,
+/* Bộ màu chung theo trang chủ (styles/home.css): nền xanh xám nhạt #f1f6fb (thẻ trắng nổi rõ), thẻ trắng, xanh trời #0b4fa8 cho nút chính và link,
    xanh lá #3fd68a làm nền tín hiệu (tab/bộ lọc đang chọn, ô ca làm) với chữ navy. Tên token cũ (obsidian, neon, mint…) giữ lại, chỉ đổi giá trị:
    obsidian = navy đậm, abyss = nền xanh nhạt cho khối phụ, mint-frost = trắng cho thẻ */
 :scope {
@@ -19,7 +19,7 @@ html { zoom: .8; --vh: calc(1vh / .8); }
   --graphite: #46526a; --slate: #6b768c;
 
   --ink: #191919; --on-ink: #ffffff; --body: #3b4250; --muted: #5a6270; --placeholder: #8c8c8c;
-  --line: #dde4ec; --stone-border: #c4ccd6; --sand: #e8f1fb; --warm: #e8f1fb; --white: #ffffff; --page-bg: #f5f8fc;
+  --line: #dde4ec; --stone-border: #c4ccd6; --sand: #e8f1fb; --warm: #e8f1fb; --white: #ffffff; --page-bg: #f1f6fb;
   --primary: #0b4fa8; --primary-dark: #083d84; --on-primary: #ffffff;
   --primary-wash: #e8f1fb; --aqua-mist: #c6dcf3;
   --link: #0b4fa8; --pay: #05683a; --highlight: #dcf2e4; --highlight-dark: #c8ead5;
@@ -29,9 +29,9 @@ html { zoom: .8; --vh: calc(1vh / .8); }
   /* Nút viền: viền chữ đậm, hover nền xanh nhạt */
   --ghost-line: var(--ink); --ghost-hover-bg: var(--sand); --ghost-hover-ink: var(--ink);
 
-  /* Be Vietnam Pro như trang chủ: đủ dấu tiếng Việt, tiêu đề 600–700 */
-  --font-display: 'Be Vietnam Pro', Arial, sans-serif;
-  --font-body: 'Be Vietnam Pro', Arial, sans-serif;
+  /* Inter cho toàn trang (tiêu đề và chữ thường) để mọi khối chỉ một font. Hero giữ Be Vietnam Pro (hero.css, đóng băng) */
+  --font-display: 'Inter', 'Be Vietnam Pro', Arial, sans-serif;
+  --font-body: 'Inter', 'Be Vietnam Pro', Arial, sans-serif;
 
   --radius: 20px; --radius-lg: 32px; --radius-xl: 60px; --radius-ctl: 10px; --radius-badge: 999px; --radius-pill: 999px;
   --hairline: inset 0 0 0 1px var(--line);
@@ -40,7 +40,7 @@ html { zoom: .8; --vh: calc(1vh / .8); }
 }
 
 /* Thẻ, hộp thoại, ô nhập: viền mảnh để tách khỏi nền xanh nhạt (token giống ngữ cảnh chung) */
-.card, .card-sm, .tile, .modal, .dropdown, .dd-pop, .jx-pop-body, .jx-row, .sh-spot, .sh-list, .jt, .job-card,
+.card, .card-sm, .tile, .modal, .dropdown, .dd-pop, .jx-pop-body, .sh-spot, .sh-list, .job-card,
 .jx-preview, .jx-week, .gn-compare, .gn-steps, .voice, .gn-voices, .gn-band, .jd-card, .jd-bar, .panel,
 .input, .select, .textarea, .pill-select, .hx-search, .search-bar, .adm-search, .al-form input {
   color: var(--ink);
@@ -212,14 +212,12 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 
 /* Header: giữ giao diện cũ theo yêu cầu (bản trước khi đổi sang obsidian/neon) — nền trắng, viền mảnh dưới, link đang chọn gạch xanh.
    Token của bản cũ khai báo lại tại chỗ để bộ màu mới không đè lên; nút trong header dùng lại kiểu nút cũ bo 10px */
-.promo-bar, .nav, header.nav .dropdown {
+.nav, header.nav .dropdown {
   --primary: #0a66c2; --primary-dark: #004182; --warm: #f3f6f9; --alert: #c4302b;
   --ink: #191919; --charcoal: #262626; --body: #3b4250; --muted: #5a6270;
   --line: #e0e0e0; --stone-border: #c4c4c4; --sand: #f3f3f3; --white: #fff; --radius: 10px; --radius-ctl: 10px;
   color: var(--ink);
 }
-.promo-bar { background: var(--warm); color: var(--ink); text-align: center; padding: 8px 16px; font-size: 14px; box-shadow: inset 0 -1px 0 var(--line); }
-.promo-bar a { color: var(--ink); font-weight: 500; }
 .nav { position: sticky; top: 0; z-index: 20; background: var(--white); box-shadow: 0 1px 0 var(--line); }
 .nav-inner { display: flex; align-items: center; gap: 32px; height: 68px; }
 .logo { font-family: var(--font-display); font-weight: 500; font-size: 23px; letter-spacing: -0.03em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
@@ -341,7 +339,8 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 .admin-main { padding: 32px; min-width: 0; }
 @media (max-width: 860px) {
   .admin-shell { grid-template-columns: minmax(0, 1fr); }
-  .sidebar { position: static; height: auto; display: flex; overflow-x: auto; gap: 4px; padding: 10px; box-shadow: 0 1px 0 var(--line); }
+  /* Điện thoại: thanh menu admin dính trên đầu như header các trang khác */
+  .sidebar { position: sticky; top: 0; z-index: 20; height: auto; display: flex; overflow-x: auto; gap: 4px; padding: 10px; box-shadow: 0 1px 0 var(--line); }
   /* Điện thoại: hàng cuộn ngang = logo, các link, rồi nút Đăng xuất gọn ở cuối */
   .sidebar { align-items: center; }
   .sidebar .logo { flex-shrink: 0; padding: 0 8px; font-size: 18px; }
@@ -366,24 +365,10 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 .lib-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .lib-arrows { display: none; } .lib-track { grid-auto-columns: 86%; } }
 
-/* Thẻ việc gọn (JobTile): thẻ mint, logo ô trắng, lương viên thuốc xanh */
-.jt { display: flex; gap: 14px; align-items: flex-start; background: var(--mint-frost); border-radius: var(--radius); padding: 18px; min-width: 0; transition: box-shadow .2s, transform .2s cubic-bezier(.16, 1, .3, 1); }
-.jt:hover { box-shadow: inset 0 0 0 1.5px var(--ink); transform: translateY(-2px); }
-.jt-logo { width: 64px; height: 64px; flex-shrink: 0; border-radius: 14px; overflow: hidden; background: #fff; color: var(--ink); display: grid; place-items: center; }
-.jt-logo img { width: 100%; height: 100%; object-fit: cover; }
-.jt-logo svg.jt-ico { width: 28px; height: 28px; }
-.jt-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-.jt-title { font-weight: 500; color: var(--ink); line-height: 1.35; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.jt-badge::before { content: '★ '; }
-.jt-badge { display: inline-block; background: var(--signal-yellow); color: var(--obsidian); font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 999px; margin-right: 6px; vertical-align: 2px; }
-.jt-company { color: var(--body); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jt-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
-.jt-chip { background: var(--sand); color: var(--body); font-size: 12.5px; padding: 3px 10px; border-radius: 999px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.jt-salary { background: var(--highlight); color: var(--pay); font-weight: 500; }
-.jt-time { flex-basis: 100%; color: var(--muted); font-size: 12px; }
+/* Lưới thẻ việc (JobCard) trên trang công ty */
 .jobs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
 @media (max-width: 1000px) { .jobs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .jobs-grid { grid-template-columns: minmax(0, 1fr); } .jt-logo { width: 56px; height: 56px; } }
+@media (max-width: 640px) { .jobs-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* Ô tìm kiếm lớn (trang tìm việc): khung trắng bo viên thuốc, nút neon ở cuối */
 .hx-search { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; background: #fff; padding: 6px; border-radius: 999px; }
