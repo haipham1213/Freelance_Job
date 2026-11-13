@@ -24,7 +24,7 @@ export const ErrorState = ({ error, onRetry, title = 'Không tải được dữ
     <div className="empty-icon"><AlertTriangle size={24} aria-hidden="true" /></div>
     <div className="h-sm">{title}</div>
     <div className="muted small empty-body">{(typeof error === 'string' ? error : error?.message) || 'Đã có lỗi xảy ra. Kiểm tra kết nối rồi thử lại.'}</div>
-    {onRetry && <button type="button" className="btn btn-outline btn-sm empty-action" onClick={onRetry}>Thử lại</button>}
+    {onRetry && <button type="button" className="btn btn-ghost btn-sm empty-action" onClick={onRetry}>Thử lại</button>}
   </div>
 );
 
