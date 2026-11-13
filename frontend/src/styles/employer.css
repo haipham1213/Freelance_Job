@@ -80,3 +80,25 @@
 }
 
 }
+
+/* Bổ sung sau rà soát UI/UX 13/11/2026: thay inline style ở các trang nhà tuyển dụng */
+.emp-narrow { max-width: 1000px; }
+.emp-narrow-sm { max-width: 640px; }
+.emp-mt16 { margin-top: 16px; }
+.emp-mb16 { margin-bottom: 16px; }
+.emp-mb20 { margin-bottom: 20px; }
+.emp-mt32 { margin-top: 32px; }
+.emp-start { align-self: flex-start; }
+.emp-left { text-align: left; }
+.emp-center { justify-content: center; }
+.emp-gap8 { gap: 8px; }
+.emp-gap6 { gap: 6px; }
+.emp-nowrap { flex-wrap: nowrap; }
+.emp-grow { flex: 1; min-width: 0; }
+.emp-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emp-clamp2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.emp-textarea-lg { min-height: 180px; }
+.emp-form-actions { margin-top: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
+.emp-alert-text { color: var(--alert); }
+.emp-flash { position: sticky; top: 80px; z-index: 5; }
+.emp-cta-center { justify-content: center; }
