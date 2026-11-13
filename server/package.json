@@ -9,6 +9,7 @@
     "test": "NODE_ENV=test node --test \"tests/**/*.test.js\"",
     "seed:jobs": "node --env-file-if-exists=.env seed/demo-jobs.js",
     "seed:applicants": "node --env-file-if-exists=.env seed/demo-applicants.js",
+    "seed:reviews": "node --env-file-if-exists=.env seed/demo-reviews.js",
     "copy-to": "node --env-file-if-exists=.env seed/copy-to.js"
   },
   "engines": {
