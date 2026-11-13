@@ -1,7 +1,7 @@
 /* Cùng scope với index.css để thứ tự khai báo quyết định khi trùng độ ưu tiên (hero nằm ngoài, xem hero.css) */
 @scope (:root) to (.rv-hero) {
 
-/* Employer pages: tiêu đề trang trên nền obsidian, khối abyss viền mảnh, số liệu neon; neon chỉ cho nút chính và trạng thái chọn */
+/* Employer pages: tiêu đề trang, khối abyss viền mảnh, số liệu xanh dương; neon chỉ cho trạng thái chọn */
 .emp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
 .emp-head p { margin: 6px 0 0; }
 .emp-note { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; background: var(--abyss); box-shadow: inset 0 0 0 1px var(--line); border-radius: var(--radius); padding: 16px 20px; }
@@ -11,14 +11,14 @@
 .emp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--abyss); border-radius: var(--radius); box-shadow: var(--hairline); overflow: hidden; }
 .emp-stats a { padding: 28px 28px 24px; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 16px; }
 .emp-stats a + a { box-shadow: inset 1px 0 0 var(--line); }
-.emp-stats a:hover { background: var(--sand); }
+@media (hover: hover) { .emp-stats a:hover { background: var(--hover-abyss); } }
 .emp-stats strong { font-size: 56px; font-weight: 500; letter-spacing: -0.04em; color: var(--link); line-height: 1; font-variant-numeric: tabular-nums; }
-.emp-stats span { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+.emp-stats span { color: var(--muted); font-size: var(--fs-label); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
 
 .emp-rows { display: grid; margin-top: 8px; }
 .emp-row { display: flex; align-items: center; gap: 12px; padding: 12px 4px; min-width: 0; }
 .emp-row + .emp-row { box-shadow: inset 0 1px 0 var(--line); }
-.emp-row:hover .h-sm { text-decoration: underline; text-underline-offset: 3px; }
+@media (hover: hover) { .emp-row:hover .h-sm { text-decoration: underline; text-underline-offset: 3px; } }
 .emp-row-body { flex: 1; min-width: 0; }
 
 .emp-upsell { background: var(--abyss); box-shadow: inset 0 0 0 1px var(--primary); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
@@ -29,7 +29,7 @@
 
 .emp-jobs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .emp-job { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; background: var(--abyss); border-radius: var(--radius); box-shadow: var(--hairline); padding: 18px; align-items: start; }
-.emp-job-art { border-radius: 16px; background: var(--sand); color: var(--ink); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; }
+.emp-job-art { border-radius: 16px; background: var(--sand); color: var(--ink); aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: var(--fs-label); }
 .emp-job-art strong { font-size: 24px; line-height: 1.1; letter-spacing: -0.03em; }
 .emp-job-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .emp-job-body .h-sm a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -44,8 +44,8 @@
 .emp-form .emp-form-sec:first-child { padding-top: 0; box-shadow: none; }
 /* Ô ca làm: chưa chọn là khung nét đứt như ô trống để bấm, đã chọn tô neon kèm dấu tick obsidian */
 .emp-form .shift-cell { background: transparent; box-shadow: none; border: 1.5px dashed var(--stone-border); display: flex; align-items: center; justify-content: center; gap: 4px; }
-.emp-form .shift-cell:hover { background: var(--sand); border-color: var(--obsidian); box-shadow: none; }
-.emp-form .shift-cell[aria-pressed='true'] { border: 1.5px solid var(--primary); }
+@media (hover: hover) { .emp-form .shift-cell:hover { background: var(--sand); border-color: var(--obsidian); box-shadow: none; } }
+.emp-form .shift-cell[aria-pressed='true'] { border: 1.5px solid var(--pay); }
 .emp-form .shift-cell[aria-pressed='true']::before { content: ''; width: 14px; height: 14px; flex-shrink: 0; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; }
 
 .emp-premium-head { max-width: 760px; margin: 0 auto 16px; text-align: center; align-items: center; }
@@ -53,11 +53,11 @@
 /* Bảng giá kiểu pricing: gói thường nền abyss viền mảnh, gói đề xuất là .panel mint; giá lớn, nhãn "Bao gồm" chữ hoa, danh sách tick */
 .emp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .emp-plan { position: relative; background: var(--abyss); border-radius: 40px; box-shadow: inset 0 0 0 1px var(--line); padding: 48px; display: flex; flex-direction: column; gap: 8px; }
-.emp-plan.panel { background: var(--mint-frost); box-shadow: var(--shadow-md); }
+.emp-plan.panel { background: var(--mint-frost); box-shadow: var(--hairline); }
 .emp-plan-tag { position: absolute; top: 32px; right: 32px; }
 .emp-price { font-weight: 500; font-size: 64px; letter-spacing: -0.045em; color: var(--ink); line-height: 1; margin-top: 16px; font-variant-numeric: tabular-nums; }
 .emp-perks-label { margin: 24px 0 0; padding-top: 24px; box-shadow: inset 0 1px 0 var(--line); }
-.emp-perks { list-style: none; padding: 0; margin: 4px 0 32px; display: grid; gap: 12px; flex: 1; font-size: 15px; color: var(--body); }
+.emp-perks { list-style: none; padding: 0; margin: 4px 0 32px; display: grid; gap: 12px; flex: 1; font-size: var(--fs-label); color: var(--body); }
 .emp-perks li { display: flex; gap: 10px; }
 .emp-perks svg { flex-shrink: 0; margin-top: 3px; color: var(--link); }
 .panel .emp-perks svg { color: var(--obsidian); }
@@ -65,7 +65,7 @@
 .emp-result-icon.ok { background: var(--neon); color: var(--obsidian); box-shadow: none; }
 .emp-result-icon.bad { color: var(--alert); }
 
-@media (max-width: 760px) {
+@media (max-width: 960px) {
   .emp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .emp-stats a:nth-child(3) { box-shadow: inset 0 1px 0 var(--line); }
   .emp-stats a:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
@@ -100,5 +100,5 @@
 .emp-textarea-lg { min-height: 180px; }
 .emp-form-actions { margin-top: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
 .emp-alert-text { color: var(--alert); }
-.emp-flash { position: sticky; top: 80px; z-index: 5; }
+.emp-flash { position: sticky; top: 80px; z-index: var(--z-flash); }
 .emp-cta-center { justify-content: center; }
