@@ -3,7 +3,7 @@ import { ArrowRight, Bookmark, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
-import { Spinner, AppBadge, Empty } from '../../components/ui';
+import { Spinner, AppBadge, Empty, ErrorState } from '../../components/ui';
 import { JobCard } from '../../components/JobRow';
 import { timeAgo } from '../../utils/format';
 
@@ -15,20 +15,31 @@ const greeting = () => {
 // SCR-S01: bảng điều khiển ứng viên (lời chào, số liệu, việc phù hợp, đơn gần đây)
 export default class StudentHomePage extends Component {
   static contextType = AuthContext;
-  state = { profile: null, apps: null, jobs: null, counts: {} };
+  state = { profile: null, apps: null, jobs: null, counts: {}, error: null };
+  reqId = 0;
 
-  async componentDidMount() {
-    const [p, a, j] = await Promise.all([api.get('/students/me'), api.get('/students/me/applications?limit=5'), api.get('/jobs?limit=6')]);
-    const counts = {};
-    await Promise.all(['PENDING', 'ACCEPTED', 'COMPLETED'].map((s) => api.get(`/students/me/applications?status=${s}&limit=1`).then((r) => { counts[s] = r.meta.total; })));
-    this.setState({ profile: p.data, apps: a.data, jobs: j.data, counts });
-  }
+  componentDidMount() { this.load(); }
+  componentWillUnmount() { this.reqId++; }
+  load = async () => {
+    const id = ++this.reqId;
+    this.setState({ error: null });
+    try {
+      const [p, a, j] = await Promise.all([api.get('/students/me'), api.get('/students/me/applications?limit=5'), api.get('/jobs?limit=6')]);
+      const counts = {};
+      await Promise.all(['PENDING', 'ACCEPTED', 'COMPLETED'].map((s) => api.get(`/students/me/applications?status=${s}&limit=1`).then((r) => { counts[s] = r.meta.total; })));
+      if (id === this.reqId) this.setState({ profile: p.data, apps: a.data, jobs: j.data, counts });
+    } catch (error) {
+      if (id === this.reqId) this.setState({ error });
+    }
+  };
 
   render() {
-    const { profile, apps, jobs, counts } = this.state;
+    const { profile, apps, jobs, counts, error } = this.state;
+    if (error) return <div className="container page"><ErrorState error={error} onRetry={this.load} /></div>;
     if (!profile) return <Spinner />;
     const u = profile.profile;
-    const stats = [['Đang chờ', counts.PENDING], ['Được nhận', counts.ACCEPTED], ['Hoàn thành', counts.COMPLETED], ['Điểm uy tín', u.ratingCount ? `${u.ratingAvg}★` : '-']];
+    // Ba ô đầu dẫn đúng tab của trang đơn ứng tuyển
+    const stats = [['Đang chờ', counts.PENDING, '/student/applications?tab=PENDING'], ['Được nhận', counts.ACCEPTED, '/student/applications?tab=ACCEPTED'], ['Hoàn thành', counts.COMPLETED, '/student/applications?tab=COMPLETED,NOT_COMPLETED'], ['Điểm uy tín', u.ratingCount ? `${Number(u.ratingAvg).toFixed(1)}★` : '—', '/student/profile']];
     return (
       <div className="container page">
         <header className="stu-head">
@@ -44,8 +55,8 @@ export default class StudentHomePage extends Component {
         </header>
 
         <section className="stu-stats">
-          {stats.map(([k, v], i) => (
-            <Link key={k} to={i < 3 ? '/student/applications' : '/student/profile'} className="stu-stat">
+          {stats.map(([k, v, to]) => (
+            <Link key={k} to={to} className="stu-stat">
               <strong>{v ?? 0}</strong>
               <span className="muted small">{k}</span>
             </Link>
@@ -55,17 +66,19 @@ export default class StudentHomePage extends Component {
         <div className="layout-main section">
           <section>
             <div className="row-between">
-              <h2 className="h-lg">Việc làm phù hợp</h2>
+              <h2 className="h-lg">Việc mới đăng</h2>
               <Link to="/jobs" className="accent ico-row small">Xem tất cả <ArrowRight size={16} aria-hidden="true" /></Link>
             </div>
-            {!jobs ? <Spinner /> : <div className="stu-jobs">{jobs.map((j) => <JobCard key={j._id} job={j} />)}</div>}
+            {!jobs ? <Spinner /> : !jobs.length ? (
+              <div className="card"><Empty title="Chưa có tin tuyển dụng nào"><Link to="/jobs" className="accent">Xem trang tìm việc</Link></Empty></div>
+            ) : <div className="stu-jobs">{jobs.map((j) => <JobCard key={j._id} job={j} />)}</div>}
           </section>
 
           <aside className="stack">
             {profile.completion < 100 && (
               <section className="card stu-complete">
                 <h2 className="h-sm">Hồ sơ hoàn thiện {profile.completion}%</h2>
-                <div className="progress"><div style={{ width: `${profile.completion}%` }} /></div>
+                <div className="progress" role="progressbar" aria-label="Hồ sơ hoàn thiện" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profile.completion}><div style={{ width: `${profile.completion}%` }} /></div>
                 <p className="muted small">{u.student?.cv?.url ? 'Thêm vài thông tin để nhà tuyển dụng tin tưởng bạn hơn.' : 'Bạn chưa có CV. CV là bắt buộc để ứng tuyển.'}</p>
                 <Link to="/student/profile" className="btn btn-block">Hoàn thiện hồ sơ</Link>
               </section>
@@ -81,7 +94,7 @@ export default class StudentHomePage extends Component {
                 <div className="dash-apps">
                   {apps.map((a) => (
                     <Link key={a._id} to={`/student/applications/${a._id}`} className="dash-app">
-                      <div style={{ minWidth: 0 }}>
+                      <div className="stu-min0">
                         <div className="h-sm lib-meta">{a.jobSnapshot.title}</div>
                         <div className="muted small lib-meta">{a.jobSnapshot.companyName}, {timeAgo(a.createdAt)}</div>
                       </div>

@@ -2,21 +2,36 @@ import React, { Component } from 'react';
 import { ArrowRight, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Spinner, Empty, AppBadge, Tabs, Pagination } from '../../components/ui';
-import { date } from '../../utils/format';
+import { Spinner, Empty, AppBadge, Tabs, Pagination, ErrorState } from '../../components/ui';
+import { date, APP_STATUS, statusTabs } from '../../utils/format';
+import { param, intParam, setParams } from '../../utils/urlState';
+import withRouter from '../../utils/withRouter';
 
-const TABS = [['', 'Tất cả'], ['PENDING', 'Đang chờ'], ['ACCEPTED', 'Được nhận'], ['REJECTED', 'Bị từ chối'], ['COMPLETED,NOT_COMPLETED', 'Đã kết thúc'], ['WITHDRAWN', 'Đã rút']];
+// Nhãn khớp badge; "Đã kết thúc" gộp COMPLETED + NOT_COMPLETED
+const TABS = [...statusTabs(APP_STATUS, ['PENDING', 'ACCEPTED', 'REJECTED']), ['COMPLETED,NOT_COMPLETED', 'Đã kết thúc'], ...statusTabs(APP_STATUS, ['WITHDRAWN']).slice(1)];
+const EMPTY = { '': 'Bạn chưa ứng tuyển việc nào.', PENDING: 'Không có đơn nào đang chờ.', ACCEPTED: 'Chưa có đơn nào được nhận.', REJECTED: 'Không có đơn nào bị từ chối.', 'COMPLETED,NOT_COMPLETED': 'Chưa có đơn nào đã kết thúc.', WITHDRAWN: 'Bạn chưa rút đơn nào.' };
 
 // SCR-S04 / FR-APP-03
-export default class ApplicationsPage extends Component {
-  state = { status: '', items: null, meta: null };
-  componentDidMount() { this.load(1); }
-  load = async (page) => {
-    const r = await api.get(`/students/me/applications${qs({ status: this.state.status, page })}`);
-    this.setState({ items: r.data, meta: r.meta });
+class ApplicationsPage extends Component {
+  state = { items: null, meta: null, error: null };
+  reqId = 0;
+  get status() { const t = param(this.props, 'tab'); return TABS.some(([k]) => k === t) ? t : ''; }
+  componentDidMount() { this.load(); }
+  componentDidUpdate(prev) { if (prev.searchParams.toString() !== this.props.searchParams.toString()) this.load(); }
+  componentWillUnmount() { this.reqId++; }
+  load = async () => {
+    const id = ++this.reqId;
+    this.setState({ items: null, error: null });
+    try {
+      const r = await api.get(`/students/me/applications${qs({ status: this.status, page: intParam(this.props, 'page') })}`);
+      if (id === this.reqId) this.setState({ items: r.data, meta: r.meta });
+    } catch (error) {
+      if (id === this.reqId) this.setState({ error });
+    }
   };
   render() {
-    const { items, meta, status } = this.state;
+    const { items, meta, error } = this.state;
+    const status = this.status;
     return (
       <div className="container page">
         <header className="stu-head">
@@ -26,10 +41,14 @@ export default class ApplicationsPage extends Component {
             <p className="muted">Theo dõi trạng thái mọi đơn ứng tuyển ở một nơi.</p>
           </div>
         </header>
-        <Tabs items={TABS} value={status} onChange={(s) => this.setState({ status: s, items: null }, () => this.load(1))} />
+        <Tabs items={TABS} value={status} onChange={(s) => setParams(this.props, { tab: s, page: '' })} />
         <div>
-          {!items ? <Spinner /> : !items.length ? (
-            <div className="card section"><Empty title="Không có đơn nào"><Link to="/jobs" className="accent ico-row" style={{ justifyContent: 'center' }}>Tìm việc ngay <ArrowRight size={16} /></Link></Empty></div>
+          {error ? <ErrorState error={error} onRetry={this.load} /> : !items ? <Spinner /> : !items.length ? (
+            <div className="card section"><Empty title="Không có đơn nào">
+              <p>{EMPTY[status]}</p>
+              {status ? <button type="button" className="btn btn-ghost btn-sm" onClick={() => setParams(this.props, { tab: '', page: '' })}>Xóa bộ lọc</button>
+                : <Link to="/jobs" className="accent ico-row stu-center">Tìm việc ngay <ArrowRight size={16} aria-hidden="true" /></Link>}
+            </Empty></div>
           ) : (
             <div className="stu-list">
               {items.map((a) => (
@@ -38,7 +57,7 @@ export default class ApplicationsPage extends Component {
                   <div className="stu-app-main">
                     <div className="h-sm stu-ellipsis stu-app-title">{a.jobSnapshot.title}</div>
                     <div className="muted small stu-ellipsis">{a.jobSnapshot.companyName}</div>
-                    <div className="fog tiny">Nộp {date(a.createdAt)}, cập nhật {date(a.updatedAt)}, bắt đầu {date(a.jobSnapshot.startDate)}</div>
+                    <div className="fog tiny">Nộp {date(a.createdAt)}, cập nhật {date(a.updatedAt)}{a.jobSnapshot.startDate && `, bắt đầu ${date(a.jobSnapshot.startDate)}`}</div>
                   </div>
                   <div className="stu-app-side">
                     <AppBadge status={a.status} />
@@ -50,8 +69,10 @@ export default class ApplicationsPage extends Component {
             </div>
           )}
         </div>
-        <Pagination meta={meta} onPage={this.load} />
+        <Pagination meta={meta} onPage={(page) => setParams(this.props, { page: page > 1 ? page : '' })} />
       </div>
     );
   }
 }
+
+export default withRouter(ApplicationsPage);

@@ -86,3 +86,17 @@
 }
 
 }
+
+/* Rà soát UI/UX 13/11: thay inline style + vùng bấm lớn cho nút xóa kỹ năng */
+.stu-skill-list { gap: 8px; }
+.stu-skill-add { margin-top: 10px; flex-wrap: nowrap; }
+.stu-skill button { position: relative; }
+.stu-skill button::after { content: ''; position: absolute; inset: -10px; }
+.stu-save, .stu-self-start { align-self: flex-start; }
+.stu-center { justify-content: center; }
+.stu-min0 { min-width: 0; }
+.stu-nowrap { flex-wrap: nowrap; }
+.stu-gap10 { gap: 10px; }
+.stu-gap6 { gap: 6px; }
+.verify-banner { margin-top: 16px; }
+.verify-banner .alert { gap: 12px; flex-wrap: wrap; }

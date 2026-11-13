@@ -2,20 +2,37 @@ import React, { Component } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
-import { Spinner, Empty } from '../../components/ui';
+import { Spinner, Empty, ErrorState, Alert } from '../../components/ui';
 import { JobCard } from '../../components/JobRow';
 
 // SCR-S07 / FR-SAV-01
 export default class SavedJobsPage extends Component {
-  state = { jobs: null };
+  state = { jobs: null, error: null, msg: '', removeErr: '' };
+  reqId = 0;
   componentDidMount() { this.load(); }
-  load = async () => this.setState({ jobs: (await api.get('/students/me/saved-jobs')).data });
+  componentWillUnmount() { this.reqId++; }
+  load = async () => {
+    const id = ++this.reqId;
+    this.setState({ error: null });
+    try {
+      const r = await api.get('/students/me/saved-jobs');
+      if (id === this.reqId) this.setState({ jobs: r.data });
+    } catch (error) {
+      if (id === this.reqId) this.setState({ error });
+    }
+  };
   remove = async (id) => {
-    await api.del(`/students/me/saved-jobs/${id}`);
+    this.setState({ msg: '', removeErr: '' });
+    try {
+      await api.del(`/students/me/saved-jobs/${id}`);
+      this.setState({ msg: 'Đã bỏ lưu việc làm' });
+    } catch (e) {
+      return this.setState({ removeErr: `Không bỏ lưu được: ${e.message}` });
+    }
     this.load();
   };
   render() {
-    const { jobs } = this.state;
+    const { jobs, error } = this.state;
     return (
       <div className="container page">
         <header className="stu-head">
@@ -27,8 +44,10 @@ export default class SavedJobsPage extends Component {
           <Link to="/jobs" className="btn btn-ghost">Tìm thêm việc</Link>
         </header>
         <div className="section">
-          {!jobs ? <Spinner /> : !jobs.length ? (
-            <div className="card"><Empty title="Chưa lưu việc nào"><Link to="/jobs" className="accent ico-row" style={{ justifyContent: 'center' }}>Khám phá việc làm <ArrowRight size={16} /></Link></Empty></div>
+          <Alert>{this.state.removeErr}</Alert>
+          <Alert type="ok">{this.state.msg}</Alert>
+          {error ? <ErrorState error={error} onRetry={this.load} /> : !jobs ? <Spinner /> : !jobs.length ? (
+            <div className="card"><Empty title="Chưa lưu việc nào"><Link to="/jobs" className="accent ico-row stu-center">Khám phá việc làm <ArrowRight size={16} aria-hidden="true" /></Link></Empty></div>
           ) : (
             <ul className="jx-grid">
               {jobs.map((j) => (
