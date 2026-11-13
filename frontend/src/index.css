@@ -515,3 +515,6 @@ main:focus { outline: none; }
     .jv-list, .jx-side { position: static !important; max-height: none !important; }
   }
 }
+
+/* Chữ chỉ dành cho trình đọc màn hình: đặt ngoài @scope để cả trong hero (Dropdown ngành nghề/thành phố) cũng ẩn được */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
