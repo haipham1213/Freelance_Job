@@ -38,7 +38,7 @@ router.put('/employers/me', ...employer,
     city: z.string().trim().max(60).optional(),
     district: z.string().trim().max(60).optional(),
     description: z.string().trim().max(2000).optional(),
-    website: z.url('Website không hợp lệ').optional().or(z.literal('')),
+    website: z.url({ protocol: /^https?$/, message: 'Website phải bắt đầu bằng http:// hoặc https://' }).optional().or(z.literal('')),
     fullName: z.string().trim().min(2).max(100).optional(),
   })),
   async (req, res) => {
@@ -115,8 +115,10 @@ router.get('/employers/:id', async (req, res) => {
   const { page } = paging(req.query);
   const limit = 10;
   const filter = { revieweeId: u._id, isHidden: false };
-  const [openJobs, reviews, total] = await Promise.all([
-    Job.find({ ...(await visibleMatch()), employerId: u._id }).select('-searchText -description').sort('-createdAt').limit(20),
+  const openMatch = { ...(await visibleMatch()), employerId: u._id };
+  const [openJobs, openJobsTotal, reviews, total] = await Promise.all([
+    Job.find(openMatch).select('-searchText -description').sort('-createdAt').limit(20),
+    Job.countDocuments(openMatch),
     Review.find(filter).sort('-createdAt').skip((page - 1) * limit).limit(limit).populate('reviewerId', 'fullName avatarUrl'),
     Review.countDocuments(filter),
   ]);
@@ -124,7 +126,7 @@ router.get('/employers/:id', async (req, res) => {
     employer: { _id: u._id, fullName: u.fullName, company: publicCompany(u), ratingAvg: u.ratingAvg, ratingCount: u.ratingCount, isPremium: u.isPremium(), createdAt: u.createdAt },
     openJobs,
     reviews,
-  }, { page, limit, total });
+  }, { page, limit, total, openJobsTotal });
 });
 
 export default router;

@@ -23,7 +23,7 @@ const Legal = ({ title, updated, sections }) => {
         <div>
           {sections.map(([id, h, items], i) => (
             <section key={id} id={id} className="pub-legal-sec">
-              <span className="pub-legal-num">{String(i + 1).padStart(2, '0')}</span>
+              <span className="pub-legal-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
               <h2 className="pub-legal-h">{h}</h2>
               <ul>{items.map((t) => <li key={t}>{t}</li>)}</ul>
             </section>
@@ -53,7 +53,7 @@ export const TermsPage = () => (
       'Gói Premium thanh toán qua cổng SePay và không hoàn tiền trong hệ thống.',
     ]],
     ['bao-cao', 'Báo cáo lừa đảo và vi phạm', [
-      'Gặp tin đòi đặt cọc, thu phí hoặc thông tin sai: bấm "Báo cáo tin này" ở trang chi tiết việc, chọn lý do phù hợp.',
+      'Gặp tin đòi đặt cọc, thu phí hoặc thông tin sai: bấm “Báo cáo tin này” ở trang chi tiết việc, chọn lý do phù hợp.',
       'Quản trị viên xử lý báo cáo theo 3 bậc: cảnh cáo, ẩn tin, hoặc khóa tài khoản.',
       'Đừng chuyển tiền cho bất kỳ ai trước khi đi làm.',
     ]],
@@ -75,6 +75,9 @@ export const PrivacyPage = () => (
     ['email', 'Email thông báo', [
       'Nếu đăng ký nhận việc mới, chúng tôi lưu email và lịch học bạn đã tô để lọc tin phù hợp.',
       'Mỗi email đều có link hủy nhận. Hủy xong, đăng ký của bạn bị xóa.',
+    ]],
+    ['lien-he', 'Liên hệ và yêu cầu xóa dữ liệu', [
+      'Muốn xem, sửa hoặc xóa dữ liệu của mình: gửi yêu cầu qua mục “Báo cáo” trên một tin tuyển dụng bất kỳ, ghi rõ “Yêu cầu xóa dữ liệu” trong phần mô tả. Quản trị viên sẽ xử lý.',
     ]],
     ['thanh-toan', 'Thanh toán', [
       'Thanh toán Premium được thực hiện bằng chuyển khoản ngân hàng qua app của bạn. UniShift không nhận và không lưu thông tin thẻ.',

@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
-import { ArrowRight, Ban, Bell, Building2, CalendarClock, CalendarDays, Check, Heart, Hourglass, Lock, MapPin, Plus, Search, Star, Users, X } from 'lucide-react';
+import { ArrowRight, Ban, Pause, Play, Bell, Building2, CalendarClock, CalendarDays, Check, Heart, Hourglass, Lock, MapPin, Plus, Search, Star, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Alert, Dropdown, Stars } from '../../components/ui';
+import { Alert, Dropdown, ErrorState, Stars } from '../../components/ui';
 import { categoryIcon } from '../../components/Illustrations';
 import { loadSavedIds, saveToggler, busyOf, shiftText, PERIOD_ICON, FitBadge } from '../../components/JobRow';
 import withRouter from '../../utils/withRouter';
@@ -55,12 +55,14 @@ const faq = (t) => [
 
 // "Ca làm tuần này": lưới thẻ việc đều nhau (nổi bật trước, API đã xếp).
 const DAY = 864e5;
+// Cuộn tới mục theo id, tôn trọng prefers-reduced-motion
+const scrollToId = (id, smooth) => document.getElementById(id)?.scrollIntoView(smooth && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? { behavior: 'smooth' } : undefined);
 // Nút lưu (FR-SAV-01): sinh viên bấm lưu ngay, khách được dẫn đi đăng nhập, nhà tuyển dụng không có nút
 const SaveBtn = ({ job, saved, onSave, saveHref }) => (onSave ? (
-  <button type="button" className={`sh-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={saved ? 'Bỏ lưu tin' : 'Lưu tin'} onClick={() => onSave(job._id, saved)}>
+  <button type="button" className={`sh-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={`${saved ? 'Bỏ lưu tin' : 'Lưu tin'}: ${job.title}`} onClick={() => onSave(job._id, saved)}>
     <Heart size={18} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
   </button>
-) : saveHref ? <Link to={saveHref} className="sh-save" aria-label="Đăng nhập để lưu tin"><Heart size={18} aria-hidden="true" /></Link> : null);
+) : saveHref ? <Link to={saveHref} className="sh-save" aria-label={`Đăng nhập để lưu tin: ${job.title}`}><Heart size={18} aria-hidden="true" /></Link> : null);
 const Logo = ({ job, category, size }) => {
   const Icon = categoryIcon(category);
   return (
@@ -152,7 +154,7 @@ const ForYou = ({ user, data, catName, save }) => {
     <section className="gn-sec" aria-labelledby="fy-title">
       <div className="band fy">
         <div className="fy-jobs">
-          <h3 id="fy-title" className="fy-h3">{busy.length ? 'Việc hợp lịch học của bạn' : 'Việc mới nhất'}</h3>
+          <h2 id="fy-title" className="fy-h3">{busy.length ? 'Việc hợp lịch học của bạn' : 'Việc mới nhất'}</h2>
           {!data.jobs.length ? <p className="muted">Chưa có việc nào còn ca rảnh so với lịch học của bạn.</p> : (
             <ol className="sh-list">{data.jobs.map((j, i) => <ShiftRow key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} i={i} />)}</ol>
           )}
@@ -172,18 +174,40 @@ class HomePage extends Component {
     q: '', categoryId: '', city: '', categories: [], locations: [], jobs: null, tab: 'all', loading: false,
     total: 0, reviews: [], rating: null, plans: [], tiers: null, employers: [],
     savedIds: new Set(), forYou: null, recent: readRecent(), alertEmail: '', alertState: '', alertError: '',
+    loadError: null, tabError: null, tabNote: '', paused: false, alertsMsg: null,
+  };
+  emailRef = React.createRef();
+
+  // Kết quả ?alerts=... chỉ hiện một lần: giữ vào state rồi xóa khỏi URL để reload không hiện lại
+  consumeAlerts = () => {
+    const a = this.props.searchParams.get('alerts');
+    if (!ALERT_MSG[a]) return;
+    this.setState({ alertsMsg: a });
+    const next = new URLSearchParams(this.props.searchParams);
+    next.delete('alerts');
+    this.props.setSearchParams(next, { replace: true });
   };
 
-  async componentDidMount() {
+  componentDidMount() {
     // Trang chủ dùng giao diện sáng kiểu saucelabs.com (home.css), các trang khác giữ nền tối
     document.body.classList.add('page-home');
+    this.consumeAlerts();
     this.syncSaved();
-    const [c, l, j, p] = await Promise.all([
-      api.get('/categories'), api.get('/jobs/locations'), api.get(`/jobs?limit=${HOME_JOBS}`), api.get('/plans').catch(() => ({ data: [], meta: {} })),
-    ]);
-    this.setState({ categories: c.data, locations: l.data, jobs: j.data, total: j.meta?.total || j.data.length, plans: p.data, tiers: p.meta?.tiers || null },
-      // Link /#hoi-dap từ footer: cuộn tới mục sau khi nội dung phía trên đã có chiều cao thật
-      () => { const h = this.props.location.hash; if (h) document.getElementById(h.slice(1))?.scrollIntoView(); });
+    this.init();
+  }
+
+  init = async () => {
+    this.setState({ loadError: null });
+    try {
+      const [c, l, j, p] = await Promise.all([
+        api.get('/categories'), api.get('/jobs/locations'), api.get(`/jobs?limit=${HOME_JOBS}`), api.get('/plans').catch(() => ({ data: [], meta: {} })),
+      ]);
+      this.setState({ categories: c.data, locations: l.data, jobs: j.data, total: j.meta?.total || j.data.length, plans: p.data, tiers: p.meta?.tiers || null },
+        // Link /#hoi-dap từ footer: cuộn tới mục sau khi nội dung phía trên đã có chiều cao thật
+        () => { const h = this.props.location.hash; if (h) scrollToId(h.slice(1)); });
+    } catch (loadError) {
+      return this.setState({ loadError });
+    }
     // Lời chứng thực thật: đánh giá gần nhất của sinh viên, điểm trung bình trên mọi đánh giá đang hiện
     const [r, e] = await Promise.all([api.get('/reviews/recent?limit=3').catch(() => null), api.get('/employers/hiring?limit=12').catch(() => null)]);
     this.setState({
@@ -191,12 +215,12 @@ class HomePage extends Component {
       rating: r?.meta?.ratingCount ? { avg: r.meta.ratingAvg, count: r.meta.ratingCount } : null,
       employers: e?.data || [],
     });
-  }
+  };
 
   componentDidUpdate(prev) {
     this.syncSaved();
     const h = this.props.location.hash;
-    if (h && h !== prev.location.hash) document.getElementById(h.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+    if (h && h !== prev.location.hash) scrollToId(h.slice(1), true);
   }
   // StrictMode (dev) gỡ rồi gắn lại component: xóa mốc để lần gắn sau tải lại theo người dùng
   componentWillUnmount() { this.savedFor = undefined; document.body.classList.remove('page-home'); }
@@ -224,18 +248,22 @@ class HomePage extends Component {
       await api.post('/job-alerts', { email: this.state.alertEmail, busySlots: busyOf(this.context.user) });
       this.setState({ alertState: 'done' });
     } catch (err) {
-      this.setState({ alertState: '', alertError: err.message });
+      this.setState({ alertState: '', alertError: err.message }, () => this.emailRef.current?.focus());
     }
   };
 
   // Giữ danh sách cũ (làm mờ) trong lúc tải tab mới để trang không giật
   loadTab = async (tab) => {
-    this.setState({ tab, loading: true });
-    const cells = TABS.find(([k]) => k === tab)[2];
+    this.setState({ tab, loading: true, tabError: null });
+    const [, label, cells] = TABS.find(([k]) => k === tab);
     const busy = cells && ALL_SLOTS.filter((i) => !cells.includes(i)).join(',');
-    const r = await api.get(`/jobs${qs({ limit: HOME_JOBS, busy })}`);
-    // fit/shiftCount ở đây tính theo tab chứ không theo lịch học của người xem → bỏ để không hiện nhãn "Hợp x/y ca"
-    if (this.state.tab === tab) this.setState({ jobs: r.data.map(({ fit, shiftCount, ...j }) => j), loading: false });
+    try {
+      const r = await api.get(`/jobs${qs({ limit: HOME_JOBS, busy })}`);
+      // fit/shiftCount ở đây tính theo tab chứ không theo lịch học của người xem → bỏ để không hiện nhãn "Hợp x/y ca"
+      if (this.state.tab === tab) this.setState({ jobs: r.data.map(({ fit, shiftCount, ...j }) => j), loading: false, tabNote: `${label}: ${r.data.length ? `${r.data.length} ca làm` : 'chưa có ca nào'}` });
+    } catch (tabError) {
+      if (this.state.tab === tab) this.setState({ tabError, loading: false, tabNote: '' });
+    }
   };
 
   // Tab theo mẫu WAI-ARIA: mũi tên trái/phải chuyển tab, Home/End về đầu/cuối
@@ -259,6 +287,7 @@ class HomePage extends Component {
   set = (k) => (e) => this.setState({ [k]: e.target.value });
 
   render() {
+    const { loadError, tabError, tabNote, paused, alertsMsg } = this.state;
     const { q, categoryId, city, categories, locations, jobs, tab, loading, total, reviews, rating, plans, tiers, employers, forYou, recent, alertEmail, alertState, alertError } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const user = this.context.user;
@@ -271,7 +300,7 @@ class HomePage extends Component {
     const areas = [...locations].sort((a, b) => b.total - a.total).filter((l) => l.total > 0);
     return (
       <>
-        {ALERT_MSG[this.props.searchParams.get('alerts')] && <div className="container"><Alert type={this.props.searchParams.get('alerts') === 'invalid' ? 'error' : 'ok'}>{ALERT_MSG[this.props.searchParams.get('alerts')]}</Alert></div>}
+        {alertsMsg && <div className="container"><Alert type={alertsMsg === 'invalid' ? 'error' : 'ok'}>{ALERT_MSG[alertsMsg]}</Alert></div>}
         {/* Hero kiểu Revolut: bầu trời phủ kín màn hình, khung điện thoại hiện một tin thật. Khi cuộn (desktop),
             hero được ghim lại, bầu trời thu dần vào khung điện thoại, chữ mờ đi và câu kết hiện lên (CSS scroll-driven) */}
         <section className="rv-hero" aria-labelledby="rv-title">
@@ -349,7 +378,7 @@ class HomePage extends Component {
             <div className="sc-top">
               <div>
                 <h2 id="gn-jobs" className="sc-h2">Ca làm lấp vào giờ trống</h2>
-                <p className="sc-lede">{total ? `${total} tin đang mở` : 'Tin mới nhất'} từ quán cà phê, trung tâm gia sư và cửa hàng gần trường. Chọn buổi bạn rảnh để xem ca khớp giờ.</p>
+                <p className="sc-lede">{total ? `${total} tin đang mở` : 'Tin mới nhất'}. Chọn buổi bạn rảnh để xem ca khớp giờ.</p>
               </div>
               <div className="sc-tabs" role="tablist" aria-label="Buổi làm" onKeyDown={this.tabKey}>
                 {TABS.map(([key, label]) => (
@@ -359,11 +388,16 @@ class HomePage extends Component {
               </div>
             </div>
             <div id="gn-jobs-panel" role="tabpanel" aria-labelledby={`gn-tab-${tab}`} aria-busy={loading}>
-              {!jobs ? (
+              <p className="sr-only" role="status">{tabNote}</p>
+              {tabError ? (
+                <ErrorState error={tabError} onRetry={() => this.loadTab(tab)} />
+              ) : loadError && !jobs ? (
+                <ErrorState error={loadError} onRetry={this.init} />
+              ) : !jobs ? (
                 <ul className="sc-grid" aria-hidden="true">{[0, 1, 2].map((i) => <li key={i} className="sc sc-sk" />)}</ul>
               ) : !jobs.length ? (
                 <div className="gn-empty">
-                  <p>{tab !== 'all' ? 'Chưa có ca nào vào buổi này. Thử buổi khác nhé.' : 'Chưa có tin tuyển dụng nào đang mở.'}</p>
+                  <p>{tab !== 'all' ? 'Chưa có ca nào vào buổi này. Hãy thử chọn buổi khác.' : 'Chưa có tin tuyển dụng nào đang mở.'}</p>
                   {tab === 'all' && user?.role !== 'STUDENT' && <Link to={postJob} className="text-link">Đăng tin tuyển dụng đầu tiên<ArrowRight size={16} aria-hidden="true" /></Link>}
                 </div>
               ) : (
@@ -373,7 +407,7 @@ class HomePage extends Component {
               )}
             </div>
             <div className="sc-more">
-              <Link to="/jobs" className="btn btn-ghost">Xem tất cả {total || ''} việc làm<ArrowRight size={18} aria-hidden="true" /></Link>
+              <Link to="/jobs" className="btn btn-ghost">{total ? `Xem tất cả ${total} việc làm` : 'Xem tất cả việc làm'}<ArrowRight size={18} aria-hidden="true" /></Link>
               <Link to="/jobs#lich-hoc" className="text-link"><CalendarDays size={18} aria-hidden="true" />Tô lịch học của bạn</Link>
             </div>
           </section>
@@ -391,7 +425,7 @@ class HomePage extends Component {
                     <h3 className="ar-name">{l.city}</h3>
                     <p className="ar-total"><strong>{l.total}</strong> việc đang mở</p>
                     {l.districts.length > 0 && (
-                      <ul>{l.districts.map((d) => <li key={d}><Link to={`/jobs${qs({ city: l.city, district: d })}`}>{d}<span>{l.counts?.[d]}</span></Link></li>)}</ul>
+                      <ul>{l.districts.map((d) => <li key={d}><Link to={`/jobs${qs({ city: l.city, district: d })}`} aria-label={l.counts?.[d] != null ? `${d}, ${l.counts[d]} tin` : d}>{d}<span aria-hidden="true">{l.counts?.[d]}</span></Link></li>)}</ul>
                     )}
                     <Link to={`/jobs${qs({ city: l.city })}`} className="text-link">Xem việc tại {l.city}<ArrowRight size={16} aria-hidden="true" /></Link>
                   </div>
@@ -430,7 +464,10 @@ class HomePage extends Component {
               Danh sách lặp hai lần để vòng chạy nối liền; bản lặp ẩn với trình đọc màn hình và không nhận focus */}
           {employers.length > 0 && (
             <section className="gn-sec em-sec" aria-label="Nhà tuyển dụng đang tuyển sinh viên">
-              <div className="em-marquee">
+              <button type="button" className="btn btn-ghost btn-sm em-pause" aria-pressed={paused} onClick={() => this.setState({ paused: !paused })}>
+                {paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}{paused ? 'Phát' : 'Dừng'} chuyển động
+              </button>
+              <div className={`em-marquee ${paused ? 'is-paused' : ''}`}>
                 <ul className="em-track" style={{ '--n': employers.length }}>
                   {[...employers, ...employers].map((e, i) => {
                     const copy = i >= employers.length;
@@ -486,7 +523,7 @@ class HomePage extends Component {
               <div className="vo">
                 <div>
                   <h2 id="gn-voices" className="u-h2">Sinh viên nói gì sau ca làm</h2>
-                  <p className="vo-score">{rating1.format(rating.avg)}<span aria-hidden="true">/5</span></p>
+                  <p className="vo-score">{rating1.format(rating.avg)}<span aria-hidden="true">/5</span><span className="sr-only"> trên 5</span></p>
                   <p className="vo-cap">Trung bình từ {rating.count} đánh giá của sinh viên đã làm xong việc</p>
                 </div>
                 <ul className="vo-quotes">
@@ -565,9 +602,9 @@ class HomePage extends Component {
                 ) : (
                   <form className="al-form" onSubmit={this.subscribe}>
                     <label className="sr-only" htmlFor="al-email">Email nhận thông báo</label>
-                    <input id="al-email" type="email" required value={alertEmail} onChange={this.set('alertEmail')} placeholder="email@truong.edu.vn" aria-invalid={!!alertError} aria-describedby={alertError ? 'al-error' : undefined} />
+                    <input id="al-email" ref={this.emailRef} name="email" type="email" autoComplete="email" required value={alertEmail} onChange={this.set('alertEmail')} placeholder="email@truong.edu.vn" aria-invalid={!!alertError} aria-describedby={alertError ? 'al-error' : undefined} />
                     <button className="btn bd-btn" disabled={alertState === 'busy'}>{alertState === 'busy' ? 'Đang gửi…' : 'Nhận thông báo'}</button>
-                    {alertError && <p id="al-error" className="al-error">{alertError}</p>}
+                    {alertError && <p id="al-error" className="al-error" role="alert">{alertError}</p>}
                   </form>
                 )}
               </>

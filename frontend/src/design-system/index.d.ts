@@ -144,39 +144,8 @@ export interface BackLinkProps {
 /** Link "← Quay lại" nhỏ màu xám đặt trên tiêu đề trang. Cần nằm trong Router. */
 export declare const BackLink: (props: BackLinkProps) => JSX.Element;
 
-export interface JobCardJob {
-  _id: string;
-  title: string;
-  companySnapshot?: { name?: string; logoUrl?: string; city?: string };
-  salaryType: 'HOURLY' | 'DAILY' | 'PROJECT';
-  salaryMin: number;
-  salaryMax: number;
-  city: string;
-  district?: string;
-  schedule?: string;
-  createdAt: string;
-  /** Tin Nổi bật (Premium): hiện nhãn cam "★ Nổi bật" */
-  isFeatured?: boolean;
-  featuredUntil?: string;
-}
-export interface JobCardProps {
-  /** Dữ liệu tin tuyển dụng */
-  job: JobCardJob;
-  /** Tên danh mục hiển thị trong dòng meta */
-  category?: string;
-  /** Nội dung phụ bên phải dòng lương, ví dụ nhãn hoặc nút */
-  extra?: ReactNode;
-}
-/** Thẻ tin tuyển dụng trắng viền mảnh: logo, tiêu đề, công ty, lương, địa điểm, ca làm. Bấm mở /jobs/:id. Cần nằm trong Router. */
-export declare const JobCard: (props: JobCardProps) => JSX.Element;
-
 /** Chân trang 4 cột với logo UniShift và các link. Cần nằm trong Router. */
 export declare const Footer: () => JSX.Element;
-
-/** Cụm minh họa trái của hero: hoa mặt vuông, sao, tim, đồng xu. Đặt absolute hai bên tiêu đề, class `hero-illo left`. */
-export declare const HeroIllustrationLeft: (props: SVGProps<SVGSVGElement>) => JSX.Element;
-/** Cụm minh họa phải của hero: cục tròn xanh lá, tam giác vàng, đám mây cam. Class `hero-illo right`. */
-export declare const HeroIllustrationRight: (props: SVGProps<SVGSVGElement>) => JSX.Element;
 
 export interface MascotProps {
   /** Nhân vật: cục tròn xanh lá, tam giác vàng, mây xanh, hoa hồng */

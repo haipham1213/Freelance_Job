@@ -367,3 +367,8 @@ main:has(> .bd:last-child) ~ .footer { margin-top: 0; }
 }
 
 @keyframes em-scroll { to { transform: translateX(-50%); } }
+
+/* Rà soát UI/UX 13/11: nút dừng/phát dải nhà tuyển dụng */
+.em-pause { margin: 0 auto 8px; }
+.em-marquee.is-paused .em-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .em-pause { display: none; } }

@@ -28,52 +28,6 @@ const Leaf = ({ x, y, c = '#00c978', r = 0 }) => (
   <path transform={`translate(${x} ${y}) rotate(${r})`} d="M0 12 C-10 2 -6 -10 0 -14 C6 -10 10 2 0 12 Z M0 12 V-8" fill={c} {...S} strokeWidth={2} />
 );
 
-export const HeroIllustrationLeft = (props) => (
-  <svg viewBox="0 0 240 300" role="img" aria-label="" {...props}>
-    {/* Hoa mặt vuông */}
-    <g transform="translate(96 110)">
-      {[0, 60, 120, 180, 240, 300].map((a) => (
-        <ellipse key={a} cx="0" cy="-44" rx="22" ry="30" fill="#64c6ff" transform={`rotate(${a})`} {...S} />
-      ))}
-      <rect x="-30" y="-30" width="60" height="60" rx="14" fill="#ffcd6c" {...S} />
-      <Eyes x={-9} y={-6} gap={18} />
-      <Smile x={-8} y={8} w={16} />
-      <path d="M0 74 V150" {...S} strokeWidth={3} />
-      <path d="M0 120 C-24 110 -34 96 -36 86 C-20 88 -6 100 0 116" fill="#00c978" {...S} />
-    </g>
-    <Star x={200} y={40} />
-    <Heart x={28} y={32} />
-    <Coin x={210} y={150} />
-    <Leaf x={30} y={210} r={-30} />
-    <Star x={190} y={250} c="#ff3e00" s={0.7} />
-  </svg>
-);
-
-export const HeroIllustrationRight = (props) => (
-  <svg viewBox="0 0 240 300" role="img" aria-label="" {...props}>
-    {/* Cục tròn xanh lá */}
-    <g transform="translate(130 200)">
-      <path d="M-62 40 C-80 -10 -50 -62 0 -62 C52 -62 80 -14 64 38 C54 64 -52 66 -62 40 Z" fill="#00c978" {...S} />
-      <Eyes x={-16} y={-14} gap={24} />
-      <Smile x={-12} y={4} w={24} />
-      <path d="M-40 54 V76 M36 54 V76" {...S} strokeWidth={3} />
-    </g>
-    {/* Tam giác vàng */}
-    <g transform="translate(70 76)">
-      <path d="M0 -50 L46 34 L-46 34 Z" fill="#ffcd6c" {...S} />
-      <Eyes x={-9} y={6} gap={18} />
-      <Smile x={-6} y={16} w={12} />
-    </g>
-    {/* Đám mây cam */}
-    <g transform="translate(190 60)">
-      <path d="M-34 14 C-46 14 -46 -6 -32 -6 C-32 -24 -8 -26 -2 -12 C6 -24 30 -18 26 0 C40 0 40 14 28 14 Z" fill="#ff3e00" {...S} />
-    </g>
-    <Star x={24} y={176} c="#64c6ff" />
-    <Heart x={214} y={140} c="#ff58ae" />
-    <Coin x={20} y={270} />
-  </svg>
-);
-
 // Nhân vật nhỏ dùng làm điểm nhấn trong card / trạng thái trống
 export const Mascot = ({ kind = 'blob', size = 72, ...rest }) => {
   const shapes = {
