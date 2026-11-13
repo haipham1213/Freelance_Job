@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Heart, Moon, Sun, Sunset } from 'lucide-react';
 import { categoryIcon } from './Illustrations';
-import { describeShifts, salary, timeAgo, DAYS, PERIODS } from '../utils/format';
+import { describeShifts, shiftTag, salary, timeAgo, DAYS, PERIODS } from '../utils/format';
 import { api } from '../api';
 
 // "Ca làm": có ô buổi thì ghi buổi + khung giờ lấy từ ghi chú ("Tối T2–T6, 18h–22h"), không lặp lại ngày;
@@ -83,7 +83,7 @@ export const saveToggler = (comp) => async (id, saved) => {
   }
 };
 
-// Thẻ việc dạng lưới (trang Tìm việc): logo + tên + "công ty • số ứng viên" + tim; chip ngành / hình thức / nơi làm;
+// Thẻ việc dạng lưới (trang Tìm việc, cột trái chi tiết việc): logo + tên + "công ty • số ứng viên" + tim; chip ngành / ca (ngắn) / quận;
 // 2 dòng mô tả; vạch mảnh; lương lớn bên trái, thời gian đăng bên phải. Cả thẻ bấm được nhờ link tên việc phủ thẻ
 export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
   const Icon = categoryIcon(category);
@@ -99,7 +99,7 @@ export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
           <p className="jc-meta">
             <span className="jc-company">{j.companySnapshot?.name}</span>
             <span aria-hidden="true">•</span>
-            <span>{j.district || j.city}</span>
+            <span>{j.applicationCount > 0 ? `${j.applicationCount} ứng viên` : 'Chưa có ứng viên'}</span>
           </p>
         </div>
         {onSave ? (
@@ -113,8 +113,8 @@ export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
       <ul className="jc-tags">
         {j.isFeatured && <li className="jc-tag t-gold">Nổi bật</li>}
         {category && <li className="jc-tag t-plum">{category}</li>}
-        <li className="jc-tag t-mint t-shift">{j.shifts?.length ? describeShifts(j.shifts) : 'Giờ linh hoạt'}</li>
-        {j.applicationCount > 0 && <li className="jc-tag t-peach">{j.applicationCount} ứng viên</li>}
+        <li className="jc-tag t-mint" title={j.shifts?.length ? describeShifts(j.shifts) : undefined}>{shiftTag(j.shifts)}</li>
+        {(j.district || j.city) && <li className="jc-tag t-peach">{j.district || j.city}</li>}
         {j.fit !== undefined && j.shiftCount > 0 && <li className="jc-tag t-ink">Hợp {j.fit}/{j.shiftCount} ca</li>}
       </ul>
       {j.excerpt && <p className="jc-desc">{j.excerpt}</p>}

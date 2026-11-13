@@ -104,14 +104,17 @@ router.get('/jobs/:id', optionalAuth, async (req, res) => {
   const isAdmin = req.user?.role === 'ADMIN';
   if (!job || (!isOwner && !isAdmin && !(await isVisible(job)))) throw new AppError(404, 'JOB_NOT_FOUND', 'Tin tuyển dụng không tồn tại hoặc đã ngừng tuyển');
   if (!isOwner) await Job.updateOne({ _id: job._id }, { $inc: { viewCount: 1 } });
-  const [employer, category, application] = await Promise.all([
+  // jobsPosted / hiredCount: chỉ số "Thông tin khác" ở cột phải trang chi tiết việc (số tin đã đăng, số sinh viên đã được nhận)
+  const [employer, category, application, jobsPosted, hiredCount] = await Promise.all([
     User.findById(job.employerId),
     Category.findById(job.categoryId),
     req.user?.role === 'STUDENT' ? Application.findOne({ jobId: job._id, studentId: req.user._id }) : null,
+    Job.countDocuments({ employerId: job.employerId, deletedAt: null }),
+    Application.countDocuments({ employerId: job.employerId, status: { $in: ['ACCEPTED', 'COMPLETED', 'NOT_COMPLETED'] } }),
   ]);
   ok(res, {
     job: { ...job.toJSON(), isFeatured: job.featuredUntil > new Date(), remainingSlots: job.slots - job.acceptedCount },
-    employer: { _id: employer._id, fullName: employer.fullName, company: publicCompany(employer), ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, isPremium: employer.isPremium(), createdAt: employer.createdAt },
+    employer: { _id: employer._id, fullName: employer.fullName, company: publicCompany(employer), ratingAvg: employer.ratingAvg, ratingCount: employer.ratingCount, isPremium: employer.isPremium(), createdAt: employer.createdAt, jobsPosted, hiredCount },
     category,
     myApplication: application && { _id: application._id, status: application.status },
     isSaved: !!req.user?.student?.savedJobIds?.some((j) => j.equals(job._id)),

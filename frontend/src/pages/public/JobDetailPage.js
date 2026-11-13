@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, CalendarClock, CheckCircle2, Clock, FileText, Flag, Heart, Link2, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, CheckCircle2, Clock, FileText, Flag, Heart, Link2, X, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -8,7 +8,7 @@ import { JobCard, MiniWeek, busyOf, hoursOf, loadSavedIds, saveToggler } from '.
 import { categoryIcon } from '../../components/Illustrations';
 import ReportModal from '../../components/ReportModal';
 import ErrorPage from './ErrorPage';
-import { date, money, salary, timeAgo, jobStatusOf, describeShifts, SALARY_TYPE } from '../../utils/format';
+import { date, money, salary, timeAgo, jobStatusOf, describeShifts, shiftTag, SALARY_TYPE } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
 // Hộp ứng tuyển: ghi rõ việc nào và CV nào sẽ được gửi. Thiếu CV / số điện thoại thì chặn gửi và chỉ chỗ bổ sung (server cũng kiểm tra: CV_REQUIRED, PHONE_REQUIRED)
@@ -295,8 +295,8 @@ class JobDetailPage extends Component {
                 <ul className="jc-tags jv-tags">
                   {job.isFeatured && <li className="jc-tag t-gold">Nổi bật</li>}
                   {category && <li className="jc-tag t-plum"><Link to={`/jobs?categoryId=${category._id}`}>{category.name}</Link></li>}
-                  <li className="jc-tag t-mint t-shift">{job.shifts?.length ? describeShifts(job.shifts) : 'Giờ linh hoạt'}</li>
-                  <li className="jc-tag t-peach">{job.district || job.city}</li>
+                  <li className="jc-tag t-mint" title={job.shifts?.length ? describeShifts(job.shifts) : undefined}>{shiftTag(job.shifts)}</li>
+                  {(job.district || job.city) && <li className="jc-tag t-peach">{job.district || job.city}</li>}
                   {status !== 'OPEN' && <li><JobBadge status={status} /></li>}
                 </ul>
               </header>
@@ -327,7 +327,10 @@ class JobDetailPage extends Component {
             <aside className="jv-side" aria-label="Nhà tuyển dụng và ứng tuyển">
               <section className="jv-sec">
                 <div className="jv-company">
-                  <h2 className="jv-company-name"><Link to={`/employers/${employer._id}`}>{companyName}</Link>{employer.isPremium && <span className="chip chip-featured">Premium</span>}</h2>
+                  <h2 className="jv-company-name">
+                    <Link to={`/employers/${employer._id}`}>{companyName}</Link>
+                    {employer.isPremium && <BadgeCheck size={20} className="jv-verified" role="img" aria-label="Nhà tuyển dụng Premium" />}
+                  </h2>
                   <span className="jv-logo">{company.logoUrl ? <img src={company.logoUrl} alt="" width="56" height="56" /> : <Icon size={24} aria-hidden="true" />}</span>
                 </div>
                 <dl className="jv-dl">
@@ -336,11 +339,17 @@ class JobDetailPage extends Component {
                 </dl>
               </section>
               <section className="jv-sec">
-                <h2 className="jv-h3">Đánh giá nhà tuyển dụng</h2>
+                <h2 className="jv-h3">Thông tin khác</h2>
                 <div className="jv-pair">
-                  <Stars value={employer.ratingAvg} count={employer.ratingCount} />
-                  {employer.ratingCount > 0 && <p>Từ {employer.ratingCount} sinh viên đã làm</p>}
+                  <Stars value={employer.ratingAvg} />
+                  <p>{employer.ratingCount > 0 ? `${employer.ratingAvg.toFixed(1)} từ ${employer.ratingCount} đánh giá của sinh viên` : 'Chưa có đánh giá'}</p>
                 </div>
+                {employer.jobsPosted > 0 && (
+                  <div className="jv-pair">
+                    <strong>{employer.hiredCount > 0 ? `${employer.hiredCount} sinh viên đã nhận việc` : 'Chưa nhận sinh viên nào'}</strong>
+                    <p>{employer.jobsPosted} tin đã đăng trên UniShift</p>
+                  </div>
+                )}
               </section>
               <section className="jv-sec">
                 <h2 className="jv-h4">Cam kết</h2>
@@ -350,6 +359,8 @@ class JobDetailPage extends Component {
                 {this.actions(false)}
                 {user?.role === 'STUDENT' && !user.emailVerified && !data.myApplication && <p className="jd-note" id="jd-apply-why">Xác thực email để ứng tuyển.</p>}
                 {status !== 'OPEN' && <p className="jd-note">Tin này không còn nhận hồ sơ. Xem các việc tương tự ở danh sách việc.</p>}
+              </section>
+              <section className="jv-sec jv-links">
                 <div className="jv-minor">
                   <button type="button" className="jd-copy" onClick={this.copyLink}><Link2 size={14} aria-hidden="true" /><span role="status">{copied === 'ok' ? 'Đã sao chép' : copied === 'fail' ? 'Không sao chép được, hãy sao chép link bên dưới' : 'Sao chép link'}</span></button>
                   {canReport && <button type="button" className="jd-report" onClick={() => this.setState({ modal: 'report' })}><Flag size={14} aria-hidden="true" />Báo cáo tin này</button>}
@@ -361,7 +372,9 @@ class JobDetailPage extends Component {
 
           <aside className="jv-list" aria-label="Tin đang xem và việc tương tự">
             <Alert>{saveError}</Alert>
-            <JobCard job={{ ...job, excerpt: job.description }} category={category?.name} on />
+            <JobCard job={{ ...job, excerpt: job.description, companySnapshot: job.companySnapshot || { name: companyName, logoUrl: company.logoUrl } }} category={category?.name} on
+              saved={!!data.isSaved} onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined}
+              saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${job._id}?save=1`)}`} />
             {similar.map((j) => (
               <JobCard key={j._id} job={j} category={j.categoryId === job.categoryId ? category?.name : undefined} saved={savedIds.has(j._id)}
                 onSave={user?.role === 'STUDENT' ? this.toggleSimilarSave : undefined}

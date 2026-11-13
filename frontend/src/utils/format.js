@@ -73,3 +73,9 @@ export const shiftParts = (shifts = []) => PERIODS.map((label, period) => {
 }).filter(Boolean);
 // [2, 5, 8, 11, 14, 17, 18] → "Tối T2–T7, Sáng CN"
 export const describeShifts = (shifts = []) => shiftParts(shifts).map((p) => `${p.label} ${p.days}`).join('; ');
+// Nhãn ca ngắn cho chip: giữ mô tả nếu đủ gọn ("Tối T2–T7"), dài thì chỉ ghi số ca để chip không xuống dòng
+export const shiftTag = (shifts = []) => {
+  if (!shifts.length) return 'Giờ linh hoạt';
+  const d = describeShifts(shifts);
+  return d.length <= 18 ? d : `${shifts.length} ca/tuần`;
+};
