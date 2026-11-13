@@ -289,10 +289,6 @@ ul.pub-notifs { list-style: none; margin: 0; padding: 0; }
 .dd-head { padding: 4px 12px 8px; }
 .dd-pad { padding: 12px; }
 .dd-wide { width: 260px; }
-.dropdown:focus { outline: none; }
-.menu-item-unread .small { font-weight: 700; }
-.menu-danger { color: var(--alert); }
-a.menu-item { box-sizing: border-box; }
 .nav-m-login, .nav-m-emp { display: none; }
 @media (max-width: 640px) { .nav-m-login { display: block; } }
 @media (max-width: 640px) { .nav-m-emp { display: block; } }
