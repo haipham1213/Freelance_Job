@@ -67,3 +67,36 @@
 }
 
 }
+
+/* ---- Rà soát UI/UX: bổ sung (không sửa phần trên) ---- */
+@scope (:root) to (.rv-hero) {
+.adm-head-main { flex: 1; min-width: 0; }
+.adm-user { flex-wrap: nowrap; gap: 10px; }
+.adm-user-text { min-width: 0; }
+.adm-search-form { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 420px; }
+.adm-search-form .adm-search { flex: 1 1 auto; max-width: none; }
+.adm-actions { gap: 6px; flex-wrap: nowrap; }
+.adm-reason { max-width: 240px; white-space: normal; }
+.adm-chip-gap { margin-left: 4px; }
+.adm-arrow { vertical-align: -2px; }
+.adm-comment { max-width: 320px; }
+.adm-note { margin-top: 12px; }
+.adm-edit { flex-wrap: nowrap; gap: 6px; }
+.adm-cat-pick { display: inline-block; border-radius: 12px; }
+.adm-add { display: flex; align-items: flex-end; gap: 8px; margin: 0 0 12px; }
+.adm-add .field { flex: 1; min-width: 0; }
+.adm-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.adm-fieldset legend { padding: 0; margin-bottom: 8px; }
+.adm-radio { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+.adm-plan-price { flex-wrap: nowrap; align-items: flex-end; gap: 8px; margin: 12px 0; }
+.adm-plan-price .field { flex: 1; min-width: 0; }
+.adm-summary { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+.adm-summary dt { color: var(--muted); }
+.adm-summary dd { margin: 0; overflow-wrap: anywhere; }
+.adm-toast:not(:empty) { margin-bottom: 12px; }
+.adm-toast .alert-live { display: block; }
+.adm-toast .alert + .alert { margin-top: 8px; }
+@media (max-width: 860px) {
+  .adm-search-form { max-width: none; flex-basis: 100%; }
+}
+}

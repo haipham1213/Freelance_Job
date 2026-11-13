@@ -14,6 +14,11 @@ const MENU = [
 // SCR-A08
 class AdminLayout extends Component {
   static contextType = AuthContext;
+  nav = React.createRef();
+  // Mobile: menu là dải cuộn ngang, đưa mục đang chọn vào tầm nhìn
+  componentDidMount() { this.reveal(); }
+  componentDidUpdate(prev) { if (prev.location.pathname !== this.props.location.pathname) this.reveal(); }
+  reveal = () => this.nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
   logout = async () => { await this.context.logout(); this.props.navigate('/'); };
   render() {
     return (
@@ -21,15 +26,15 @@ class AdminLayout extends Component {
         <a className="skip-link" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Bỏ qua điều hướng</a>
         <aside className="sidebar">
           <Link to="/" className="logo adm-logo"><span className="logo-mark" aria-hidden="true" /><span>Uni<span className="logo-shift">Shift</span></span> <span className="chip tiny">Admin</span></Link>
-          <nav className="side-nav" aria-label="Quản trị">
+          <nav className="side-nav" aria-label="Quản trị" ref={this.nav}>
           {MENU.map(([to, Icon, label]) => (
             <NavLink key={to} to={to} end className="side-link"><Icon size={18} className="adm-ico" aria-hidden="true" />{label}</NavLink>
           ))}
           </nav>
           <div className="side-foot adm-side-foot">
-            <div className="row" style={{ flexWrap: 'nowrap', gap: 10 }}>
+            <div className="row adm-user">
               <Avatar src={this.context.user.avatarUrl} name={this.context.user.fullName} />
-              <div style={{ minWidth: 0 }}>
+              <div className="adm-user-text">
                 <div className="small adm-ellipsis"><strong>{this.context.user.fullName}</strong></div>
                 <div className="fog tiny adm-ellipsis">{this.context.user.email}</div>
               </div>
