@@ -518,3 +518,6 @@ main:focus { outline: none; }
 
 /* Chữ chỉ dành cho trình đọc màn hình: đặt ngoài @scope để cả trong hero (Dropdown ngành nghề/thành phố) cũng ẩn được */
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Luôn chừa chỗ thanh cuộn dọc: chuyển giữa trang dài và trang ngắn (máy bật "luôn hiện thanh cuộn") header không xê dịch */
+html { scrollbar-gutter: stable; }
