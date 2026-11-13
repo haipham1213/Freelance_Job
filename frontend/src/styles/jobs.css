@@ -78,24 +78,19 @@
 .jx-logo { width: 52px; height: 52px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--r-md); background: var(--white); color: var(--obsidian); }
 .jx-logo img { width: 100%; height: 100%; object-fit: cover; }
 
-/* Lưới tuần thu nhỏ: L = ca làm (xanh lá đậm, chữ trắng), H = giờ học (viền xám, nền trắng), ! = trùng giờ học (đỏ, bo tròn).
-   Mỗi loại khác nhau cả màu, hình và ký tự nên không chỉ dựa vào màu; mọi ô ≥ 3:1 so với nền trắng */
+/* Lưới ca trong chi tiết việc: giữ giao diện cũ theo yêu cầu (ô màu xanh = ca làm, xám = giờ học, đỏ = trùng giờ học) */
 .jx-mini { margin: 0 0 8px; }
-.jx-mini-grid { display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); gap: 4px; max-width: 460px; }
-.jx-mini-day, .jx-mini-p { font-size: var(--fs-label); font-weight: 500; color: var(--muted); }
+.jx-mini-grid { display: grid; grid-template-columns: 40px repeat(7, minmax(0, 1fr)); gap: 4px; max-width: 420px; }
+.jx-mini-day, .jx-mini-p { font-size: 12px; font-weight: 500; color: var(--muted); }
 .jx-mini-day { text-align: center; }
 .jx-mini-p { align-self: center; }
-.jx-mini-cell { display: grid; place-items: center; height: 28px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--stone-border); font-size: var(--fs-axis); font-weight: 700; line-height: 1; color: var(--ink); }
-.jx-mini-cell.w { background: var(--pay); color: var(--white); box-shadow: none; }
-.jx-mini-cell.h { background: var(--white); box-shadow: inset 0 0 0 2px var(--stone-border); }
-.jx-mini-cell.x { background: var(--alert); color: var(--white); box-shadow: none; border-radius: 50%; }
-.jx-mini-cell.w::after { content: 'L'; }
-.jx-mini-cell.h::after { content: 'H'; }
-.jx-mini-cell.x::after { content: '!'; }
-.jx-mini figcaption { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: var(--fs-label); color: var(--muted); }
+.jx-mini-cell { display: block; height: 24px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--line); }
+.jx-mini-cell.w { background: var(--neon); box-shadow: none; }
+.jx-mini-cell.h { background: #c4ccd6; box-shadow: none; }
+.jx-mini-cell.x { background: var(--alert); box-shadow: none; }
+.jx-mini figcaption { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
 .jx-mini figcaption span { display: inline-flex; align-items: center; gap: 6px; }
-.jx-mini figcaption .jx-mini-cell { width: 24px; height: 24px; border-radius: 4px; font-size: 13px; }
-.jx-mini figcaption .jx-mini-cell.x { border-radius: 50%; }
+.jx-mini figcaption .jx-mini-cell { width: 12px; height: 12px; border-radius: 3px; }
 
 /* Lời mời tạo hồ sơ cuối trang: dải neon bo lớn, tiêu đề trái, nút obsidian phải */
 .jx-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px 64px; margin-top: 64px; padding: 48px 56px; background: var(--neon); border-radius: var(--radius-lg); color: var(--obsidian); }
