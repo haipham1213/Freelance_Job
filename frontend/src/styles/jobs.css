@@ -8,13 +8,19 @@
 /* Đầu trang: tiêu đề + câu dẫn + thanh tìm (từ khóa, địa điểm) trên dải xanh phẳng --primary (không gradient), chữ trắng.
    Trang tìm việc rộng hơn khung chung 1200px để bớt khoảng trống hai bên */
 .jx-band, .jx-page, body:has(.jx-page) .footer .container { --page: 1440px; }
-.jx-band { padding: 64px 0 56px; background: var(--primary); color: var(--white); border-radius: 0 0 32px 32px; }
-.jx-title { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: var(--white); }
-.jx-spark { flex-shrink: 0; color: var(--white); }
-.jx-sub { margin: 0 0 28px; max-width: 760px; font-size: 16px; font-weight: 500; color: var(--white); }
-.jx-search { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; padding: 8px; border-radius: var(--r-pill); box-shadow: none; }
-.jx-search .hx-field { height: 56px; font-size: var(--fs-input); }
-.jx-search .btn { height: 56px; padding: 0 40px; font-size: var(--fs-ctl); }
+/* Dải đầu trang Tìm việc: giữ giao diện cũ theo yêu cầu — cùng nền bầu trời với hero trang chủ (.rv-sky trong hero.css) */
+.jx-band { padding: 64px 0 56px; box-shadow: none; color: #fff; border-radius: 0 0 32px 32px;
+  background:
+    radial-gradient(60% 45% at 80% 92%, rgba(255, 255, 255, .55), transparent 70%),
+    radial-gradient(40% 28% at 10% 100%, rgba(255, 255, 255, .35), transparent 70%),
+    radial-gradient(30% 20% at 92% 16%, rgba(255, 255, 255, .2), transparent 70%),
+    linear-gradient(170deg, #0b4fa8 0%, #1f68c4 45%, #5f9fe6 85%, #a3c9f2 100%); }
+.jx-title { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #fff; text-shadow: 0 1px 2px rgba(40, 70, 110, .25); }
+.jx-spark { flex-shrink: 0; color: #fff; }
+.jx-sub { margin: 0 0 28px; max-width: 760px; font-size: 16px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(40, 70, 110, .25); }
+.jx-search { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; padding: 8px; border-radius: 999px; box-shadow: none; }
+.jx-search .hx-field { height: 56px; font-size: 16px; }
+.jx-search .btn { height: 56px; padding: 0 40px; font-size: 16px; }
 
 /* Hai cột: bộ lọc 260px dính dưới menu (cuộn riêng nếu dài), danh sách chiếm phần còn lại. Cột lọc nằm thẳng trên nền trang, không khung */
 .jx-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px; align-items: start; }
@@ -176,7 +182,7 @@
   .jx-search { border-radius: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .jx-search .hx-q { grid-column: 1 / -1; grid-row: 1; padding-right: 128px; }
   .jx-search .btn { grid-column: 2; grid-row: 1; justify-self: end; z-index: 1; padding: 0 20px; }
-  .jx-search .hx-field, .jx-search .btn { height: var(--tap); }
+  .jx-search .hx-field, .jx-search .btn { height: 48px; }
   .jx-page { padding-top: 32px; }
   .jx-cta { margin-top: 48px; padding: 32px 24px; border-radius: 24px; }
   .jx-cta .btn { width: 100%; }
