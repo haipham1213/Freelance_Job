@@ -124,7 +124,7 @@
 /* Chi tiết việc làm theo mẫu 3 cột. Mọi số đo quy từ mẫu theo cỡ chữ nội dung B = 16px:
    cả khối ~86B (1376px) căn giữa, cột 348 | 700 | 312 (≈ 21.7B | 43.7B | 19.5B), dòng nội dung ~65 ký tự.
    Tiêu đề 2B nặng 500, tiêu đề mục 1.2B, nhãn .85B, nút 3.2B. Không kéo giãn theo màn rộng */
-.jd, body:has(.jd) .nav-inner, body:has(.jd) .footer .container { --page: 1424px; }
+.jd, body:has(.jd) .footer .container { --page: 1424px; }
 .jd { padding-top: 28px; }
 .jd-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-bottom: 10px; font-size: var(--fs-label); color: var(--body); }
 @media (hover: hover) { .jd-back:hover { color: var(--ink); } }

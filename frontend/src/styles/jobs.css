@@ -7,7 +7,7 @@
 
 /* Đầu trang: tiêu đề + câu dẫn + thanh tìm (từ khóa, địa điểm) trên dải xanh phẳng --primary (không gradient), chữ trắng.
    Trang tìm việc rộng hơn khung chung 1200px để bớt khoảng trống hai bên */
-.jx-band, .jx-page, body:has(.jx-page) .nav-inner, body:has(.jx-page) .footer .container { --page: 1440px; }
+.jx-band, .jx-page, body:has(.jx-page) .footer .container { --page: 1440px; }
 .jx-band { padding: 64px 0 56px; background: var(--primary); color: var(--white); border-radius: 0 0 32px 32px; }
 .jx-title { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: var(--white); }
 .jx-spark { flex-shrink: 0; color: var(--white); }

@@ -123,7 +123,7 @@ class Navbar extends Component {
         <div className="container nav-inner">
           <Link to="/" className="logo" aria-label="UniShift, về trang chủ"><span className="logo-mark" aria-hidden="true" /><span>Uni<span className="logo-shift">Shift</span></span></Link>
           <nav className={`nav-links ${this.state.open ? 'open' : ''}`}>
-            {links.map(([to, label]) => <NavLink key={to} to={to} end className="nav-link">{label}</NavLink>)}
+            {links.map(([to, label]) => <NavLink key={to} to={to} end className="nav-link" data-label={label}>{label}</NavLink>)}
           </nav>
           <div className="nav-right">
             {user ? (
