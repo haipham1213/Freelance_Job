@@ -4,9 +4,10 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 import { Avatar } from '../../components/ui';
+import ErrorBoundary from '../../components/ErrorBoundary';
 
 const MENU = [
-  ['/admin', LayoutDashboard, 'Dashboard'], ['/admin/users', Users, 'Người dùng'], ['/admin/jobs', BriefcaseBusiness, 'Tin tuyển dụng'],
+  ['/admin', LayoutDashboard, 'Tổng quan'], ['/admin/users', Users, 'Người dùng'], ['/admin/jobs', BriefcaseBusiness, 'Tin tuyển dụng'],
   ['/admin/reports', Flag, 'Báo cáo vi phạm'], ['/admin/reviews', Star, 'Đánh giá'], ['/admin/categories', Tags, 'Danh mục'], ['/admin/payments', CreditCard, 'Gói & giao dịch'],
 ];
 
@@ -17,11 +18,14 @@ class AdminLayout extends Component {
   render() {
     return (
       <div className="admin-shell">
+        <a className="skip-link" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>Bỏ qua điều hướng</a>
         <aside className="sidebar">
           <Link to="/" className="logo adm-logo"><span className="logo-mark" aria-hidden="true" /><span>Uni<span className="logo-shift">Shift</span></span> <span className="chip tiny">Admin</span></Link>
+          <nav className="side-nav" aria-label="Quản trị">
           {MENU.map(([to, Icon, label]) => (
             <NavLink key={to} to={to} end className="side-link"><Icon size={18} className="adm-ico" aria-hidden="true" />{label}</NavLink>
           ))}
+          </nav>
           <div className="side-foot adm-side-foot">
             <div className="row" style={{ flexWrap: 'nowrap', gap: 10 }}>
               <Avatar src={this.context.user.avatarUrl} name={this.context.user.fullName} />
@@ -33,7 +37,7 @@ class AdminLayout extends Component {
             <button className="btn btn-sm btn-ghost btn-block adm-danger" onClick={this.logout}>Đăng xuất</button>
           </div>
         </aside>
-        <main className="admin-main"><Outlet /></main>
+        <main className="admin-main" id="main" tabIndex={-1}><ErrorBoundary><Outlet /></ErrorBoundary></main>
       </div>
     );
   }

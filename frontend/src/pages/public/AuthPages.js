@@ -72,6 +72,7 @@ class Login extends FormPage {
         <form className="stack" onSubmit={this.submit}>
           {this.input('email', 'Email', { type: 'email', required: true, autoComplete: 'email', autoFocus: true })}
           {this.input('password', 'Mật khẩu', { type: 'password', required: true, autoComplete: 'current-password' })}
+          {this.props.searchParams.get('expired') === '1' && !this.state.error && <Alert type="warn">Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.</Alert>}
           <Alert>{this.state.error}</Alert>
           {this.state.unverified && (this.state.resent
             ? <Alert type="ok">Đã gửi lại link xác thực tới {this.state.form.email}. Kiểm tra cả mục Spam.</Alert>

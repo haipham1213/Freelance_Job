@@ -2,8 +2,11 @@
 let accessToken = null;
 let onSessionLost = () => {};
 let refreshing = null;
+let expired = false;
 
-export const setAccessToken = (t) => { accessToken = t; };
+export const setAccessToken = (t) => { accessToken = t; if (t) expired = false; };
+// Hết phiên giữa chừng (không phải khách chưa đăng nhập): RequireRole dùng cờ này để gắn ?expired=1 khi đẩy về /login
+export const isSessionExpired = () => expired;
 export const setSessionLostHandler = (fn) => { onSessionLost = fn; };
 
 export const refreshSession = () => {
@@ -36,8 +39,10 @@ const request = async (method, path, body, retry = true) => {
     throw Object.assign(new Error('Không kết nối được máy chủ. Kiểm tra mạng và thử lại.'), { code: 'NETWORK' });
   }
   if (res.status === 401 && retry && !path.startsWith('/auth/login') && !path.startsWith('/auth/refresh')) {
+    const hadToken = accessToken !== null;
     const session = await refreshSession();
     if (session) return request(method, path, body, false);
+    expired = hadToken;
     onSessionLost();
   }
   if (res.status === 204) return {};

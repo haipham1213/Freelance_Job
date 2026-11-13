@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import withRouter from './utils/withRouter';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import RequireRole from './routes/RequireRole';
 import Navbar from './components/Navbar';
@@ -27,14 +29,47 @@ import { PremiumPage, PaymentResultPage, PaymentHistoryPage } from './pages/empl
 import AdminLayout from './pages/admin/AdminLayout';
 import { AdminDashboardPage, UsersPage, AdminJobsPage, ReportsPage, ReviewsPage, CategoriesPage, AdminPaymentsPage } from './pages/admin/AdminPages';
 
+// Tiêu đề tab theo route (khớp theo tiền tố dài nhất); trang động (chi tiết việc, nhà tuyển dụng) tự đặt document.title riêng
+const TITLES = [
+  ['/jobs', 'Tìm việc part-time'], ['/employers/', 'Nhà tuyển dụng'], ['/login', 'Đăng nhập'], ['/register', 'Đăng ký'],
+  ['/verify-email', 'Xác thực email'], ['/forgot-password', 'Quên mật khẩu'], ['/reset-password', 'Đặt lại mật khẩu'],
+  ['/dieu-khoan', 'Điều khoản sử dụng'], ['/quyen-rieng-tu', 'Quyền riêng tư'], ['/notifications', 'Thông báo'],
+  ['/account/password', 'Đổi mật khẩu'], ['/student/profile', 'Hồ sơ'], ['/student/applications', 'Đơn ứng tuyển'],
+  ['/student/saved-jobs', 'Việc đã lưu'], ['/student', 'Trang của tôi'], ['/employer/company', 'Công ty'],
+  ['/employer/jobs/new', 'Đăng tin tuyển dụng'], ['/employer/jobs', 'Tin tuyển dụng'], ['/employer/applications', 'Đơn ứng tuyển'],
+  ['/employer/premium', 'Gói Premium'], ['/employer/payments', 'Thanh toán'], ['/employer', 'Trang nhà tuyển dụng'], ['/admin', 'Quản trị'],
+];
+const SITE = 'UniShift';
+export const titleFor = (path) => {
+  if (path === '/') return `${SITE} – Việc làm part-time cho sinh viên`;
+  const hit = TITLES.filter(([p]) => path.startsWith(p)).sort((a, b) => b[0].length - a[0].length)[0];
+  return hit ? `${hit[1]} – ${SITE}` : SITE;
+};
+
+// Đổi route: cuộn lên đầu (trừ khi có #hash), chuyển focus vào <main>, cập nhật tiêu đề tab
+class RouteEffects extends Component {
+  componentDidMount() { document.title = titleFor(this.props.location.pathname); }
+  componentDidUpdate(prev) {
+    const { pathname, hash } = this.props.location;
+    if (pathname === prev.location.pathname && hash === prev.location.hash) return;
+    if (pathname !== prev.location.pathname) document.title = titleFor(pathname);
+    if (hash) return;
+    if (pathname === prev.location.pathname) return; // chỉ đổi query (bộ lọc, trang): giữ vị trí cuộn
+    window.scrollTo(0, 0);
+    document.getElementById('main')?.focus({ preventScroll: true });
+  }
+  render() { return null; }
+}
+const RouteEffectsWithRouter = withRouter(RouteEffects);
+
 class SiteLayout extends Component {
-  componentDidUpdate() { window.scrollTo(0, 0); }
   render() {
     return (
       <>
+        <a className="skip-link" href="#main" onClick={(e) => { e.preventDefault(); const m = document.getElementById('main'); m?.focus(); m?.scrollIntoView(); }}>Bỏ qua điều hướng</a>
         <Navbar />
         <VerifyBanner />
-        <main><Outlet /></main>
+        <main id="main" tabIndex={-1}><ErrorBoundary><Outlet /></ErrorBoundary></main>
         <Footer />
       </>
     );
@@ -47,6 +82,7 @@ class App extends Component {
     return (
       <AuthProvider>
         <BrowserRouter>
+          <RouteEffectsWithRouter />
           <Routes>
             <Route element={<SiteLayout />}>
               <Route path="/" element={<HomePage />} />

@@ -1,22 +1,37 @@
-export const money = (n) => (n || n === 0 ? `${Number(n).toLocaleString('vi-VN')}đ` : '');
-export const shortMoney = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}tr` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : `${n}`);
-export const date = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
-export const dateTime = (d) => (d ? new Date(d).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '');
+const VND = new Intl.NumberFormat('vi-VN');
+const VN_DEC = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 });
+const validDate = (d) => { const x = new Date(d); return Number.isNaN(x.getTime()) ? null : x; };
+export const money = (n) => (n || n === 0 ? `${VND.format(Number(n))}đ` : '');
+// Rút gọn chỉ khi chia hết (1,5tr / 25k); còn lại hiện đủ số để không làm tròn mất tiền
+export const shortMoney = (n) => {
+  if (!n && n !== 0) return '';
+  if (n >= 1e6 && n % 1e5 === 0) return `${VN_DEC.format(n / 1e6)}tr`;
+  if (n >= 1e3 && n % 1e3 === 0 && n < 1e6) return `${n / 1e3}k`;
+  return money(n);
+};
+export const date = (d) => { const x = d && validDate(d); return x ? x.toLocaleDateString('vi-VN') : ''; };
+export const dateTime = (d) => { const x = d && validDate(d); return x ? x.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : ''; };
 // Ngày theo giờ máy người dùng (toISOString là giờ UTC, 0h–7h sáng ở VN sẽ ra ngày hôm qua)
-export const toInputDate = (d) => (d ? new Date(d).toLocaleDateString('sv-SE') : '');
+export const toInputDate = (d) => { const x = d && validDate(d); return x ? x.toLocaleDateString('sv-SE') : ''; };
 
+const RTF = new Intl.RelativeTimeFormat('vi', { numeric: 'auto' });
 export const timeAgo = (d) => {
-  const s = (Date.now() - new Date(d)) / 1000;
+  const x = validDate(d);
+  if (!x) return '';
+  const s = (Date.now() - x) / 1000;
   if (s < 60) return 'vừa xong';
-  if (s < 3600) return `${Math.floor(s / 60)} phút trước`;
-  if (s < 86400) return `${Math.floor(s / 3600)} giờ trước`;
-  if (s < 30 * 86400) return `${Math.floor(s / 86400)} ngày trước`;
+  if (s < 3600) return RTF.format(-Math.floor(s / 60), 'minute');
+  if (s < 86400) return RTF.format(-Math.floor(s / 3600), 'hour');
+  if (s < 30 * 86400) return RTF.format(-Math.floor(s / 86400), 'day');
   return date(d);
 };
 
 export const SALARY_TYPE = { HOURLY: 'giờ', DAILY: 'ngày', PROJECT: 'dự án' };
-export const salary = (j) =>
-  `${j.salaryMin === j.salaryMax ? shortMoney(j.salaryMin) : `${shortMoney(j.salaryMin)}–${shortMoney(j.salaryMax)}`}/${SALARY_TYPE[j.salaryType]}`;
+export const salary = (j) => {
+  const unit = SALARY_TYPE[j.salaryType];
+  const range = j.salaryMin === j.salaryMax || j.salaryMax == null ? shortMoney(j.salaryMin) : `${shortMoney(j.salaryMin)}–${shortMoney(j.salaryMax)}`;
+  return range ? `${range}${unit ? `/${unit}` : ''}` : 'Thỏa thuận';
+};
 
 export const JOB_STATUS = {
   OPEN: ['Đang tuyển', 'chip-green'], FILLED: ['Đã đủ người', 'chip-blue'], CLOSED: ['Đã đóng', ''],
@@ -33,6 +48,8 @@ export const PAY_STATUS = {
   PENDING: ['Đang xử lý', 'chip-yellow'], SUCCESS: ['Thành công', 'chip-green'], EXPIRED: ['Hết hạn', ''],
 };
 export const ROLE = { STUDENT: 'Sinh viên', EMPLOYER: 'Nhà tuyển dụng', ADMIN: 'Quản trị viên' };
+// Tab lọc dùng đúng nhãn của badge: statusTabs(APP_STATUS, ['PENDING', …]) → [['', 'Tất cả'], ['PENDING', 'Đang chờ'], …]
+export const statusTabs = (map, keys, all = 'Tất cả') => [['', all], ...keys.map((k) => [k, map[k][0]])];
 export const jobStatusOf = (j) => (j.status === 'OPEN' && new Date(j.expiresAt) < new Date() ? 'EXPIRED' : j.status);
 export const homeOf = (role) => ({ STUDENT: '/student', EMPLOYER: '/employer', ADMIN: '/admin' })[role] || '/';
 export const WASHES = ['wash-powder', 'wash-lavender', 'wash-mint', 'wash-solar'];

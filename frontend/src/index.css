@@ -177,7 +177,7 @@ a.accent:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Form: nhãn trên, lỗi dưới; ô nhập nền trắng, focus viền obsidian + vòng neon */
 .field { display: block; }
-.field > span { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
+.field > .field-label { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
 .input, .select, .textarea {
   width: 100%; background: #fff; border: 0; box-shadow: inset 0 0 0 1px var(--stone-border); border-radius: var(--radius-ctl);
   padding: 12px 16px; font-size: 15px; outline: none; transition: box-shadow .15s;
@@ -315,7 +315,7 @@ select.select { appearance: none; padding-right: 40px; background: #fff url("dat
 .page-gap { color: var(--muted); }
 .pre { white-space: pre-line; }
 
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .ico-row { display: flex; align-items: center; gap: 6px; }
 .ico-row svg, svg.ico { flex-shrink: 0; }
 .chip-white { background: rgba(255, 255, 255, .92); color: var(--obsidian); }
@@ -450,3 +450,20 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--line); border-radiu
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes sh-in { from { opacity: 0; transform: translateY(10px); } }
 @keyframes sh-pulse { to { opacity: .55; } }
+
+/* ---- Thành phần dùng chung bổ sung (ui.js) ---- */
+.alert-live { display: contents; }
+.stack > .alert-live > .alert { margin-top: 12px; }
+.stack-lg > .alert-live > .alert { margin-top: 24px; }
+.field-count { text-align: right; font-size: 12px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.field-hint { margin-top: 6px; }
+.stars-off { color: var(--stone-border); }
+.empty-body { margin-top: 8px; }
+.empty-action { margin-top: 16px; }
+.row-end { justify-content: flex-end; }
+.row-center { justify-content: center; }
+.back-link { display: inline-flex; }
+.side-nav { display: contents; }
+.skip-link { position: absolute; left: 8px; top: -100px; z-index: 200; background: var(--ink); color: var(--white); padding: 12px 16px; border-radius: 8px; font-weight: 600; }
+.skip-link:focus { top: 8px; }
+main:focus { outline: none; }
