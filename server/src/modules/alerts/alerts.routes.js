@@ -5,7 +5,7 @@ import JobAlert from '../../models/JobAlert.js';
 import AppError from '../../utils/AppError.js';
 import { ok, randomToken, slotList } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
-import { sendJobAlert, sendAlertConfirm } from '../../config/mailer.js';
+import { sendJobAlert, sendAlertConfirm, inBackground } from '../../config/mailer.js';
 
 const router = Router();
 const limiter = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: true, legacyHeaders: false,
@@ -24,7 +24,7 @@ router.post('/job-alerts', limiter, perEmail, validate(z.object({
   const { email, busySlots } = req.body;
   const a = await JobAlert.findOneAndUpdate({ email }, { $set: { pendingSlots: slotList(busySlots) }, $setOnInsert: { token: randomToken(), confirmed: false } },
     { upsert: true, returnDocument: 'after' });
-  sendAlertConfirm(email, a.token).catch((e) => console.warn(`[mail] ${e.message}`));
+  inBackground(sendAlertConfirm(email, a.token));
   ok(res, { email }, null, 201);
 });
 

@@ -12,6 +12,7 @@ import { authenticate, optionalAuth, authorize, requireVerified } from '../../mi
 import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending, publicCompany, completeIfDone } from './jobs.service.js';
 
 import { notifyAlerts } from '../alerts/alerts.routes.js';
+import { inBackground } from '../../config/mailer.js';
 const router = Router();
 
 
@@ -127,7 +128,7 @@ router.post('/jobs', authenticate, authorize('EMPLOYER'), requireVerified, valid
       featuredUntil: req.user.isPremium() ? req.user.employer.premiumUntil : undefined,
     }], { session });
   });
-  notifyAlerts(job).catch((e) => console.warn(`[alerts] ${e.message}`));
+  inBackground(notifyAlerts(job), 'alerts');
   ok(res, { job }, null, 201);
 });
 

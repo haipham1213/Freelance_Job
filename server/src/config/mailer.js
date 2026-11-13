@@ -1,4 +1,8 @@
 import nodemailer from 'nodemailer';
+import { waitUntil } from '@vercel/functions';
+
+// Gửi nền sau khi đã trả phản hồi: trên Vercel function bị đóng băng ngay khi phản hồi xong nên phải waitUntil, local thì promise tự chạy tiếp
+export const inBackground = (promise, tag = 'mail') => waitUntil(promise.catch((e) => console.warn(`[${tag}] ${e.message}`)));
 
 // Có SMTP_USER/SMTP_PASS (Gmail + App Password) thì gửi qua Gmail SMTP, gửi được tới mọi địa chỉ khi chưa có tên miền;
 // không có thì dùng Resend REST API (https://resend.com/docs/api-reference/emails/send-email)

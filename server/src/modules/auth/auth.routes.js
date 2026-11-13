@@ -9,7 +9,7 @@ import AppError from '../../utils/AppError.js';
 import { ok, sha256, randomToken, DAY } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate } from '../../middlewares/auth.js';
-import { sendVerifyEmail, sendResetEmail } from '../../config/mailer.js';
+import { sendVerifyEmail, sendResetEmail, inBackground } from '../../config/mailer.js';
 
 const router = Router();
 
@@ -87,7 +87,7 @@ router.post('/verify-email', validate(z.object({ token: z.string() })), async (r
 router.post('/resend-verification', limiter, resendLimiter, validate(z.object({ email })), async (req, res) => {
   const user = await User.findOne({ email: req.body.email, emailVerified: false });
   // Không chờ gửi mail: thời gian phản hồi như nhau dù email có tồn tại hay không
-  if (user) createOneTimeToken(user._id, 'VERIFY_EMAIL', DAY).then((t) => sendVerifyEmail(user.email, t)).catch((e) => console.warn(`[mail] ${e.message}`));
+  if (user) inBackground(createOneTimeToken(user._id, 'VERIFY_EMAIL', DAY).then((t) => sendVerifyEmail(user.email, t)));
   ok(res, { message: 'Nếu email chưa được xác thực, chúng tôi đã gửi lại link' });
 });
 
@@ -138,7 +138,7 @@ router.post('/logout', async (req, res) => {
 // API-07: BR-09 luôn cùng một thông báo
 router.post('/forgot-password', limiter, validate(z.object({ email })), async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
-  if (user) createOneTimeToken(user._id, 'RESET_PASSWORD', 30 * 60_000).then((t) => sendResetEmail(user.email, t)).catch((e) => console.warn(`[mail] ${e.message}`));
+  if (user) inBackground(createOneTimeToken(user._id, 'RESET_PASSWORD', 30 * 60_000).then((t) => sendResetEmail(user.email, t)));
   ok(res, { message: 'Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu' });
 });
 
