@@ -35,7 +35,7 @@ html { zoom: .8; --vh: 1vh; --vw: 1vw; }
   --star: #a86400;
   /* Nền hover trên khối --abyss (--sand trùng màu nên không thấy) */
   --hover-abyss: var(--aqua-mist);
-  --steel: var(--body); --charcoal: var(--ink); --shell: var(--abyss);
+  --steel: var(--body); --charcoal: var(--ink);
   --featured-bg: var(--signal-yellow); --featured-ink: var(--obsidian);
   /* Nút viền: viền chữ đậm, hover nền xanh nhạt */
   --ghost-line: var(--ink); --ghost-hover-bg: var(--sand); --ghost-hover-ink: var(--ink);
@@ -56,13 +56,13 @@ html { zoom: .8; --vh: 1vh; --vw: 1vw; }
   --shadow-pop: rgba(22, 35, 59, .22) 0 12px 28px -10px;
   --page: 1200px;
   /* Thang z-index */
-  --z-flash: 5; --z-nav: 20; --z-side: 21; --z-bar: 25; --z-drop: 30; --z-pop: 40; --z-modal: 100; --z-skip: 200;
+  --z-flash: 5; --z-side: 21; --z-bar: 25; --z-pop: 40; --z-modal: 100; --z-skip: 200;
 }
 
 /* Thẻ, hộp thoại, ô nhập: chữ --ink (token giống ngữ cảnh chung) */
 .card, .card-sm, .modal, .dropdown, .dd-pop, .sh-list, .job-card,
 .gn-compare, .voice, .jd-bar, .panel,
-.input, .select, .textarea, .pill-select, .hx-search, .search-bar, .adm-search, .al-form input {
+.input, .select, .textarea, .pill-select, .hx-search, .adm-search, .al-form input {
   color: var(--ink);
 }
 
@@ -105,7 +105,7 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; color: var(--ink); }
 .hl { background: var(--highlight); color: var(--pay); padding: 0 6px; border-radius: 6px; }
 /* Nhãn chữ hoa nhỏ đặt trên tiêu đề mục; .eyebrow-dot thêm chấm tròn phía trước, .eyebrow-chip là nhãn nền mờ bo 4px */
 .eyebrow { display: block; margin: 0 0 12px; font-size: var(--fs-label); font-weight: 500; line-height: 1.3; letter-spacing: .1em; text-transform: uppercase; color: var(--link); }
-.card .eyebrow, .jd-card .eyebrow, .panel .eyebrow { color: var(--ink); }
+.card .eyebrow, .panel .eyebrow { color: var(--ink); }
 .eyebrow-dot { display: inline-flex; align-items: center; gap: 8px; }
 .eyebrow-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .eyebrow-chip { display: inline-block; padding: 4px 8px; border-radius: 4px; background: var(--sand); color: var(--ink); font-size: var(--fs-label); letter-spacing: .05em; }
@@ -141,7 +141,6 @@ h1, h2, h3, h4 { margin: 0; font-weight: 600; color: var(--ink); }
 .card { background: var(--mint-frost); border-radius: var(--radius); padding: 24px; box-shadow: var(--hairline); }
 .card-sm { background: var(--mint-frost); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--hairline); }
 .card-white { background: var(--white); }
-.wash-powder, .wash-lavender, .wash-mint, .wash-solar { background: var(--warm); }
 /* Khối lớn: .panel trắng bo 40px (không trắng chồng trắng), .band dải abyss bo 40px để ngắt nền dài */
 .panel { background: var(--mint-frost); border-radius: 40px; padding: 56px; box-shadow: var(--hairline); }
 .band { background: var(--abyss); border-radius: 40px; padding: 80px 64px; }
@@ -287,7 +286,6 @@ select.select { appearance: none; padding-right: 40px; background: var(--white) 
 .job-card { display: block; background: var(--mint-frost); border-radius: var(--radius); padding: 18px; box-shadow: var(--hairline); }
 @media (hover: hover) { .job-card:hover { box-shadow: inset 0 0 0 1.5px var(--ink); } }
 .job-card.featured { box-shadow: inset 0 0 0 1.5px var(--signal-yellow); }
-.job-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: var(--fs-label); }
 .salary { font-weight: 500; font-size: var(--fs-label); color: var(--pay); background: var(--highlight); padding: 1px 8px; border-radius: var(--r-pill); font-variant-numeric: tabular-nums; }
 
 /* Bảng */
@@ -350,10 +348,6 @@ select.select { appearance: none; padding-right: 40px; background: var(--white) 
 .ico-row svg, svg.ico { flex-shrink: 0; }
 
 /* Thanh tìm kiếm gọn (admin) */
-.search-bar { display: flex; gap: 6px; background: var(--white); border-radius: 999px; padding: 4px 4px 4px 8px; }
-.search-bar .input, .search-bar .select { box-shadow: none; background-color: transparent; }
-.search-bar .select { max-width: 200px; border-left: 1px solid var(--line); border-radius: 0; }
-@media (max-width: 640px) { .search-bar { flex-direction: column; border-radius: 20px; } .search-bar .select { max-width: none; border-left: 0; } }
 .pill-select { appearance: none; border: 0; box-shadow: inset 0 0 0 1px var(--stone-border); background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23191919' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 14px center; border-radius: var(--r-pill); min-height: var(--tap); padding: 9px 36px 9px 16px; font-size: var(--fs-ctl); cursor: pointer; }
 .pill-select:focus { box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 3px var(--aqua-mist); outline: 2px solid transparent; }
 .pill-select:disabled { cursor: not-allowed; opacity: .6; }
@@ -386,9 +380,6 @@ select.select { appearance: none; padding-right: 40px; background: var(--white) 
 .lib-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Lưới thẻ việc (JobCard) trên trang công ty */
-.jobs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
-@media (max-width: 1240px) { .jobs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .jobs-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* Ô tìm kiếm lớn (trang tìm việc): khung trắng bo viên thuốc, nút xanh ở cuối */
 .hx-search { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; background: var(--white); padding: 6px; border-radius: var(--r-pill); }
@@ -469,7 +460,6 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--stone-border); bord
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes sh-in { from { opacity: 0; transform: translateY(10px); } }
 @keyframes sh-pulse { to { opacity: .55; } }
 
 /* ---- Thành phần dùng chung bổ sung (ui.js) ---- */
@@ -492,7 +482,6 @@ main:focus { outline: none; }
 .file-pick { position: relative; cursor: pointer; }
 .file-pick:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
 .file-pick.is-disabled { opacity: .6; cursor: not-allowed; }
-.file-pick:focus-within { outline: 2px solid var(--primary); }
 
 /* ---- Khối cuối (nằm trong cùng @scope để không lọt vào hero) ---- */
 @scope (:root) to (.rv-hero) {

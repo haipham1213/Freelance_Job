@@ -101,4 +101,3 @@
 .emp-form-actions { margin-top: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
 .emp-alert-text { color: var(--alert); }
 .emp-flash { position: sticky; top: 80px; z-index: var(--z-flash); }
-.emp-cta-center { justify-content: center; }

@@ -38,7 +38,6 @@
 .adm-table-card { padding: 0; overflow: hidden; }
 .adm-table-card .table th { padding: 10px 14px; font-size: var(--fs-label); }
 .adm-table-card .table td { padding: 10px 14px; }
-.adm-add { margin: 0 0 12px; }
 .adm-add .input { box-shadow: none; }
 .adm-cat-img { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; }
 .adm-plan { gap: 0; }

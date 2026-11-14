@@ -163,7 +163,6 @@
 .jx-sec-head .jx-sec-title { margin: 0; }
 .jx-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 20px; }
 .jx-skel .sk-card { height: 220px; }
-.jx-flash-wrap { margin-bottom: 12px; }
 
 /* Responsive (đặt sau mọi khai báo gốc để thắng khi cùng độ ưu tiên) */
 @media (max-width: 960px) {

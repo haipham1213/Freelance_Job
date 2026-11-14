@@ -7,7 +7,7 @@
 /* Bộ màu lấy từ hero: xanh trời (#0b4fa8 → #5f9fe6) làm màu chính, xanh lá ô "ca làm thêm" (#3fd68a) cho tín hiệu,
    chữ và vạch theo đúng token của hero.css. Tên biến cũ (forest, moss, lime…) giữ lại, chỉ đổi giá trị.
    Token khai báo lại trên các thẻ "ngữ cảnh sáng" của index.css, nếu không chúng sẽ lấy màu mint/obsidian */
-body.page-home, .page-home main :is(.card, .card-sm, .tile, .sh-list, .job-card, .gn-compare, .panel, .hx-search, .al-form input),
+body.page-home, .page-home main :is(.card, .card-sm, .sh-list, .job-card, .gn-compare, .panel, .hx-search, .al-form input),
 .page-home :is(.dd-pop, .dropdown) {
   --cream: #f5f8fc; --paper: #eaf2fb; --forest: #0b4fa8; --forest-2: #083d84; --moss: #1f68c4; --lime: #3fd68a;
   --ink: #191919; --on-ink: #fff; --body: #3b4250; --muted: #5a6270; --placeholder: #5f6673;
