@@ -26,6 +26,20 @@ export const timeAgo = (d) => {
   return date(d);
 };
 
+// Thời gian đăng: "Vừa xong", "11 phút trước", "3 giờ trước", "Hôm qua", "3 ngày trước"; quá 7 ngày thì dd/MM/yyyy
+export const formatPostedAt = (d) => {
+  const x = validDate(d);
+  if (!x) return '';
+  const s = (Date.now() - x) / 1000;
+  if (s < 60) return 'Vừa xong';
+  if (s < 3600) return `${Math.floor(s / 60)} phút trước`;
+  if (s < 86400) return `${Math.floor(s / 3600)} giờ trước`;
+  const days = Math.floor(s / 86400);
+  if (days === 1) return 'Hôm qua';
+  if (days <= 7) return `${days} ngày trước`;
+  return `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}/${x.getFullYear()}`;
+};
+
 export const SALARY_TYPE = { HOURLY: 'giờ', DAILY: 'ngày', PROJECT: 'dự án' };
 export const salary = (j) => {
   const unit = SALARY_TYPE[j.salaryType];
@@ -78,3 +92,6 @@ export const shiftTag = (shifts = []) => {
   const d = describeShifts(shifts);
   return d.length <= 18 ? d : `${shifts.length} ca/tuần`;
 };
+
+// Tên ngành rút gọn cho pill: phần trước dấu gạch ("Dịch thuật – Viết nội dung" → "Dịch thuật"); tên đầy đủ để ở title
+export const shortCategoryLabel = (name = '') => name.split(/\s[–—-]\s/)[0].trim() || name;

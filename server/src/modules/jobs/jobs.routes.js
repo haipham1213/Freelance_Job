@@ -16,6 +16,11 @@ import { inBackground } from '../../config/mailer.js';
 const router = Router();
 
 
+// BR-43: tọa độ ghim phải nằm trong khung lãnh thổ Việt Nam (chặn ghim nhầm ra biển hoặc nước khác)
+const VN = { lat: [8, 24], lng: [102, 110] };
+const inVN = (lat, lng) => lat >= VN.lat[0] && lat <= VN.lat[1] && lng >= VN.lng[0] && lng <= VN.lng[1];
+const samePoint = (a, b) => (a?.coordinates || []).join() === (b?.coordinates || []).join();
+
 // BR-14
 const jobBody = z.object({
   title: z.string().trim().min(10, 'Tiêu đề 10–120 ký tự').max(120, 'Tiêu đề 10–120 ký tự'),
@@ -25,6 +30,9 @@ const jobBody = z.object({
   city: z.string().trim().min(1, 'Vui lòng chọn thành phố'),
   district: z.string().trim().optional(),
   address: z.string().trim().max(200).optional(),
+  // { lat, lng } → GeoJSON; null = bỏ ghim, không gửi = giữ nguyên
+  location: z.object({ lat: z.number(), lng: z.number() }).refine((p) => inVN(p.lat, p.lng), 'Vị trí ghim phải nằm trong lãnh thổ Việt Nam')
+    .nullable().optional().transform((p) => p && { type: 'Point', coordinates: [p.lng, p.lat] }),
   salaryType: z.enum(['HOURLY', 'DAILY', 'PROJECT'], 'Loại lương không hợp lệ'),
   salaryMin: z.coerce.number().positive('Lương phải lớn hơn 0'),
   salaryMax: z.coerce.number().positive('Lương phải lớn hơn 0'),
@@ -47,10 +55,8 @@ const assertCompany = (user) => {
     throw new AppError(403, 'COMPANY_PROFILE_REQUIRED', 'Vui lòng hoàn thiện hồ sơ công ty (tên, địa chỉ, SĐT) trước khi đăng tin');
 };
 
-// API-20: FR-SRC-01, Nổi bật trước rồi mới nhất (BR-21)
-router.get('/jobs', cdnCache(15), async (req, res) => {
-  const { page, limit, skip } = paging(req.query);
-  const q = req.query;
+// Bộ lọc dùng chung cho danh sách (API-20) và bản đồ (API-79). Trả các stage đầu pipeline + thông tin để sắp xếp
+const searchStages = async (q) => {
   const match = await visibleMatch();
   if (q.q) match.searchText = { $regex: escapeRegex(unaccent(String(q.q))) }; // ponytail: regex quét toàn bộ, đủ cho ~1.000 Job; đổi sang text index/Atlas Search khi dữ liệu lớn
   if (q.categoryId) match.categoryId = oid(q.categoryId);
@@ -72,17 +78,59 @@ router.get('/jobs', cdnCache(15), async (req, res) => {
     { $addFields: { flexible: { $eq: ['$shiftCount', 0] } } },
     { $project: { free: 0, jobDays: 0 } },
   ] : [];
-  const [r] = await Job.aggregate([
-    { $match: match },
-    ...bySchedule,
-    { $addFields: { isFeatured: { $gt: ['$featuredUntil', new Date()] } } },
-    { $sort: busy ? { flexible: 1, fit: -1, isFeatured: -1, createdAt: -1 } : { isFeatured: -1, createdAt: -1 } },
-    // Bỏ mô tả đầy đủ cho nhẹ, chỉ gửi đoạn đầu để thẻ việc hiện 2 dòng tóm tắt
-    { $addFields: { excerpt: { $substrCP: [{ $ifNull: ['$description', ''] }, 0, 160] } } },
-    { $project: { searchText: 0, description: 0, requirements: 0 } },
-    { $facet: { items: [{ $skip: skip }, { $limit: limit }], total: [{ $count: 'n' }] } },
+  // FR-SRC-05 / BR-44: near=vĩ độ,kinh độ + radius (km, 0,5–50, mặc định 5) → chỉ giữ tin có ghim trong bán kính, kèm distance (mét, đường chim bay).
+  // Điểm xuất phát chỉ dùng để tính, không lưu lại
+  let near = null;
+  if (q.near !== undefined) {
+    const [lat, lng] = String(q.near).split(',').map(Number);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !inVN(lat, lng)) throw new AppError(400, 'VALIDATION_ERROR', 'Điểm xuất phát không hợp lệ');
+    near = { lat, lng, radius: Math.min(50, Math.max(0.5, Number(q.radius) || 5)) };
+  }
+  const head = near
+    ? [{ $geoNear: { near: { type: 'Point', coordinates: [near.lng, near.lat] }, key: 'location', distanceField: 'distance', maxDistance: near.radius * 1000, query: match, spherical: true } },
+      { $addFields: { distance: { $round: ['$distance', 0] } } }]
+    : [{ $match: match }];
+  const stages = [...head, ...bySchedule, { $addFields: { isFeatured: { $gt: ['$featuredUntil', new Date()] } } }];
+  // Nổi bật trước (BR-21); đang lọc khoảng cách thì gần trước, không thì mới trước
+  const order = near ? { isFeatured: -1, distance: 1 } : { isFeatured: -1, createdAt: -1 };
+  // Số tin khớp các bộ lọc khác nhưng chưa ghim vị trí, để giao diện nói rõ vì sao chúng không hiện
+  const noLocation = async () => (await Job.aggregate([{ $match: { ...match, location: null } }, ...bySchedule, { $count: 'n' }]))[0]?.n || 0;
+  return { match, stages, sort: busy ? { flexible: 1, fit: -1, ...order } : order, near, noLocation };
+};
+
+// API-20: FR-SRC-01, Nổi bật trước rồi mới nhất (BR-21); có near thì lọc theo khoảng cách (FR-SRC-05)
+router.get('/jobs', cdnCache(15), async (req, res) => {
+  const { page, limit, skip } = paging(req.query);
+  const s = await searchStages(req.query);
+  const [[r], noLocation] = await Promise.all([
+    Job.aggregate([
+      ...s.stages,
+      { $sort: s.sort },
+      // Bỏ mô tả đầy đủ cho nhẹ, chỉ gửi đoạn đầu để thẻ việc hiện 2 dòng tóm tắt
+      { $addFields: { excerpt: { $substrCP: [{ $ifNull: ['$description', ''] }, 0, 160] } } },
+      { $project: { searchText: 0, description: 0, requirements: 0 } },
+      { $facet: { items: [{ $skip: skip }, { $limit: limit }], total: [{ $count: 'n' }] } },
+    ]),
+    s.near ? s.noLocation() : undefined,
   ]);
-  ok(res, r.items, { page, limit, total: r.total[0]?.n || 0 });
+  ok(res, r.items, { page, limit, total: r.total[0]?.n || 0, ...(s.near && { radius: s.near.radius, noLocation }) });
+});
+
+// API-79: FR-SRC-05, các tin có ghim vị trí khớp cùng bộ lọc với API-20 để vẽ lên bản đồ (không phân trang, tối đa 200 ghim)
+const MAP_LIMIT = 200;
+router.get('/jobs/map', cdnCache(15), async (req, res) => {
+  const s = await searchStages(req.query);
+  const [[r], noLocation] = await Promise.all([
+    Job.aggregate([
+      ...s.stages,
+      ...(s.near ? [] : [{ $match: { 'location.coordinates.1': { $exists: true } } }]),
+      { $sort: s.sort },
+      { $project: { searchText: 0, description: 0, requirements: 0 } },
+      { $facet: { items: [{ $limit: MAP_LIMIT }], total: [{ $count: 'n' }] } },
+    ]),
+    s.noLocation(),
+  ]);
+  ok(res, r.items, { total: r.total[0]?.n || 0, limit: MAP_LIMIT, noLocation, ...(s.near && { radius: s.near.radius }) });
 });
 
 // Thành phố/quận đang có Job để làm bộ lọc; counts = số tin theo quận, total = số tin cả thành phố (mục "Việc theo khu vực" ở trang chủ)
@@ -132,6 +180,7 @@ router.post('/jobs', authenticate, authorize('EMPLOYER'), requireVerified, valid
     await assertQuota(req.user, session);
     [job] = await Job.create([{
       ...req.body,
+      location: req.body.location || undefined,
       employerId: req.user._id,
       companySnapshot: { name: c.name, logoUrl: c.logoUrl, city: c.city },
       expiresAt: expiryFor(req.user),
@@ -160,6 +209,7 @@ router.put('/jobs/:id', authenticate, authorize('EMPLOYER'), validate(jobBody), 
       const locked = ['salaryMin', 'salaryMax', 'salaryType', 'city', 'district', 'address']
         .filter((k) => String(b[k] ?? '') !== String(job[k] ?? ''));
       if (+b.startDate !== +job.startDate) locked.push('startDate');
+      if (b.location !== undefined && !samePoint(b.location, job.location)) locked.push('location');
       if (locked.length) throw new AppError(409, 'FIELD_LOCKED', 'Tin đã nhận người: không được sửa lương, địa điểm, ngày bắt đầu', locked);
       if (b.slots < job.acceptedCount) throw new AppError(409, 'FIELD_LOCKED', `Số chỗ không được nhỏ hơn số người đã nhận (${job.acceptedCount})`);
     } else if (+b.startDate !== +job.startDate && vnDay(b.startDate) < vnDay()) {
@@ -169,6 +219,7 @@ router.put('/jobs/:id', authenticate, authorize('EMPLOYER'), validate(jobBody), 
     const reopen = job.status === 'FILLED' && b.slots > job.acceptedCount && job.expiresAt > new Date();
     if (reopen) await assertQuota(req.user, session);
     job.set(b);
+    if (b.location === null) job.location = undefined; // bỏ ghim
     if (reopen) job.status = 'OPEN';
     // BR-27: số chỗ vừa giảm bằng số người đã nhận → đủ người
     const full = job.status === 'OPEN' && job.acceptedCount > 0 && job.slots <= job.acceptedCount;

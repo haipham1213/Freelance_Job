@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Heart, Moon, Sun, Sunset } from 'lucide-react';
-import { categoryIcon } from './Illustrations';
-import { describeShifts, shiftTag, salary, timeAgo, DAYS, PERIODS } from '../utils/format';
+import { Check, Clock, Heart, MapPin, Moon, Sun, Sunset, X } from 'lucide-react';
+import { describeShifts, shiftTag, shortCategoryLabel, salary, formatPostedAt, DAYS, PERIODS } from '../utils/format';
+import { fmtDistance } from '../utils/geo';
 import { api } from '../api';
 
 // "Ca làm": có ô buổi thì ghi buổi + khung giờ lấy từ ghi chú ("Tối T2–T6, 18h–22h"), không lặp lại ngày;
@@ -45,15 +45,15 @@ export const MiniWeek = ({ shifts, busy }) => {
             {DAYS.map((_, di) => {
               const i = di * 3 + pi;
               const c = work.has(i) && study.has(i) ? 'x' : work.has(i) ? 'w' : study.has(i) ? 'h' : '';
-              return <span key={i} className={`jx-mini-cell ${c}`} />;
+              return <span key={i} className={`jx-mini-cell ${c}`}>{c === 'w' ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : c === 'x' ? <X size={14} strokeWidth={3} aria-hidden="true" /> : null}</span>;
             })}
           </React.Fragment>
         ))}
       </div>
       <figcaption>
-        <span><i className="jx-mini-cell w" />Ca làm</span>
+        <span><i className="jx-mini-cell w"><Check size={10} strokeWidth={3} aria-hidden="true" /></i>Ca làm (✓)</span>
         {busy.length > 0 && <span><i className="jx-mini-cell h" />Giờ học</span>}
-        {clash > 0 && <span><i className="jx-mini-cell x" />Trùng giờ học</span>}
+        {clash > 0 && <span><i className="jx-mini-cell x"><X size={10} strokeWidth={3} aria-hidden="true" /></i>Trùng giờ học (✕)</span>}
       </figcaption>
     </figure>
   );
@@ -83,44 +83,58 @@ export const saveToggler = (comp) => async (id, saved) => {
   }
 };
 
-// Thẻ việc dạng lưới (trang Tìm việc, cột trái chi tiết việc): logo + tên + "công ty • số ứng viên" + tim; chip ngành / ca (ngắn) / quận;
-// 2 dòng mô tả; vạch mảnh; lương lớn bên trái, thời gian đăng bên phải. Cả thẻ bấm được nhờ link tên việc phủ thẻ
+// Thẻ việc (trang Tìm việc, cột trái chi tiết việc): logo vuông + tiêu đề + "Công ty • N ứng viên" + tim; hàng pill một dòng
+// (ngành tím → ca xanh lá, tối đa 3, thừa gộp +N); dòng địa điểm có icon ghim ngay dưới pill; mô tả 2 dòng; vạch mảnh; lương lớn trái, đồng hồ + thời gian đăng phải.
+// Cả thẻ bấm được nhờ link tên việc phủ thẻ
+const MAX_TAGS = 3;
+// "Đăng 3 ngày trước", "Đăng hôm qua", "Đăng 05/11/2026"
+const posted = (d) => { const t = formatPostedAt(d); return `Đăng ${/^\d{2}\//.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1)}`; };
+const isNew = (j) => Date.now() - new Date(j.createdAt) < 864e5;
 export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
-  const Icon = categoryIcon(category);
   const [amount, unit] = salary(j).split('/');
+  const name = j.companySnapshot?.name;
+  const where = j.district || j.city;
+  const apps = j.applicationCount > 0 ? `${j.applicationCount} ứng viên` : 'Chưa có ứng viên';
+  // Mô tả: gọn khoảng trắng; tin không có mô tả thì bỏ khối (thẻ vẫn chừa chỗ 2 dòng bằng CSS để các thẻ cùng hàng đều nhau)
+  const desc = (j.excerpt ?? j.description ?? '').replace(/\s+/g, ' ').trim();
+  // Thứ tự cố định: (mức hợp lịch khi đang lọc theo lịch) → ngành → ca → Nổi bật → Mới; phần thừa gộp +N
+  const tags = [
+    j.fit !== undefined && j.shiftCount > 0 && ['t-ink', `Hợp ${j.fit}/${j.shiftCount} ca`],
+    category && ['t-plum', shortCategoryLabel(category), category],
+    ['t-mint', shiftTag(j.shifts), j.shifts?.length ? describeShifts(j.shifts) : undefined],
+    j.isFeatured && ['t-gold', 'Nổi bật'],
+    isNew(j) && ['t-mint', 'Mới'],
+  ].filter(Boolean);
+  const hidden = tags.slice(MAX_TAGS);
   return (
     <article className={`jc ${on ? 'on' : ''}`}>
       <div className="jc-head">
         <span className="jc-logo">
-          {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt="" width="48" height="48" loading="lazy" /> : <Icon size={22} aria-hidden="true" />}
+          {j.companySnapshot?.logoUrl ? <img src={j.companySnapshot.logoUrl} alt={`Logo ${name || 'công ty'}`} width="48" height="48" loading="lazy" /> : <span aria-hidden="true">{(name || '?').trim().charAt(0).toUpperCase()}</span>}
         </span>
         <div className="jc-title-wrap">
-          <h3 className="jc-title"><Link to={`/jobs/${j._id}`} state={{ from: window.location.pathname }} className="jr-link" aria-current={on ? 'true' : undefined}>{j.title}</Link></h3>
-          <p className="jc-meta">
-            <span className="jc-company">{j.companySnapshot?.name}</span>
-            <span aria-hidden="true">•</span>
-            <span>{j.applicationCount > 0 ? `${j.applicationCount} ứng viên` : 'Chưa có ứng viên'}</span>
-          </p>
+          <h3 className="jc-title" title={j.title}><Link to={`/jobs/${j._id}`} state={{ from: window.location.pathname }} className="jr-link" aria-current={on ? 'true' : undefined}>{j.title}</Link></h3>
+          <p className="jc-sub"><span className="jc-company" title={name}>{name}</span><span className="jc-apps" aria-label={apps}>• {apps}</span></p>
         </div>
         {onSave ? (
           <button type="button" className={`jc-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={`Lưu tin: ${j.title}`} onClick={() => onSave(j._id, saved)}>
-            <Heart size={20} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
+            <Heart size={28} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
           </button>
         ) : saveHref && (
-          <Link to={saveHref} className="jc-save" aria-label={`Đăng nhập để lưu tin: ${j.title}`}><Heart size={20} aria-hidden="true" /></Link>
+          <Link to={saveHref} className="jc-save" aria-label={`Đăng nhập để lưu tin: ${j.title}`}><Heart size={28} aria-hidden="true" /></Link>
         )}
       </div>
       <ul className="jc-tags">
-        {j.isFeatured && <li className="jc-tag t-gold">Nổi bật</li>}
-        {category && <li className="jc-tag t-plum">{category}</li>}
-        <li className="jc-tag t-mint" title={j.shifts?.length ? describeShifts(j.shifts) : undefined}>{shiftTag(j.shifts)}</li>
-        {(j.district || j.city) && <li className="jc-tag t-peach">{j.district || j.city}</li>}
-        {j.fit !== undefined && j.shiftCount > 0 && <li className="jc-tag t-ink">Hợp {j.fit}/{j.shiftCount} ca</li>}
+        {tags.slice(0, MAX_TAGS).map(([cls, text, tip], i) => <li key={`${cls}${i}`} className={`jc-tag ${cls}`} title={tip}>{text}</li>)}
+        {hidden.length > 0 && <li className="jc-tag t-more" title={hidden.map((t) => t[1]).join(', ')}>+{hidden.length}</li>}
       </ul>
-      {j.excerpt && <p className="jc-desc">{j.excerpt}</p>}
+      {where && <p className="jc-where" title={where}><MapPin size={18} aria-hidden="true" /><span>{where}{j.distance !== undefined && ` · cách ${fmtDistance(j.distance)}`}</span></p>}
+      <p className="jc-desc">{desc}</p>
       <div className="jc-foot">
         <p className="jc-pay">{amount}<span>/{unit}</span></p>
-        <span className="jc-time"><Clock size={16} aria-hidden="true" />Đăng {timeAgo(j.createdAt)}</span>
+        <span className="jc-side">
+          <span className="jc-time"><Clock size={20} aria-hidden="true" />{posted(j.createdAt)}</span>
+        </span>
       </div>
     </article>
   );

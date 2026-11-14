@@ -11,7 +11,7 @@ npm workspaces: `server/` (API) và `frontend/` (CRA). Chạy từ thư mục g�
 ```bash
 npm install
 cp server/.env.example server/.env      # JWT_ACCESS_SECRET, RESEND_API_KEY, SEPAY_*, ADMIN_*
-npm run seed -w server                   # admin, gói Premium, danh mục (seed:jobs, seed:applicants cho dữ liệu demo)
+npm run seed -w server                   # admin, gói Premium, danh mục (seed:jobs, seed:applicants, seed:reviews, seed:geo cho dữ liệu demo)
 npm run dev                              # API :5050 (node --watch) + web :3000
 npm test -w server                       # node:test, cần MongoDB local
 cd server && NODE_ENV=test node --test --test-name-pattern="<tên test>" tests/flow.test.js   # chạy 1 test
@@ -34,6 +34,7 @@ npm run build:ds -w frontend             # đóng gói src/design-system → ds-
 - Auth: access token JWT (Bearer) + refresh token trong cookie httpOnly. Token bị vô hiệu khi đổi mật khẩu (`passwordChangedAt`); tài khoản `LOCKED` bị chặn ngay request kế tiếp.
 - Đổi trạng thái đơn ứng tuyển dùng `findOneAndUpdate` có điều kiện trạng thái cũ (chống race), đẩy vào `statusHistory`, gửi thông báo qua `utils/notify.js`.
 - `Job.shifts`: mảng ô buổi 0–20 (7 ngày × 3 buổi), dùng để khớp lịch học sinh viên.
+- Bản đồ việc gần trường (FR-SRC-05): `Job.location` là GeoJSON Point `[kinh độ, vĩ độ]`, không bắt buộc, index `2dsphere`; API nhận `location: { lat, lng } | null` (null = bỏ ghim, phải trong Việt Nam, khóa khi đã nhận người như BR-18). `GET /jobs?near=lat,lng&radius=km` lọc bằng `$geoNear` và trả `distance` (mét, đường chim bay) + `meta.noLocation`; `GET /jobs/map` trả các tin có ghim (tối đa 200) theo cùng bộ lọc — cả hai dùng chung `searchStages` trong `jobs.routes.js`. Điểm xuất phát của sinh viên không lưu trên server.
 - Thanh toán Premium qua **SePay Payment Gateway** (`modules/payments/`, SDK `sepay-pg-node`): `POST /payments` tạo Payment với `txnRef` = `order_invoice_number` (`UNI` + 10 hex); `GET /payments/:id` trả `checkout {url, fields}` đã ký để trình duyệt POST form sang SePay (sandbox `pay-sandbox.sepay.vn`, đổi bằng `SEPAY_ENV`); SePay gọi `POST /payments/sepay-ipn` (header `X-Secret-Key` = `SEPAY_IPN_SECRET`, chỉ nhận `ORDER_PAID` + `CAPTURED`, số tiền phải khớp) rồi `settle()` kích hoạt Premium đúng một lần. Cần `SEPAY_*` trong `.env` và khai báo IPN ở SePay (local dùng ngrok).
 - File upload lưu ở `server/uploads/`, phục vụ tại `/api/v1/files/...`.
 
@@ -42,11 +43,12 @@ npm run build:ds -w frontend             # đóng gói src/design-system → ds-
 - **Class component** toàn bộ (không hooks); cần router props thì bọc `utils/withRouter.js`.
 - `api.js`: access token chỉ giữ trong bộ nhớ, gặp 401 tự refresh một lần rồi gửi lại; lỗi ném `Error` có `code/status/details`. `context/AuthContext.js` khôi phục phiên bằng refresh cookie khi tải trang.
 - `App.js` định nghĩa route; `routes/RequireRole.js` chặn theo vai trò. Trang chia theo vai trò trong `pages/{public,student,employer,admin,shared}`.
+- Bản đồ: `components/MapView.js` bọc Leaflet + OpenStreetMap (thư viện và CSS tải lười bằng `import()`); `utils/geo.js` có danh sách trường kèm tọa độ (`SCHOOLS`), `originOf` đọc điểm xuất phát từ URL (`school=<id>` hoặc `near=lat,lng`), `distanceM`, `pointOf`. Mảng `markers` truyền vào MapView phải giữ nguyên tham chiếu giữa các lần render (MapView căn lại khung nhìn khi mảng đổi).
 - Component dùng chung trong `components/ui.js` (Spinner, Empty, Alert, JobBadge/AppBadge, Field, Modal, Tabs…); nhãn trạng thái/enum tiếng Việt ở `utils/format.js`.
 - CSS thuần: `index.css` (token + class chung) và `styles/*.css` theo khu vực. Không có thư viện UI; icon từ `lucide-react`.
 
 ## Ràng buộc giao diện
 
 - **Hero trang chủ (`.rv-hero`) bị đóng băng**: CSS khóa trong `styles/hero.css` (`@scope (.rv-hero)`), còn CSS chung nằm trong `@scope (:root) to (.rv-hero)` để không lọt vào hero. Không sửa hero khi chưa hỏi chủ dự án.
-- `html { zoom: .8 }` — dùng `var(--vh)` thay cho `vh`.
+- `html { zoom: .8 }` — dùng `var(--vh)` thay cho `vh`. Riêng khung bản đồ `.mp` (`styles/map.css`) đặt `zoom: 1.25` để về tỉ lệ 1:1 (Leaflet kéo/ghim lệch khi bị zoom), nên bên trong `.mp` dùng px thật và `vh` thường.
 - `ds-bundle/README.md` mô tả quy ước hệ thiết kế (class `card`, `btn`, `chip`…, token `var(--*)`, không gradient, không đổ bóng card).

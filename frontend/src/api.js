@@ -70,4 +70,4 @@ export const qs = (o) => {
 };
 
 // Lỗi theo từng trường từ backend (VALIDATION_ERROR) → { field: message }
-export const fieldErrors = (e) => Object.fromEntries((e.details || []).filter((d) => d.field).map((d) => [d.field, d.message]));
+export const fieldErrors = (e) => Object.fromEntries((Array.isArray(e.details) ? e.details : []).filter((d) => d.field).map((d) => [d.field, d.message]));

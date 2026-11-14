@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, CheckCircle2, Clock, FileText, Flag, Heart, Link2, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, CalendarDays, CheckCircle2, Clock, FileText, Flag, Heart, Link2, MapPin, Navigation, Users, X, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -7,8 +7,10 @@ import { Stars, JobBadge, AppBadge, Modal, Field, Alert, ErrorState } from '../.
 import { JobCard, MiniWeek, busyOf, hoursOf, loadSavedIds, saveToggler } from '../../components/JobRow';
 import { categoryIcon } from '../../components/Illustrations';
 import ReportModal from '../../components/ReportModal';
+import MapView from '../../components/MapView';
+import { pointOf, distanceM, fmtDistance, readOrigin, schoolByName } from '../../utils/geo';
 import ErrorPage from './ErrorPage';
-import { date, money, salary, timeAgo, jobStatusOf, describeShifts, shiftTag, SALARY_TYPE } from '../../utils/format';
+import { date, salary, formatPostedAt, jobStatusOf, describeShifts, shiftTag } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
 // Hộp ứng tuyển: ghi rõ việc nào và CV nào sẽ được gửi. Thiếu CV / số điện thoại thì chặn gửi và chỉ chỗ bổ sung (server cũng kiểm tra: CV_REQUIRED, PHONE_REQUIRED)
@@ -70,25 +72,26 @@ const DetailSkeleton = () => (
     <div aria-hidden="true">
       <span className="sk sk-line jd-sk-back" />
       <div className="jv">
-        <div className="jv-list">{[0, 1, 2].map((i) => <div key={i} className="sk sk-card" />)}</div>
+        <div className="jv-list">{[0, 1, 2].map((i) => (
+          <div key={i} className="jc jd-sk-card">
+            <div className="jd-sk-head"><span className="sk sk-round jd-sk-logo" /><div className="jd-sk-lines"><span className="sk sk-line sk-w90" /><span className="sk sk-line sk-w55" /></div></div>
+            <div><span className="sk sk-tag" /><span className="sk sk-tag" /></div>
+            <div className="jd-sk-foot"><span className="sk sk-line sk-w35" /><span className="sk sk-line sk-w35" /></div>
+          </div>
+        ))}</div>
         <div className="jv-panel">
           <div className="jv-main">
-            <div className="jv-head"><span className="sk sk-line jd-sk-title" /></div>
+            <div className="jv-head"><span className="sk sk-line jd-sk-title" /><div><span className="sk sk-tag" /><span className="sk sk-tag" /></div></div>
+            <ul className="jd-facts jd-sk-facts">{[0, 1, 2, 3].map((i) => <li key={i}><span className="sk sk-line sk-w55" /><span className="sk sk-line sk-w90" /></li>)}</ul>
             {[90, 100, 70, 40, 95, 60].map((w, i) => <span key={i} className={`sk sk-line sk-w${w} ${i === 0 ? 'jd-sk-first' : 'jd-sk-next'}`} />)}
           </div>
-          <div className="jv-side"><div className="jv-sec">{[70, 40, 55, 35].map((w) => <span key={w} className={`sk sk-line sk-w${w}`} />)}</div></div>
+          <div className="jv-side"><div className="jv-sec"><span className="sk sk-round jd-sk-logo" />{[70, 40, 55, 35].map((w) => <span key={w} className={`sk sk-line sk-w${w}`} />)}<span className="sk jd-sk-btn" /></div></div>
         </div>
       </div>
     </div>
   </div>
 );
 
-// Lương đầy đủ (không rút gọn) cho khối thông tin chi tiết
-const fullSalary = (j) => {
-  const unit = SALARY_TYPE[j.salaryType];
-  const range = j.salaryMin === j.salaryMax || j.salaryMax == null ? money(j.salaryMin) : `${money(j.salaryMin)} – ${money(j.salaryMax)}`;
-  return range ? `${range}${unit ? `/${unit}` : ''}` : 'Thỏa thuận';
-};
 // Tách yêu cầu thành các dòng: theo xuống dòng; câu liền nhau thì tách ở dấu câu + chữ hoa kế tiếp (không tách "3.5 năm", "v.v.")
 const requirementLines = (text) => text.replace(/([.!?])\s+(?=\p{Lu})/gu, '$1\n').split(/\n+/).map((t) => t.trim()).filter(Boolean);
 
@@ -202,16 +205,19 @@ class JobDetailPage extends Component {
     const open = jobStatusOf(job) === 'OPEN';
     if (!user) return open ? <Link to={`/login?next=${next}`} className="btn btn-lg btn-block">{compact ? 'Ứng tuyển' : 'Đăng nhập để ứng tuyển'}</Link> : null;
     if (user.role === 'STUDENT') {
+      // Hết hạn / đã đủ người: vẫn hiện nút nhưng khóa, lý do ghi ngay dưới nút (aria-describedby)
+      const blocked = !open || !user.emailVerified;
       const main = myApplication
         ? <Link to={`/student/applications/${myApplication._id}`} className="btn btn-lg btn-block btn-ghost">Đã ứng tuyển, xem đơn <AppBadge status={myApplication.status} /></Link>
-        : open ? <button type="button" className="btn btn-lg btn-block" onClick={() => this.setState({ modal: 'apply' })} disabled={!user.emailVerified} aria-describedby={user.emailVerified ? undefined : whyId}>Ứng tuyển ngay</button> : null;
+        : <button type="button" className="btn btn-lg btn-block" onClick={() => this.setState({ modal: 'apply' })} disabled={blocked} aria-describedby={blocked && (!compact || !open) ? whyId : undefined}>Ứng tuyển ngay</button>;
+      // Nút lưu dạng biểu tượng vuông cạnh nút Ứng tuyển
       const save = (
-        <button type="button" className={`btn btn-ghost ${compact ? 'jd-icon-btn' : 'btn-lg btn-block'}`} onClick={this.toggleSave} aria-pressed={!!data.isSaved} aria-label={`Lưu tin: ${job.title}`}>
-          <Heart size={18} fill={data.isSaved ? 'currentColor' : 'none'} aria-hidden="true" />{!compact && (data.isSaved ? 'Đã lưu' : 'Lưu tin')}
+        <button type="button" className="btn btn-ghost jd-icon-btn" onClick={this.toggleSave} aria-pressed={!!data.isSaved} aria-label={`Lưu tin: ${job.title}`}>
+          <Heart size={24} fill={data.isSaved ? 'currentColor' : 'none'} aria-hidden="true" />
         </button>
       );
       return (
-        <div className={compact ? 'jd-bar-actions' : 'jd-actions'}>
+        <div className={compact ? 'jd-bar-actions' : 'jd-actions jd-actions-row'}>
           {main}{save}
           {compact && !myApplication && open && !user.emailVerified && <span className="sr-only" id={whyId}>Xác thực email để ứng tuyển.</span>}
         </div>
@@ -239,6 +245,31 @@ class JobDetailPage extends Component {
     return { tone: 'warn', Icon: AlertTriangle, text: `Hợp ${n - clash}/${n} ca, trùng ${clash} ca với giờ học.` };
   }
 
+  // Ghim của tin cho bản đồ nhỏ; giữ nguyên mảng giữa các lần render để MapView không vẽ lại
+  pinsOf(job) {
+    if (this.pinsKey !== job._id) {
+      const p = pointOf(job);
+      this.pinsKey = job._id;
+      this.pins = p && [{ id: job._id, ...p, title: job.title, featured: job.isFeatured }];
+    }
+    return this.pins;
+  }
+
+  // Điểm xuất phát để ghi "Cách … km": điểm chọn gần nhất ở trang Tìm việc, không có thì trường trong hồ sơ sinh viên.
+  // Xa hơn 50 km (khác thành phố) thì không ghi vì con số không còn ý nghĩa
+  originFor(pin) {
+    // Tính lại khi đổi tin hoặc khi phiên đăng nhập vừa khôi phục (lúc đó mới biết trường trong hồ sơ)
+    const key = `${pin.id}:${this.context.user?._id || ''}`;
+    if (this.originKey !== key) {
+      const o = readOrigin() || schoolByName(this.context.user?.student?.school);
+      const from = o && { lat: o.lat, lng: o.lng, label: o.label || o.name };
+      const meters = from ? distanceM(from, pin) : null;
+      this.originKey = key;
+      this.origin = from && meters <= 50000 ? { from, meters } : null;
+    }
+    return this.origin;
+  }
+
   render() {
     const { data, error, modal, flash, similar, copied, savedIds, saveError } = this.state;
     if (error) {
@@ -261,17 +292,27 @@ class JobDetailPage extends Component {
     const bar = status === 'OPEN' && this.actions(true);
     const companyName = company.name || employer.fullName;
     const from = this.props.location.state?.from;
-    // Nhãn xám cuối nội dung (như "Required skills" của mẫu): các thông tin để quyết định ứng tuyển; mục thiếu dữ liệu thì ẩn
+    const pins = this.pinsOf(job);
+    const near = pins && this.originFor(pins[0]);
+    // Dải 4 ô đầu nội dung: ô Lương nổi bật (tâm điểm) + 3 ô phụ (giờ làm, hạn nộp, số chỗ) luôn đủ 4 ô, thiếu dữ liệu thì ghi chữ thay thế
+    const [payAmount, payUnit] = salary(job).split('/');
+    const shortDate = (d) => date(d).replace(/\/\d{4}$/, '');
+    const period = job.startDate ? `${shortDate(job.startDate)}${job.endDate ? ` – ${date(job.endDate)}` : ''}` : '';
+    const open = status === 'OPEN';
+    const remaining = job.remainingSlots;
+    const facts = [
+      { k: 'Giờ làm', Icon: CalendarDays, v: hours || (job.shifts?.length ? 'Theo ca' : job.schedule || 'Thỏa thuận'), sub: period },
+      { k: 'Hạn nộp', Icon: Clock, v: open ? deadline : 'Đã hết hạn', sub: date(job.expiresAt), tone: !open ? 'gray' : daysLeft <= 3 ? 'warn' : '' },
+      job.slots != null
+        ? { k: 'Số chỗ', Icon: Users, v: remaining > 0 ? `Còn ${remaining}/${job.slots}` : 'Đã đủ người', tone: remaining <= 1 ? 'warn' : '', progress: job.slots ? (job.slots - remaining) / job.slots : 0 }
+        : { k: 'Số chỗ', Icon: Users, v: 'Không giới hạn' },
+    ];
+    // Nhãn xám cuối nội dung: chỉ giữ thông tin chưa nằm ở dải trên (địa chỉ nếu chưa có bản đồ, ứng viên, ngày đăng)
     const quick = [
-      ['Lương', fullSalary(job)],
-      ['Giờ làm', hours || (job.shifts?.length ? 'Theo ca trong tuần' : job.schedule || 'Thỏa thuận')],
-      ['Thời gian', job.startDate ? `${date(job.startDate)}${job.endDate ? ` – ${date(job.endDate)}` : ''}` : ''],
-      ['Hạn nộp', status === 'OPEN' ? deadline : date(job.expiresAt)],
-      ['Số chỗ', job.remainingSlots > 0 ? `Còn ${job.remainingSlots}/${job.slots}` : 'Đã đủ người'],
-      ['Địa chỉ', [job.address, job.district, job.city].filter(Boolean).join(', ')],
+      !pins && ['Địa chỉ', [job.address, job.district, job.city].filter(Boolean).join(', ')],
       ['Ứng viên', job.applicationCount || 0],
-      ['Đăng', timeAgo(job.createdAt)],
-    ].filter(([, v]) => v !== '' && v != null);
+      ['Đăng', formatPostedAt(job.createdAt)],
+    ].filter((x) => x && x[1] !== '' && x[1] != null);
     // Thẻ nhãn xám ở cột phải (như "Services" của mẫu): cam kết an toàn của UniShift
     const SAFE = ['Không thu phí', 'Không đặt cọc', 'Lương công khai', 'SĐT hiện khi được nhận'];
     return (
@@ -301,6 +342,22 @@ class JobDetailPage extends Component {
                 </ul>
               </header>
 
+              <ul className="jd-facts" aria-label="Thông tin tóm tắt">
+                <li className="jd-fact-hero">
+                  <span className="jd-fact-label">Mức lương</span>
+                  <span className="jd-fact-pay" title={`${payAmount}${payUnit ? `/${payUnit}` : ''}`}>{payAmount}{payUnit && <small>/{payUnit}</small>}</span>
+                </li>
+                {facts.map(({ k, Icon: FIcon, v, sub, tone, progress }) => (
+                  <li key={k} className={`jd-fact ${tone || ''}`}>
+                    <span className="jd-fact-ic"><FIcon size={20} aria-hidden="true" /></span>
+                    <span className="jd-fact-label">{k}</span>
+                    <span className="jd-fact-val" title={v}>{v}</span>
+                    {sub && <span className="jd-fact-sub">{sub}</span>}
+                    {progress !== undefined && <span className="jd-fact-bar" role="img" aria-label={`Đã nhận ${Math.round(progress * 100)}%`}><span style={{ width: `${Math.round(progress * 100)}%` }} /></span>}
+                  </li>
+                ))}
+              </ul>
+
               <section className="jd-sec" aria-labelledby="jd-desc">
                 <h2 id="jd-desc" className="jd-h2">Về công việc</h2>
                 <p className="jd-text">{job.description}</p>
@@ -314,12 +371,30 @@ class JobDetailPage extends Component {
               <section className="jd-sec" aria-labelledby="jd-shift">
                 <h2 id="jd-shift" className="jd-h2">Ca làm trong tuần</h2>
                 {verdict
-                  ? <p className={`jd-fit ${verdict.tone}`}><verdict.Icon size={18} aria-hidden="true" />{verdict.text}</p>
-                  : <p className="jd-fit info"><CalendarClock size={18} aria-hidden="true" />Chưa có lịch học để so. <Link to="/jobs#lich-hoc">Tô lịch học để kiểm tra</Link></p>}
+                  ? <p className={`jd-fit ${verdict.tone}`} role="status"><verdict.Icon size={18} aria-hidden="true" />{verdict.text}</p>
+                  : <p className="jd-fit info" role="status"><CalendarClock size={18} aria-hidden="true" />Chưa có lịch học để so. <Link to="/jobs#lich-hoc">Tô lịch học để kiểm tra</Link></p>}
                 {job.shifts?.length > 0 && <MiniWeek shifts={job.shifts} busy={busy} />}
               </section>
+              {/* FR-SRC-05: chỉ có khi nhà tuyển dụng đã ghim vị trí */}
+              {pins && (
+                <section className="jd-sec" aria-labelledby="jd-where">
+                  <h2 id="jd-where" className="jd-h2">Địa điểm làm việc</h2>
+                  <div className="jd-map">
+                    <p className="jd-map-row">
+                      <span><MapPin size={18} aria-hidden="true" />{[job.address, job.district, job.city].filter(Boolean).join(', ')}</span>
+                      {near
+                        ? <strong>Cách {near.from.label} khoảng {fmtDistance(near.meters)} (đường chim bay)</strong>
+                        : <Link to="/jobs#gan-truong">Chọn trường để xem khoảng cách</Link>}
+                    </p>
+                    <MapView className="mp-sm" label={`Bản đồ vị trí làm việc: ${job.title}`} markers={pins} origin={near && near.meters <= 15000 ? near.from : undefined} />
+                    <p className="jd-map-row">
+                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${pins[0].lat},${pins[0].lng}`} target="_blank" rel="noopener noreferrer"><Navigation size={16} aria-hidden="true" />Chỉ đường bằng Google Maps (mở tab mới)</a>
+                    </p>
+                  </div>
+                </section>
+              )}
               <section className="jd-sec" aria-labelledby="jd-quick">
-                <h2 id="jd-quick" className="jd-h2">Thông tin cần biết</h2>
+                <h2 id="jd-quick" className="jd-h2">Thông tin khác</h2>
                 <ul className="jv-pills">{quick.map(([k, v]) => <li key={k}><span>{k}:</span> {v}</li>)}</ul>
               </section>
             </article>
@@ -357,12 +432,13 @@ class JobDetailPage extends Component {
               </section>
               <section className="jv-sec jv-apply">
                 {this.actions(false)}
-                {user?.role === 'STUDENT' && !user.emailVerified && !data.myApplication && <p className="jd-note" id="jd-apply-why">Xác thực email để ứng tuyển.</p>}
-                {status !== 'OPEN' && <p className="jd-note">Tin này không còn nhận hồ sơ. Xem các việc tương tự ở danh sách việc.</p>}
+                {status !== 'OPEN'
+                  ? <p className="jd-note" id="jd-apply-why">{status === 'EXPIRED' ? 'Tin đã hết hạn nộp.' : status === 'FILLED' ? 'Tin đã đủ người.' : 'Tin này không còn nhận hồ sơ.'} Xem các việc tương tự ở danh sách việc.</p>
+                  : user?.role === 'STUDENT' && !user.emailVerified && !data.myApplication && <p className="jd-note" id="jd-apply-why">Xác thực email để ứng tuyển.</p>}
               </section>
               <section className="jv-sec jv-links">
                 <div className="jv-minor">
-                  <button type="button" className="jd-copy" onClick={this.copyLink}><Link2 size={14} aria-hidden="true" /><span role="status">{copied === 'ok' ? 'Đã sao chép' : copied === 'fail' ? 'Không sao chép được, hãy sao chép link bên dưới' : 'Sao chép link'}</span></button>
+                  <button type="button" className="jd-copy" onClick={this.copyLink}><Link2 size={14} aria-hidden="true" /><span role="status">{copied === 'ok' ? 'Đã sao chép liên kết' : copied === 'fail' ? 'Không sao chép được, hãy sao chép link bên dưới' : 'Sao chép link'}</span></button>
                   {canReport && <button type="button" className="jd-report" onClick={() => this.setState({ modal: 'report' })}><Flag size={14} aria-hidden="true" />Báo cáo tin này</button>}
                 </div>
                 {copied === 'fail' && <input className="input jd-copy-url" readOnly value={window.location.href} aria-label="Link tin tuyển dụng" ref={(el) => { this.urlEl = el; }} onFocus={(e) => e.target.select()} />}
@@ -372,7 +448,7 @@ class JobDetailPage extends Component {
 
           <aside className="jv-list" aria-label="Tin đang xem và việc tương tự">
             <Alert>{saveError}</Alert>
-            <JobCard job={{ ...job, excerpt: job.description, companySnapshot: job.companySnapshot || { name: companyName, logoUrl: company.logoUrl } }} category={category?.name} on
+            <JobCard job={{ ...job, companySnapshot: job.companySnapshot || { name: companyName, logoUrl: company.logoUrl } }} category={category?.name} on
               saved={!!data.isSaved} onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined}
               saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${job._id}?save=1`)}`} />
             {similar.map((j) => (

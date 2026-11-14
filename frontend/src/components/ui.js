@@ -298,6 +298,48 @@ export const BackLink = ({ to, children = 'Quay lại' }) => <Link to={to} class
 
 // Bỏ dấu để lọc "phuc vu" khớp "Phục vụ"
 const fold = (s = '') => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
+// Popover chung (chuông, menu tài khoản): đóng bằng Esc / bấm ra ngoài / khi một popover khác mở; Esc trả focus về nút.
+// children là hàm ({ close }) → close(false) khi đã chuyển trang, không cần trả focus.
+let popSeq = 0;
+let openPop = null; // chỉ một popover mở tại một thời điểm (kể cả mở bằng bàn phím, không có mousedown ra ngoài)
+export class Popover extends Component {
+  state = { open: false };
+  root = React.createRef();
+  btn = React.createRef();
+  id = `pop-${++popSeq}`;
+  componentDidMount() { document.addEventListener('mousedown', this.outside); document.addEventListener('keydown', this.esc); }
+  componentWillUnmount() {
+    document.removeEventListener('mousedown', this.outside);
+    document.removeEventListener('keydown', this.esc);
+    if (openPop === this) openPop = null;
+  }
+  outside = (e) => this.state.open && !this.root.current?.contains(e.target) && this.close(false);
+  esc = (e) => { if (e.key === 'Escape' && this.state.open) this.close(); };
+  close = (refocus = true) => {
+    if (openPop === this) openPop = null;
+    this.setState({ open: false });
+    if (refocus) this.btn.current?.focus();
+  };
+  toggle = () => {
+    if (this.state.open) return this.close();
+    openPop?.close(false);
+    openPop = this;
+    this.setState({ open: true });
+    this.props.onOpen?.();
+  };
+  render() {
+    const { label, btnClass, trigger, after, panelStyle, children } = this.props;
+    const { open } = this.state;
+    return (
+      <div className="bell" ref={this.root}>
+        <button type="button" ref={this.btn} className={btnClass} onClick={this.toggle} aria-label={label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? this.id : undefined}>{trigger}</button>
+        {after}
+        {open && <div className="dropdown" id={this.id} role="dialog" aria-label={this.props.panelLabel || label} style={panelStyle}>{children({ close: this.close })}</div>}
+      </div>
+    );
+  }
+}
+
 let ddSeq = 0;
 
 // Dropdown thay <select> ở ô tìm kiếm/bộ lọc: danh sách mở được tùy biến (icon, số việc, dấu tích, ô lọc).
@@ -311,12 +353,14 @@ export class Dropdown extends Component {
   input = React.createRef();
   id = `dd-${++ddSeq}`;
 
-  componentDidMount() { document.addEventListener('mousedown', this.outside); }
-  componentWillUnmount() { document.removeEventListener('mousedown', this.outside); }
+  componentDidMount() { document.addEventListener('mousedown', this.outside); document.addEventListener('keydown', this.esc); }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.outside); document.removeEventListener('keydown', this.esc); }
   componentDidUpdate() {
     if (this.state.open) this.list.current?.querySelector('[data-active]')?.scrollIntoView({ block: 'nearest' });
   }
   outside = (e) => this.state.open && !this.root.current.contains(e.target) && this.close(false);
+  // Esc khi focus ở ngoài danh sách (vd. vừa bấm chuột vào nút) vẫn đóng và trả focus; Esc trong danh sách do key() xử lý trước (defaultPrevented)
+  esc = (e) => { if (e.key === 'Escape' && this.state.open && !e.defaultPrevented) this.close(); };
 
   items = () => {
     const all = [{ value: '', label: this.props.placeholder }, ...this.props.options];

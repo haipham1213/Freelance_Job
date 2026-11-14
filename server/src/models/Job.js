@@ -14,6 +14,9 @@ const jobSchema = new Schema(
     city: { type: String, required: true },
     district: String,
     address: String,
+    // Vị trí ghim trên bản đồ, GeoJSON [kinh độ, vĩ độ] (FR-SRC-05). Không bắt buộc: tin không ghim thì không vào bản đồ và không vào
+    // kết quả lọc theo khoảng cách. coordinates không có mặc định [] vì index 2dsphere từ chối điểm rỗng
+    location: { type: new Schema({ type: { type: String, enum: ['Point'], default: 'Point' }, coordinates: { type: [Number], default: undefined } }, { _id: false }), default: undefined },
     salaryType: { type: String, enum: ['HOURLY', 'DAILY', 'PROJECT'], required: true },
     salaryMin: { type: Number, required: true },
     salaryMax: { type: Number, required: true },
@@ -40,6 +43,7 @@ const jobSchema = new Schema(
 
 jobSchema.index({ status: 1, expiresAt: 1, categoryId: 1, city: 1 });
 jobSchema.index({ employerId: 1, status: 1 });
+jobSchema.index({ location: '2dsphere' });
 
 jobSchema.pre('save', function () {
   this.searchText = unaccent(`${this.title} ${this.companySnapshot?.name || ''}`);

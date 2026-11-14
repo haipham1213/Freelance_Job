@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { SCHOOLS } from '../../utils/geo';
 import { FileText, Upload } from 'lucide-react';
 import { api, fieldErrors } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -152,7 +153,9 @@ export default class ProfilePage extends Component {
             <div className="grid-2">
               <Field label="Họ và tên *" error={errors.fullName}><input className="input" name="fullName" autoComplete="name" required value={form.fullName} onChange={this.set('fullName')} /></Field>
               <Field label="Số điện thoại" error={errors.phone}><input className="input" name="phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={this.set('phone')} placeholder="09xxxxxxxx" /></Field>
-              <Field label="Trường" error={errors.school}><input className="input" name="school" autoComplete="organization" value={form.school} onChange={this.set('school')} maxLength={150} /></Field>
+              <Field label="Trường" error={errors.school}><input className="input" name="school" autoComplete="organization" list="school-list" value={form.school} onChange={this.set('school')} maxLength={150} /></Field>
+              {/* Gợi ý tên trường có trong danh sách "Gần trường" (FR-SRC-05); vẫn gõ tên khác được */}
+              <datalist id="school-list">{SCHOOLS.map((s) => <option key={s.id} value={s.name} />)}</datalist>
               <Field label="Ngành" error={errors.major}><input className="input" name="major" value={form.major} onChange={this.set('major')} maxLength={150} /></Field>
               <Field label="Năm học" error={errors.yearOfStudy}>
                 <select className="select" name="yearOfStudy" value={form.yearOfStudy} onChange={this.set('yearOfStudy')}>

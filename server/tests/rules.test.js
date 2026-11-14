@@ -227,6 +227,51 @@ test('business rule sau rà soát', async (t) => {
     assert.equal((await api('GET', '/payments', null, 'sv1')).status, 403);
   });
 
+  await t.test('FR-SRC-05: ghim vị trí, lọc theo khoảng cách, bản đồ; BR-43 tọa độ trong Việt Nam; BR-18 khóa ghim khi đã nhận người', async () => {
+    await closeAll();
+    const at = { lat: 10.827, lng: 106.7 }; // điểm xuất phát (trường)
+    const post = (title, location) => api('POST', '/jobs', { ...body, title, ...(location && { location }) }, 'emp');
+    assert.equal((await post('Tin ghim ở Paris nước Pháp', { lat: 48.85, lng: 2.35 })).status, 400, 'ngoài Việt Nam');
+    const a = (await post('Tin cách trường 445 mét', { lat: at.lat + 0.004, lng: at.lng })).body.data.job;
+    const b = (await post('Tin cách trường 3 cây số', { lat: at.lat + 0.027, lng: at.lng })).body.data.job;
+    const c = (await post('Tin không ghim vị trí')).body.data.job;
+    assert.deepEqual(a.location.coordinates, [at.lng, at.lat + 0.004], 'GeoJSON [kinh độ, vĩ độ]');
+    assert.equal(c.location, undefined);
+
+    const near = (q) => api('GET', `/jobs?near=${at.lat},${at.lng}${q}`);
+    const r1 = await near('&radius=1');
+    assert.deepEqual(r1.body.data.map((j) => j._id), [a._id], 'bán kính 1 km chỉ có tin gần');
+    assert.ok(Math.abs(r1.body.data[0].distance - 445) < 10, `khoảng cách ~445 m, nhận ${r1.body.data[0].distance}`);
+    assert.equal(r1.body.meta.noLocation, 1, 'báo số tin chưa ghim');
+    const r5 = await near('');
+    assert.deepEqual(r5.body.data.map((j) => j._id), [a._id, b._id], 'mặc định 5 km, gần trước');
+    assert.equal(r5.body.meta.radius, 5);
+    assert.equal((await near('&radius=999')).body.meta.radius, 50, 'bán kính tối đa 50 km');
+    assert.equal((await api('GET', '/jobs?near=abc')).status, 400);
+    assert.equal((await api('GET', '/jobs?near=48.85,2.35')).status, 400);
+    assert.equal((await api('GET', '/jobs')).body.meta.total, 3, 'không lọc khoảng cách thì tin không ghim vẫn hiện');
+
+    const map = await api('GET', '/jobs/map');
+    assert.deepEqual(map.body.data.map((j) => j._id).sort(), [a._id, b._id].sort(), 'bản đồ chỉ có tin đã ghim');
+    assert.equal(map.body.meta.noLocation, 1);
+    assert.equal(map.body.data[0].description, undefined, 'không gửi mô tả đầy đủ');
+    assert.deepEqual((await api('GET', `/jobs/map?near=${at.lat},${at.lng}&radius=1`)).body.data.map((j) => j._id), [a._id]);
+
+    // Sửa tin: không gửi location = giữ nguyên, null = bỏ ghim
+    const edit = (job, patch) => api('PUT', `/jobs/${job._id}`, { ...body, title: job.title, ...patch }, 'emp');
+    assert.equal((await edit(a, {})).status, 200);
+    assert.ok((await Job.findById(a._id)).location, 'không gửi location thì giữ ghim');
+    assert.equal((await edit(a, { location: null })).status, 200);
+    assert.equal((await Job.findById(a._id)).location, undefined, 'null thì bỏ ghim');
+    // BR-18: đã nhận người thì không dời ghim
+    const app = await apply(b, 'sv1');
+    await api('PATCH', `/applications/${app._id}/accept`, {}, 'emp');
+    const moved = await edit(b, { location: { lat: at.lat, lng: at.lng } });
+    assert.equal(moved.status, 409);
+    assert.ok(moved.body.error.details.includes('location'));
+    assert.equal((await edit(b, { location: { lat: at.lat + 0.027, lng: at.lng } })).status, 200, 'gửi lại đúng ghim cũ thì được');
+  });
+
   await t.test('Khóa tài khoản: tin OPEN của Employer bị đóng, đơn PENDING bị từ chối, request kế tiếp bị chặn', async () => {
     const admin = await User.create({ email: 'admin@rules.vn', passwordHash: await bcrypt.hash('Matkhau123', 10), role: 'ADMIN', fullName: 'Admin', emailVerified: true });
     tokens.admin = (await api('POST', '/auth/login', { email: 'admin@rules.vn', password: 'Matkhau123' })).body.data.accessToken;

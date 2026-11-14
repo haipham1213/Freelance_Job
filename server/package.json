@@ -10,6 +10,7 @@
     "seed:jobs": "node --env-file-if-exists=.env seed/demo-jobs.js",
     "seed:applicants": "node --env-file-if-exists=.env seed/demo-applicants.js",
     "seed:reviews": "node --env-file-if-exists=.env seed/demo-reviews.js",
+    "seed:geo": "node --env-file-if-exists=.env seed/demo-geo.js",
     "copy-to": "node --env-file-if-exists=.env seed/copy-to.js"
   },
   "engines": {

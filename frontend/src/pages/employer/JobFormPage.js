@@ -1,11 +1,14 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
 import { api, fieldErrors } from '../../api';
 import { Spinner, Field, Alert, Modal, ConfirmModal, LeaveGuard, ErrorState, BackLink, ShiftGrid } from '../../components/ui';
 import { toInputDate } from '../../utils/format';
+import MapView from '../../components/MapView';
+import { pointOf, cityCenter } from '../../utils/geo';
 import withRouter from '../../utils/withRouter';
 
-const EMPTY = { title: '', description: '', requirements: '', categoryId: '', city: '', district: '', address: '', salaryType: 'HOURLY', salaryMin: '', salaryMax: '', schedule: '', shifts: [], startDate: toInputDate(new Date()), endDate: '', slots: 1 };
+const EMPTY = { title: '', description: '', requirements: '', categoryId: '', city: '', district: '', address: '', salaryType: 'HOURLY', salaryMin: '', salaryMax: '', schedule: '', shifts: [], startDate: toInputDate(new Date()), endDate: '', slots: 1, location: null };
 const NUMERIC = ['salaryMin', 'salaryMax', 'slots'];
 
 // Kiểm tra phía client bằng tiếng Việt (thay thông báo mặc định của trình duyệt), lỗi theo từng ô
@@ -28,7 +31,7 @@ const validate = (f) => {
 
 // SCR-E03 / FR-JOB-01, FR-JOB-02
 class JobFormPage extends Component {
-  state = { form: null, categories: [], cities: [], locked: false, errors: {}, error: '', loadError: null, busy: false, quota: false, dirty: false, leave: false };
+  state = { form: null, categories: [], cities: [], locked: false, errors: {}, error: '', loadError: null, busy: false, quota: false, dirty: false, leave: false, finding: false, pinMsg: '' };
   formRef = React.createRef();
   isEdit = () => !!this.props.params.id;
 
@@ -57,6 +60,7 @@ class JobFormPage extends Component {
         form.endDate = toInputDate(job.endDate);
         form.categoryId = String(job.categoryId);
         form.shifts = job.shifts || [];
+        form.location = pointOf(job); // GeoJSON → { lat, lng }
         locked = job.acceptedCount > 0;
       } else {
         // US-13: chưa đủ tên, địa chỉ, SĐT công ty thì nhắc ngay thay vì để điền hết form mới báo lỗi
@@ -75,6 +79,30 @@ class JobFormPage extends Component {
   set = (k) => (e) => {
     const v = NUMERIC.includes(k) ? e.target.value.replace(/\D/g, '') : e.target.value;
     this.setState({ form: { ...this.state.form, [k]: v }, errors: { ...this.state.errors, [k]: '' }, dirty: true });
+  };
+
+  // Ghim vị trí làm việc (FR-SRC-05): bấm bản đồ / kéo ghim, hoặc tìm theo địa chỉ đã nhập; null = không ghim
+  setPin = (location, pinMsg = '') => this.setState({ form: { ...this.state.form, location }, errors: { ...this.state.errors, location: '' }, dirty: true, pinMsg });
+  // Đổi địa chỉ chữ thành tọa độ bằng Nominatim (OpenStreetMap, miễn phí, chỉ gọi khi bấm nút). Địa chỉ Việt Nam hay lệch vài chục mét
+  // nên luôn nhắc kiểm tra và kéo ghim lại cho đúng
+  findAddress = async () => {
+    const { address, district, city } = this.state.form;
+    if (!city.trim()) { this.setState({ pinMsg: 'Nhập thành phố (và địa chỉ) ở trên trước khi tìm.' }); return; }
+    this.setState({ finding: true, pinMsg: '' });
+    try {
+      for (const q of [[address, district, city], [district, city]].map((p) => p.filter((x) => x?.trim()).join(', ')).filter((q, i, all) => q && all.indexOf(q) === i)) {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&q=${encodeURIComponent(q)}`);
+        const [hit] = r.ok ? await r.json() : [];
+        if (hit) {
+          this.setState({ finding: false });
+          this.setPin({ lat: Math.round(hit.lat * 1e6) / 1e6, lng: Math.round(hit.lon * 1e6) / 1e6 }, q.startsWith(address?.trim() || '\0') ? 'Đã ghim theo địa chỉ. Kiểm tra lại và kéo ghim cho đúng chỗ làm.' : 'Không tìm thấy đúng số nhà nên tạm ghim ở trung tâm khu vực. Hãy kéo ghim tới đúng chỗ làm.');
+          return;
+        }
+      }
+      this.setState({ finding: false, pinMsg: 'Không tìm thấy địa chỉ này trên bản đồ. Hãy bấm trực tiếp lên bản đồ để ghim.' });
+    } catch {
+      this.setState({ finding: false, pinMsg: 'Không gọi được dịch vụ tìm địa chỉ. Hãy bấm trực tiếp lên bản đồ để ghim.' });
+    }
   };
 
   // Cuộn và focus tới ô lỗi đầu tiên (ô, hoặc nút đầu của nhóm như lưới ca)
@@ -104,7 +132,7 @@ class JobFormPage extends Component {
   };
 
   render() {
-    const { form, categories, cities, locked, errors, noCompany, loadError, busy, dirty, leave } = this.state;
+    const { form, categories, cities, locked, errors, noCompany, loadError, busy, dirty, leave, finding, pinMsg } = this.state;
     if (loadError) return <div className="container page"><ErrorState error={loadError} onRetry={this.load} /></div>;
     if (!form) return <Spinner />;
     if (noCompany)
@@ -180,12 +208,28 @@ class JobFormPage extends Component {
           </section>
           <section className="emp-form-sec">
             <div><h2>Địa điểm</h2><p className="muted small">Nơi sinh viên đến làm việc.</p></div>
-            <div className="grid-3">
-              {input('city', 'Thành phố *', { required: true, disabled: locked, placeholder: 'TP.HCM', list: 'emp-cities', autoComplete: 'off' })}
-              {input('district', 'Quận / huyện', { disabled: locked })}
-              {input('address', 'Địa chỉ', { disabled: locked, maxLength: 200 })}
+            <div className="stack-lg">
+              <div className="grid-3">
+                {input('city', 'Thành phố *', { required: true, disabled: locked, placeholder: 'TP.HCM', list: 'emp-cities', autoComplete: 'off' })}
+                {input('district', 'Quận / huyện', { disabled: locked })}
+                {input('address', 'Địa chỉ', { disabled: locked, maxLength: 200 })}
+              </div>
+              <datalist id="emp-cities">{cities.map((c) => <option key={c} value={c} />)}</datalist>
+              {/* FR-SRC-05: ghim không bắt buộc; có ghim thì tin hiện trên bản đồ và trong bộ lọc "Gần trường" của sinh viên */}
+              <div className="emp-map">
+                <Field label="Ghim vị trí trên bản đồ (không bắt buộc)" error={errors.location}
+                  hint={locked ? undefined : 'Bấm lên bản đồ để đặt ghim, kéo ghim để chỉnh. Sinh viên tìm việc gần trường chỉ thấy các tin đã ghim.'}>
+                  <MapView label="Bản đồ đặt ghim vị trí làm việc" pick={form.location} onPick={this.setPin} locked={locked} center={cityCenter(form.city)} zoom={13} />
+                </Field>
+                {!locked && (
+                  <div className="emp-map-actions">
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={this.findAddress} disabled={finding}><MapPin size={18} aria-hidden="true" />{finding ? 'Đang tìm…' : 'Ghim theo địa chỉ đã nhập'}</button>
+                    {form.location && <button type="button" className="btn-link" onClick={() => this.setPin(null)}>Bỏ ghim</button>}
+                  </div>
+                )}
+                <p className="emp-map-status" role="status">{pinMsg || (form.location ? 'Đã ghim vị trí làm việc.' : 'Chưa ghim: tin vẫn đăng được nhưng không hiện trên bản đồ và trong kết quả “Gần trường”.')}</p>
+              </div>
             </div>
-            <datalist id="emp-cities">{cities.map((c) => <option key={c} value={c} />)}</datalist>
           </section>
           <Alert>{!this.state.quota && this.state.error}</Alert>
           <div className="row emp-form-actions">

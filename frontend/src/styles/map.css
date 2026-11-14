@@ -1,0 +1,65 @@
+/* Bản đồ việc gần trường (FR-SRC-05): khung Leaflet (.mp), ghim, điểm xuất phát, vòng bán kính; phần riêng của trang Tìm việc (.jx-map),
+   form đăng tin (.emp-map) và chi tiết việc (.jd-map). CSS của Leaflet tải lười cùng thư viện (xem MapView.js) */
+@scope (:root) to (.rv-hero) {
+
+/* html zoom .8 làm Leaflet kéo/ghim lệch tay và ô bản đồ bị thu nhỏ mờ → bù lại 1.25 để trong khung bản đồ là tỉ lệ 1:1.
+   Vì vậy mọi số đo bên trong .mp là px thật (256px ở đây = 320px của phần còn lại của trang), và dùng vh thường thay cho var(--vh) */
+.mp { zoom: 1.25; height: 256px; border-radius: 16px; overflow: hidden; background: var(--sand); box-shadow: var(--hairline); isolation: isolate; z-index: 0; font-family: inherit; }
+.mp-sm { height: 208px; }
+.mp-lg { height: min(480px, 56vh); }
+.mp-failed { display: grid; place-content: center; gap: 8px; padding: 16px; text-align: center; font-size: 13px; color: var(--body); }
+.mp .leaflet-control-attribution { font-size: 10px; }
+.mp .leaflet-bar a { color: var(--ink); }
+
+/* Ghim hình giọt nước: xanh --primary, tin Nổi bật vàng, ghim đang chọn / ghim của form màu obsidian chấm neon. Không đổ bóng, viền trắng để tách khỏi nền bản đồ */
+.mp-pin { background: none; border: 0; cursor: pointer; }
+.mp-pin span { display: block; width: 100%; height: 100%; border-radius: 50% 50% 50% 0; transform: rotate(-45deg) scale(.82); transform-origin: 50% 60%; background: var(--primary); border: 2px solid #fff; position: relative; }
+.mp-pin span::after { content: ''; position: absolute; inset: 30%; border-radius: 50%; background: #fff; }
+.mp-pin.gold span { background: var(--signal-yellow); border-color: var(--obsidian); }
+.mp-pin.gold span::after { background: var(--obsidian); }
+.mp-pin.on span { background: var(--obsidian); border-color: #fff; }
+.mp-pin.on span::after { background: var(--neon); }
+.mp-pin:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 8px; }
+/* Điểm xuất phát (trường / vị trí người xem): chấm tròn neon viền obsidian, khác hẳn ghim việc */
+.mp-origin { background: none; border: 0; }
+.mp-origin span { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--neon); border: 3px solid var(--obsidian); box-sizing: border-box; }
+.mp-radius { stroke: var(--primary); stroke-width: 1.5; stroke-dasharray: 6 5; fill: var(--primary); fill-opacity: .07; }
+
+/* Trang Tìm việc: nút đổi cách xem nằm cuối hàng tiêu đề; bản đồ + ghi chú + thẻ của ghim đang chọn */
+.jx-view { margin-left: auto; align-self: center; }
+.jx-view .tab, .jx-radius .tab { height: 44px; padding: 0 16px; font-size: var(--fs-label); }
+.jx-radius { margin-top: 14px; }
+.jx-radius .tabs { display: flex; }
+.jx-radius .tab { flex: 1; padding: 0 6px; }
+.jx-sec .dd.select { width: 100%; }
+.jx-sec-actions .btn svg { margin-right: 6px; }
+#gan-truong .jx-sec-actions { flex-wrap: wrap; gap: 10px 16px; }
+.jx-map { display: grid; gap: 16px; transition: opacity .15s; }
+.jx-map.is-loading { opacity: .6; }
+.jx-map-note { margin: 0; font-size: var(--fs-label); color: var(--body); }
+.jx-map-note .btn-link { font-size: inherit; }
+.jx-grid + .jx-map-note { margin-top: 20px; }
+.jx-map-card { max-width: 520px; display: grid; }
+
+/* Form đăng tin: bản đồ đặt ghim + hàng nút */
+.emp-map { grid-column: 1 / -1; display: grid; gap: 12px; }
+.emp-map-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.emp-map-actions .btn svg { margin-right: 6px; }
+.emp-map-status { margin: 0; font-size: var(--fs-label); color: var(--body); }
+.emp-map .mp { cursor: crosshair; }
+
+/* Chi tiết việc: bản đồ nhỏ + dòng khoảng cách + link chỉ đường */
+.jd-map { display: grid; gap: 14px; }
+.jd-map-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 0; font-size: var(--fs-label); color: var(--body); }
+.jd-map-row strong { color: var(--ink); font-weight: 500; }
+.jd-map-row svg { vertical-align: -3px; margin-right: 6px; }
+
+@media (max-width: 640px) {
+  .jx-summary-head { flex-wrap: wrap; }
+  .jx-view { margin-left: 0; width: 100%; }
+  .jx-view .tabs { display: flex; }
+  .jx-view .tab { flex: 1; }
+  .mp-lg { height: min(360px, 60vh); }
+}
+
+}

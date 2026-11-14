@@ -1,5 +1,9 @@
 /* Trang Tìm việc: dải tìm kiếm, cột bộ lọc + danh sách, thẻ việc (JobCard: .jc), lưới tuần thu nhỏ (trang chi tiết), ShiftGrid */
 /* Cùng scope với index.css để thứ tự khai báo quyết định khi trùng độ ưu tiên (hero nằm ngoài, xem hero.css) */
+/* SVN-Poppins: phông hình học tròn có đủ dấu tiếng Việt, dùng cho tiêu đề và lương trên thẻ việc */
+@font-face { font-family: 'SVN-Poppins'; font-weight: 600; font-display: swap; src: url('../assets/fonts/SVN-Poppins-SemiBold.woff2') format('woff2'); }
+@font-face { font-family: 'SVN-Poppins'; font-weight: 500; font-display: swap; src: url('../assets/fonts/SVN-Poppins-Medium.woff2') format('woff2'); }
+
 @scope (:root) to (.rv-hero) {
 
 .jx-fit { padding: 3px 10px; border-radius: var(--r-pill); background: var(--obsidian); color: var(--neon); font-weight: 500; }
@@ -7,25 +11,26 @@
 
 /* Đầu trang: tiêu đề + câu dẫn + thanh tìm (từ khóa, địa điểm) trên dải xanh phẳng --primary (không gradient), chữ trắng.
    Trang tìm việc rộng hơn khung chung 1200px để bớt khoảng trống hai bên */
-.jx-band, .jx-page, body:has(.jx-page) .footer .container { --page: 1440px; }
+.jx-band, .jx-page, body:has(.jx-page) .footer .container { --page: 1650px; } /* 1320px thực ÷ .8 (html zoom) */
 /* Dải đầu trang Tìm việc: giữ giao diện cũ theo yêu cầu — cùng nền bầu trời với hero trang chủ (.rv-sky trong hero.css) */
-.jx-band { padding: 64px 0 56px; box-shadow: none; color: #fff; border-radius: 0 0 32px 32px;
+.jx-band { padding: 36px 0 32px; box-shadow: none; color: #fff; border-radius: 0 0 32px 32px;
   background:
     radial-gradient(60% 45% at 80% 92%, rgba(255, 255, 255, .55), transparent 70%),
     radial-gradient(40% 28% at 10% 100%, rgba(255, 255, 255, .35), transparent 70%),
     radial-gradient(30% 20% at 92% 16%, rgba(255, 255, 255, .2), transparent 70%),
     linear-gradient(170deg, #0b4fa8 0%, #1f68c4 45%, #5f9fe6 85%, #a3c9f2 100%); }
-.jx-title { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #fff; text-shadow: 0 1px 2px rgba(40, 70, 110, .25); }
-.jx-spark { flex-shrink: 0; color: #fff; }
-.jx-sub { margin: 0 0 28px; max-width: 760px; font-size: 16px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(40, 70, 110, .25); }
+.jx-title { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; font-size: clamp(28px, 2.6vw, 36px); line-height: 1.15; color: #fff; text-shadow: 0 1px 2px rgba(40, 70, 110, .25); }
+.jx-sub { margin: 0 0 20px; max-width: 760px; font-size: 15px; font-weight: 500; color: #fff; text-shadow: 0 1px 2px rgba(40, 70, 110, .25); }
 .jx-search { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; padding: 8px; border-radius: 999px; box-shadow: none; }
 .jx-search .hx-field { height: 56px; font-size: 16px; }
 .jx-search .btn { height: 56px; padding: 0 40px; font-size: 16px; }
 
 /* Hai cột: bộ lọc 260px dính dưới menu (cuộn riêng nếu dài), danh sách chiếm phần còn lại. Cột lọc nằm thẳng trên nền trang, không khung */
-.jx-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px; align-items: start; }
+.jx-layout { display: grid; grid-template-columns: 325px minmax(0, 1fr); gap: 40px; align-items: start; }
 .jx-filter-toggle { display: none; }
-.jx-side { position: sticky; top: 88px; max-height: calc(100 * var(--vh) - 104px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; background: none; padding: 0 4px 0 0; }
+.jx-side { position: sticky; top: 88px; max-height: calc(100 * var(--vh) - 104px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; background: none; padding: 0 8px 0 8px; overflow-x: hidden; }
+/* Danh sách thả của bộ lọc không rộng hơn cột (mặc định .dd-pop min 280px > cột 260px làm cột cuộn ngang, chữ bên trái bị cắt) */
+.jx-side .dd-pop { width: 100%; max-width: 100%; }
 .jx-sec { padding: 20px 0; scroll-margin-top: 96px; }
 .jx-sec:first-child { padding-top: 4px; }
 .jx-sec + .jx-sec { border-top: 1px solid var(--line); }
@@ -33,7 +38,7 @@
 .jx-sec-title svg { color: var(--ink); }
 .jx-sec-note { margin: -4px 0 14px; font-size: var(--fs-label); color: var(--body); }
 .jx-sec-hint { margin: 10px 0 0; font-size: var(--fs-label); color: var(--muted); }
-.jx-sec-actions { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
+.jx-sec-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 14px; }
 /* Lưới lịch học thu gọn cho cột lọc */
 .jx-side .shift-grid { grid-template-columns: 40px repeat(7, minmax(0, 1fr)); gap: 3px; }
 .jx-side .shift-head { height: 24px; font-size: 11.5px; }
@@ -62,10 +67,10 @@
 @media (hover: hover) { .jx-clear-all:hover { text-decoration: underline; text-underline-offset: 3px; } }
 
 /* Kết quả: số việc + chip bộ lọc đang bật */
-.jx-page { padding-top: 48px; }
+.jx-page { padding-top: 32px; }
 .jx-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 20px; }
-.jx-summary-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 28px; }
-.jx-h2 { font-family: var(--font-display); margin: 0; font-size: clamp(26px, 2.4vw, 34px); font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; }
+.jx-summary-head { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+.jx-h2 { font-family: var(--font-display); margin: 0; font-size: 24px; font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; }
 .jx-count { font-size: var(--fs-label); color: var(--muted); font-variant-numeric: tabular-nums; }
 .jx-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .jx-chips button { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px 0 16px; background: var(--primary-wash); color: var(--link); border: 0; border-radius: var(--r-pill); font-size: var(--fs-label); font-weight: 500; cursor: pointer; }
@@ -76,6 +81,7 @@
 
 /* Link tên việc phủ cả thẻ (JobCard) để bấm đâu cũng mở; nút lưu nằm trên lớp phủ */
 .jr-link { color: var(--ink); }
+.jc-title .jr-link { color: inherit; }
 .jr-link::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius); }
 .jr-link:focus-visible { outline: none; }
 .jr-link:focus-visible::after { outline: 2px solid var(--primary); outline-offset: 2px; }
@@ -90,13 +96,13 @@
 .jx-mini-day, .jx-mini-p { font-size: 12px; font-weight: 500; color: var(--muted); }
 .jx-mini-day { text-align: center; }
 .jx-mini-p { align-self: center; }
-.jx-mini-cell { display: block; height: 24px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--line); }
-.jx-mini-cell.w { background: var(--neon); box-shadow: none; }
+.jx-mini-cell { display: grid; place-items: center; height: 24px; border-radius: 6px; box-shadow: inset 0 0 0 1px var(--line); }
+.jx-mini-cell.w { background: var(--neon); box-shadow: none; color: var(--obsidian); }
 .jx-mini-cell.h { background: #c4ccd6; box-shadow: none; }
-.jx-mini-cell.x { background: var(--alert); box-shadow: none; }
+.jx-mini-cell.x { background: var(--alert); box-shadow: none; color: #fff; }
 .jx-mini figcaption { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
 .jx-mini figcaption span { display: inline-flex; align-items: center; gap: 6px; }
-.jx-mini figcaption .jx-mini-cell { width: 12px; height: 12px; border-radius: 3px; }
+.jx-mini figcaption .jx-mini-cell { width: 16px; height: 16px; border-radius: 4px; }
 
 /* Lời mời tạo hồ sơ cuối trang: dải neon bo lớn, tiêu đề trái, nút obsidian phải */
 .jx-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px 64px; margin-top: 64px; padding: 48px 56px; background: var(--neon); border-radius: var(--radius-lg); color: var(--obsidian); }
@@ -116,46 +122,51 @@
 .shift-work .shift-cell[aria-pressed='true'] { background: var(--neon); box-shadow: none; color: var(--obsidian); }
 
 /* Lưới thẻ: 3 cột trên màn rộng, tự xuống 2 / 1 cột */
-.jx-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 20px; transition: opacity .15s; }
+.jx-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 30px; transition: opacity .15s; }
 .jx-grid > li { display: grid; min-width: 0; }
 .jx-grid .jc { min-width: 0; }
 .jx-grid.is-loading { opacity: .5; }
 
 /* Thẻ việc: trắng có viền mảnh (không đổ bóng); hover chỉ đậm viền, nhấc nhẹ khi có chuột */
-.jc { min-width: 0; position: relative; display: flex; flex-direction: column; gap: 18px; padding: 26px 24px 20px; background: var(--white); border-radius: 24px; box-shadow: var(--hairline); transition: box-shadow .2s, transform .2s cubic-bezier(.16, 1, .3, 1); }
+.jc { min-width: 0; position: relative; display: flex; flex-direction: column; gap: 20px; padding: 30px; background: var(--white); border-radius: 25px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04), var(--hairline); transition: box-shadow .15s, transform .15s cubic-bezier(.16, 1, .3, 1); }
 @media (hover: hover) {
-  .jc:hover { box-shadow: inset 0 0 0 1.5px var(--stone-border); transform: translateY(-2px); }
+  .jc:hover { box-shadow: inset 0 0 0 1.5px var(--stone-border), var(--shadow-pop); transform: translateY(-2px); }
   .jc:hover .jr-link { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 }
-.jc .jr-link::after { border-radius: 24px; }
-.jc-head { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; align-items: center; }
-.jc-logo { width: 52px; height: 52px; display: grid; place-items: center; overflow: hidden; border-radius: 14px; background: var(--page-bg); color: var(--obsidian); }
-.jc-logo img { width: 100%; height: 100%; object-fit: cover; }
-.jc-title { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.jc-meta { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: var(--fs-label); color: var(--muted); min-width: 0; }
-/* Tên công ty giữ đủ (tối đa 1 dòng); không đủ chỗ thì "• N ứng viên" xuống dòng thay vì cắt tên */
-.jc-meta { flex-wrap: wrap; row-gap: 0; }
-.jc-company { flex-shrink: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.jc-meta > span:not(.jc-company) { flex-shrink: 0; }
-.jc-save { position: relative; z-index: 1; align-self: start; width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: var(--r-pill); color: var(--muted); cursor: pointer; transition: color .15s, background .15s, transform .1s; }
+.jc .jr-link::after { border-radius: 25px; }
+.jc-head { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+.jc-logo { width: 60px; height: 60px; display: grid; place-items: center; overflow: hidden; border-radius: 15px; background: var(--primary-wash); color: var(--primary); font-size: 24px; font-weight: 700; }
+.jc-logo img { width: 100%; height: 100%; object-fit: contain; background: var(--white); }
+.jc-title { margin: 0; font-family: 'SVN-Poppins', var(--font); font-size: 21px; font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; color: #1F2937; -webkit-font-smoothing: antialiased; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+/* Dòng phụ "Tên công ty • N ứng viên": tên cắt bằng …, phần ứng viên luôn hiện đủ */
+.jc-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin: 4px 0 0; min-width: 0; font-size: 17px; color: var(--muted); }
+.jc-company { flex: 1 1 auto; min-width: 5ch; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jc-apps { flex: none; white-space: nowrap; }
+.jc-save { position: relative; z-index: 1; width: 50px; height: 50px; display: grid; place-items: center; background: none; border: 0; border-radius: var(--r-pill); color: var(--muted); cursor: pointer; transition: color .15s, background .15s, transform .15s; }
 @media (hover: hover) { .jc-save:hover { color: var(--ink); background: var(--page-bg); } }
 .jc-save:active { transform: scale(.92); }
 .jc-save.on { color: var(--alert); }
 
-.jc-tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.jc-tag { flex-shrink: 0; padding: 5px 12px; border-radius: var(--r-sm); font-size: var(--fs-label); font-weight: 500; line-height: 1.3; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.jc-tag.t-plum { flex-shrink: 1; min-width: 0; }
+.jc-tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: nowrap; gap: 10px; overflow: hidden; }
+.jc-tag { flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; padding: 6px 15px; border-radius: 10px; font-size: var(--fs-label); font-weight: 500; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jc-tag.t-more { flex: none; }
+.t-more { background: var(--wash-soft); color: var(--ink); }
 .t-plum { background: var(--tag-plum-wash); color: var(--tag-plum); }
 .t-mint { background: var(--mint-whisper); color: var(--pay); }
 .t-peach { background: var(--tag-peach-wash); color: var(--tag-peach); }
 .t-gold { background: var(--signal-yellow); color: var(--obsidian); }
 .t-ink { background: var(--obsidian); color: var(--neon); }
 
-.jc-desc { margin: 0; font-size: var(--fs-label); line-height: 1.6; color: var(--body); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.jc-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: auto; padding-top: 18px; border-top: 1px solid var(--line); }
-.jc-pay { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.jc-pay span { margin-left: 2px; font-size: var(--fs-label); font-weight: 500; letter-spacing: 0; color: var(--muted); }
+.jc-where { display: flex; align-items: center; gap: 6px; margin: -6px 0 0; min-width: 0; font-size: var(--fs-label); color: var(--muted); }
+.jc-where svg { flex-shrink: 0; }
+.jc-where span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jc-desc { margin: 0; min-height: calc(2 * 1.55em); font-size: 17.5px; line-height: 1.55; color: var(--body); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.jc-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; margin-top: auto; padding-top: 20px; border-top: 1px solid var(--line); }
+.jc-pay { margin: 0; font-family: 'SVN-Poppins', var(--font); font-size: 27px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jc-pay span { margin-left: 3px; font-family: var(--font); font-size: 17.5px; font-weight: 400; letter-spacing: 0; color: #9CA3AF; }
+.jc-side { display: flex; align-items: center; }
 .jc-time { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-label); color: var(--muted); white-space: nowrap; }
+.jc-apps { font-size: var(--fs-axis); color: var(--muted); white-space: nowrap; }
 
 .jx-pay-err { grid-column: 1 / -1; margin: 0; color: var(--alert); font-size: var(--fs-label); }
 .jx-empty-action { margin-top: 12px; }
@@ -164,8 +175,50 @@
 .jx-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 20px; }
 .jx-skel .sk-card { height: 220px; }
 
+/* Nhóm lọc gập được: tiêu đề là nút toàn hàng; ô lưới lịch ≥28px; công tắc lưu lịch; tooltip ⓘ */
+.jx-sec-title .jx-sec-btn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 8px; }
+.jx-sec-btn:focus-visible, .jx-tip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.jx-sec-btn span { flex: 1; min-width: 0; }
+.jx-sec-chev { flex-shrink: 0; transition: transform .15s; }
+.jx-sec.open .jx-sec-chev { transform: rotate(180deg); }
+.jx-sec-head .jx-sec-title { flex: 1; min-width: 0; }
+.jx-sec-body[hidden] { display: none; }
+.jx-tip { display: inline-grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; color: var(--muted); cursor: help; border-radius: 50%; }
+.jx-side .shift-cell { height: 32px; min-width: 28px; }
+.jx-legend { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: var(--fs-label); color: var(--muted); }
+.jx-legend-dot { width: 14px; height: 14px; border-radius: 4px; background: var(--obsidian); }
+.jx-side .jx-sec-actions .btn { height: 40px; }
+.jx-switch { display: flex; align-items: center; gap: 10px; min-height: 40px; margin-top: 8px; font-size: var(--fs-label); color: var(--ink); cursor: pointer; }
+.jx-switch input { width: 18px; height: 18px; accent-color: var(--primary); }
+.jx-more { margin-top: 6px; }
+.jx-toast { position: fixed; z-index: var(--z-pop, 50); left: 50%; bottom: 24px; transform: translateX(-50%); padding: 12px 20px; border-radius: var(--r-pill); background: var(--obsidian); color: #fff; font-size: var(--fs-label); }
+
+/* Chế độ bản đồ: bản đồ dính bên phải (~60%), danh sách thẻ cuộn bên trái (~40%); điện thoại: bản đồ trên, danh sách dưới */
+.jx-mapview { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 20px; align-items: start; transition: opacity .15s; }
+.jx-mapview.is-loading { opacity: .6; }
+.jx-map-pane { grid-column: 2; grid-row: 1; position: sticky; top: 88px; display: grid; gap: 12px; }
+.jx-map-list { grid-column: 1; grid-row: 1; list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 16px; max-height: calc(100 * var(--vh) - 120px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.jx-map-item { border-radius: 24px; }
+.jx-map-item.on { box-shadow: 0 0 0 2px var(--primary); }
+.jx-map-pane .mp-lg { height: max(480px, calc(100vh - 220px)); }
+
+/* Toggle Danh sách/Bản đồ, tab bán kính và trang hiện tại của phân trang dùng --primary (xanh dương), --neon chỉ cho trạng thái thành công / ca làm */
+.jx-view .tab.active, .jx-radius .tab.active, .jx-page .page-btn.active { background: var(--primary); color: var(--on-primary); box-shadow: none; }
+/* Lưới thẻ: 3 cột từ 1200px, 2 cột 768–1199px, 1 cột dưới 768px */
+.jx-grid, .jx-skel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* media query so theo px thật của cửa sổ (không bị html zoom .8): 3 cột từ 1200px nên MacBook 13" (1280–1440px) vẫn 3 cột */
+@media (max-width: 1199px) { .jx-grid, .jx-skel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .jx-grid, .jx-skel { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .jx-grid, .jx-mapview, .jx-map { transition: none; } .jx-sec-chev { transition: none; } }
+
 /* Responsive (đặt sau mọi khai báo gốc để thắng khi cùng độ ưu tiên) */
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
+  .jx-mapview { grid-template-columns: minmax(0, 1fr); }
+  .jx-map-pane { grid-column: 1; grid-row: 1; position: static; }
+  .jx-map-list { grid-column: 1; grid-row: 2; max-height: none; overflow: visible; padding: 0; }
+  .jx-map-pane .mp-lg { height: 360px; }
+}
+@media (max-width: 1024px) {
   .jx-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .jx-filter-toggle { display: inline-flex; justify-self: start; }
   .jx-side { display: none; position: static; max-height: none; }
@@ -176,7 +229,6 @@
 @media (max-width: 640px) {
   .jx-band { padding: 36px 0 32px; }
   .jx-title { gap: 10px; margin-bottom: 20px; }
-  .jx-spark { width: 26px; height: 26px; }
   /* Nút Tìm việc nằm đè góc phải hàng từ khóa, địa điểm xuống hàng dưới */
   .jx-search { border-radius: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .jx-search .hx-q { grid-column: 1 / -1; grid-row: 1; padding-right: 128px; }
@@ -187,11 +239,9 @@
   .jx-cta .btn { width: 100%; }
   .shift-grid { grid-template-columns: 44px repeat(7, minmax(0, 1fr)); gap: 4px; }
   .shift-cell { height: 40px; font-size: 11px; border-radius: 10px; }
-  .jc { padding: 22px 20px 18px; gap: 14px; border-radius: 20px; }
-  .jc-head { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; }
-  .jc-logo { width: 44px; height: 44px; border-radius: 12px; }
-  .jc-title { font-size: 17px; }
-  .jc-pay { font-size: 20px; }
+  .jc { padding: 24px 20px; gap: 16px; }
+  .jc-head { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; }
+  .jc-logo { width: 52px; height: 52px; }
 }
 
 }

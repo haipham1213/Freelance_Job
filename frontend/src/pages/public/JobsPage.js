@@ -1,17 +1,24 @@
 import React, { Component } from 'react';
-import { CalendarDays, Check, MapPin, Search, SlidersHorizontal, Sparkle, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, Info, LocateFixed, MapPin, Search, SlidersHorizontal, Tag, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Empty, ErrorState, Alert, Pagination, Dropdown, ShiftGrid } from '../../components/ui';
+import { Empty, ErrorState, Alert, Pagination, Dropdown, ShiftGrid, Tabs } from '../../components/ui';
+import MapView from '../../components/MapView';
 import { JobCard, loadSavedIds, saveToggler, readWeek, writeWeek } from '../../components/JobRow';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
 import { money, describeShifts, SALARY_TYPE } from '../../utils/format';
+import { SCHOOLS, RADII, schoolByName, originOf, writeOrigin, pointOf, cityCenter } from '../../utils/geo';
 
 const SALARY_TYPES = [['HOURLY', 'Theo giờ'], ['DAILY', 'Theo ngày'], ['PROJECT', 'Theo dự án']];
-const FILTERS = ['q', 'categoryId', 'city', 'district', 'salaryType', 'salaryMin', 'salaryMax', 'busy', 'page'];
+// school / near / radius: lọc theo khoảng cách (FR-SRC-05); view=map: xem kết quả trên bản đồ
+const FILTERS = ['q', 'categoryId', 'city', 'district', 'salaryType', 'salaryMin', 'salaryMax', 'busy', 'school', 'near', 'radius', 'view', 'page'];
+const radiusOf = (f) => Number(f.radius) || 5;
+// Lỗi của navigator.geolocation theo mã (1 từ chối quyền, 2 không xác định được, 3 quá thời gian)
+const GEO_ERRORS = { 1: 'Trình duyệt chưa được phép dùng vị trí. Hãy cho phép, hoặc chọn trường trong danh sách.', 2: 'Không xác định được vị trí của bạn. Hãy chọn trường trong danh sách.', 3: 'Lấy vị trí quá lâu. Thử lại hoặc chọn trường trong danh sách.' };
 const NUM = new Intl.NumberFormat('vi-VN');
 const smooth = () => (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 'auto' : 'smooth');
+const CAT_SHOWN = 6;
 const slots = (csv) => (csv ? csv.split(',').map(Number) : []);
 const sameSlots = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 
@@ -29,10 +36,26 @@ const Choices = ({ name, value, options, onPick, labelledBy }) => (
   </div>
 );
 
+// Nhóm lọc gập được (P1-3): tiêu đề là nút, nội dung ẩn khi gập; chú thích dài nằm trong tooltip ⓘ
+const Sec = ({ id, icon: Icon, title, open, onToggle, tip, extra, children }) => (
+  <section id={id} className={`jx-sec ${open ? 'open' : ''}`}>
+    <div className="jx-sec-head">
+      <h2 className="jx-sec-title">
+        <button type="button" className="jx-sec-btn" aria-expanded={open} aria-controls={`${id}-body`} onClick={onToggle}>
+          {Icon && <Icon size={18} aria-hidden="true" />}<span>{title}</span><ChevronDown className="jx-sec-chev" size={18} aria-hidden="true" />
+        </button>
+      </h2>
+      {tip && <span className="jx-tip" role="img" tabIndex={0} title={tip} aria-label={tip}><Info size={16} aria-hidden="true" /></span>}
+      {extra}
+    </div>
+    <div id={`${id}-body`} className="jx-sec-body" hidden={!open}>{children}</div>
+  </section>
+);
+
 // SCR-C04 / FR-SRC-01: hai cột, bộ lọc bên trái (dính khi cuộn), danh sách tin bên phải; bộ lọc nằm trên URL để chia sẻ và quay lại được
 class JobsPage extends Component {
   static contextType = AuthContext;
-  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, week: [], loading: false, filtersOpen: false, savedIds: new Set(), error: null, facetError: '', weekBusy: false, weekMsg: '', weekError: '', payError: '', saveError: '' };
+  state = { categories: [], locations: [], jobs: null, meta: null, form: {}, week: [], loading: false, filtersOpen: false, savedIds: new Set(), error: null, facetError: '', weekBusy: false, weekError: '', payError: '', saveError: '', pins: null, sel: null, hot: null, locating: false, geoError: '', open: { 'lich-hoc': true }, catsAll: false, saveWeek: true, toast: '' };
   reqId = 0;
 
   params = () => Object.fromEntries(FILTERS.map((k) => [k, this.props.searchParams.get(k) || '']));
@@ -43,8 +66,10 @@ class JobsPage extends Component {
     const saved = this.context.user?.student?.busySlots;
     this.setState({ week: cur ? slots(cur) : saved?.length ? saved : readWeek() });
     // Các nút "Tô lịch học" ở trang chủ và trang chi tiết dẫn tới /jobs#lich-hoc: mở cột lọc và cuộn tới lưới
-    if (this.props.location.hash === '#lich-hoc') {
-      this.setState({ filtersOpen: true }, () => document.getElementById('lich-hoc')?.scrollIntoView({ block: 'start', behavior: smooth() }));
+    // Tương tự với "Chọn trường để xem khoảng cách" → /jobs#gan-truong
+    const { hash } = this.props.location;
+    if (hash === '#lich-hoc' || hash === '#gan-truong') {
+      this.setState((s) => ({ filtersOpen: true, open: { ...s.open, [hash.slice(1)]: true } }), () => document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start', behavior: smooth() }));
     }
     this.syncSaved();
     // Danh sách tin không phụ thuộc danh mục / địa điểm: tải song song, lỗi một bên không làm kẹt bên kia
@@ -52,7 +77,12 @@ class JobsPage extends Component {
     this.load();
   }
 
-  componentWillUnmount() { this.reqId += 1; }
+  componentWillUnmount() { this.reqId += 1; clearTimeout(this.toastTimer); }
+
+  // Bấm ghim → chọn thẻ tương ứng và cuộn danh sách tới thẻ đó
+  selectPin = (id) => this.setState({ sel: id }, () => document.getElementById(`jx-job-${id}`)?.scrollIntoView({ block: 'nearest', behavior: smooth() }));
+  toggleSec = (id) => this.setState((s) => ({ open: { ...s.open, [id]: !s.open[id] } }));
+  showToast = (toast) => { clearTimeout(this.toastTimer); this.setState({ toast }); this.toastTimer = setTimeout(() => this.setState({ toast: '' }), 3500); };
 
   loadFacets = async () => {
     try {
@@ -86,13 +116,38 @@ class JobsPage extends Component {
     const id = ++this.reqId; // chỉ nhận phản hồi của lần gọi mới nhất
     // Giữ danh sách cũ (làm mờ) trong lúc tải để trang không giật
     this.setState({ loading: true, error: null, form: p });
+    // Điểm xuất phát (trường / vị trí hiện tại) → near + radius cho API; nhớ lại để trang chi tiết việc ghi khoảng cách
+    const origin = originOf(p);
+    if (origin) writeOrigin(origin);
+    const { school, view, near, radius, page, ...rest } = p;
+    const query = { ...rest, minDays: p.busy ? 3 : undefined, near: origin ? `${origin.lat},${origin.lng}` : undefined, radius: origin ? radiusOf(p) : undefined };
     try {
       // Lọc theo lịch học: chỉ hiện việc có ca rảnh rơi vào ít nhất 3 ngày trong tuần
-      const r = await api.get(`/jobs${qs({ ...p, limit: 12, minDays: p.busy ? 3 : undefined })}`);
-      if (id === this.reqId) this.setState({ jobs: r.data, meta: r.meta, loading: false });
+      const r = await api.get(view === 'map' ? `/jobs/map${qs(query)}` : `/jobs${qs({ ...query, page, limit: 12 })}`);
+      if (id !== this.reqId) return;
+      // pins lưu trong state để mảng giữ nguyên giữa các lần render (MapView chỉ căn lại khung nhìn khi mảng đổi)
+      const pins = view === 'map' ? r.data.map((j) => ({ id: j._id, ...pointOf(j), title: j.title, featured: j.isFeatured })) : null;
+      this.setState((s) => ({ jobs: r.data, meta: r.meta, loading: false, pins, sel: r.data.some((j) => j._id === s.sel) ? s.sel : null }));
     } catch (error) {
       if (id === this.reqId) this.setState({ error, loading: false });
     }
+  };
+
+  // Chọn trường / vị trí hiện tại làm điểm xuất phát; chọn cái này thì bỏ cái kia. Bỏ điểm xuất phát thì bỏ luôn bán kính
+  setOrigin = (patch) => { this.setState({ geoError: '' }); this.apply({ school: '', near: '', ...patch, ...(!patch.school && !patch.near && { radius: '' }) }); };
+  locate = () => {
+    if (!navigator.geolocation) { this.setState({ geoError: 'Trình duyệt này không hỗ trợ lấy vị trí. Hãy chọn trường trong danh sách.' }); return; }
+    this.setState({ locating: true, geoError: '' });
+    navigator.geolocation.getCurrentPosition(
+      ({ coords: { latitude: lat, longitude: lng } }) => {
+        this.setState({ locating: false });
+        if (lat < 8 || lat > 24 || lng < 102 || lng > 110) { this.setState({ geoError: 'Vị trí của bạn nằm ngoài Việt Nam. Hãy chọn trường trong danh sách.' }); return; }
+        // Làm tròn 3 chữ số (~100 m): đủ để tính khoảng cách mà không đưa vị trí chính xác lên URL
+        this.setOrigin({ near: `${lat.toFixed(3)},${lng.toFixed(3)}` });
+      },
+      (e) => this.setState({ locating: false, geoError: GEO_ERRORS[e.code] || GEO_ERRORS[2] }),
+      { timeout: 10000, maximumAge: 300000 },
+    );
   };
 
   apply = (patch) => {
@@ -107,19 +162,20 @@ class JobsPage extends Component {
     const { week } = this.state;
     writeWeek(week);
     this.apply({ busy: week.join(',') });
-    if (this.context.user?.role !== 'STUDENT') return;
+    if (this.context.user?.role !== 'STUDENT' || !this.state.saveWeek) return;
     // Sinh viên: lưu lịch vào hồ sơ; chỉ báo "đã lưu" khi API trả thành công
-    this.setState({ weekBusy: true, weekMsg: '', weekError: '' });
+    this.setState({ weekBusy: true, weekError: '' });
     try {
       await api.put('/students/me/schedule', { busySlots: week });
-      this.setState({ weekBusy: false, weekMsg: 'Đã lưu lịch học vào hồ sơ của bạn.' });
+      this.setState({ weekBusy: false });
+      this.showToast('Đã lưu lịch học');
       this.context.reloadUser?.();
     } catch (e) {
       this.setState({ weekBusy: false, weekError: `Đã lọc theo lịch nhưng chưa lưu được vào hồ sơ: ${e.message}` });
     }
   };
 
-  clearAll = () => { this.setState({ week: [], payError: '' }); this.props.setSearchParams({}); };
+  clearAll = () => { this.setState({ week: [], payError: '', geoError: '' }); this.props.setSearchParams(this.params().view ? { view: this.params().view } : {}); };
 
   clearWeek = () => { this.setState({ week: [] }); this.apply({ busy: '' }); };
 
@@ -148,22 +204,38 @@ class JobsPage extends Component {
       f.salaryMin && ['salaryMin', `Từ ${money(f.salaryMin)}${unit}`],
       f.salaryMax && ['salaryMax', `Đến ${money(f.salaryMax)}${unit}`],
       f.busy && ['busy', 'Hợp lịch học của tôi'],
+      originOf(f) && ['origin', `Cách ${originOf(f).label} ≤ ${radiusOf(f)} km`],
     ].filter(Boolean);
   };
 
   render() {
-    const { categories, locations, jobs, meta, form, week, loading, filtersOpen, savedIds, error, facetError, weekBusy, weekMsg, weekError, payError, saveError } = this.state;
+    const { categories, locations, jobs, meta, form, week, loading, filtersOpen, savedIds, error, facetError, weekBusy, weekError, payError, saveError, pins, sel, hot, locating, geoError, open, catsAll, saveWeek, toast } = this.state;
     const catName = Object.fromEntries(categories.map((c) => [c._id, c.name]));
     const districts = locations.find((l) => l.city === form.city)?.districts || [];
     const chips = this.activeChips(catName);
+    // Ngành nghề: nhiều tin nhất trước; gập còn CAT_SHOWN mục nhưng luôn giữ ngành đang chọn
+    const catOptions = categories.map((c) => ({ value: c._id, label: c.name, count: c.jobCount })).sort((a, b) => (b.count || 0) - (a.count || 0) || a.label.localeCompare(b.label, 'vi'));
+    const catShown = catsAll ? catOptions : catOptions.filter((c, i) => i < CAT_SHOWN || c.value === form.categoryId);
     const user = this.context.user;
     const weekDirty = !sameSlots(week, slots(form.busy));
+    const origin = originOf(form);
+    const radius = radiusOf(form);
+    const isMap = form.view === 'map';
+    // Trường ghi trong hồ sơ sinh viên (nếu có trong danh sách) đứng đầu để chọn nhanh
+    const mine = schoolByName(user?.student?.school);
+    const schools = [...(mine ? [{ value: mine.id, label: `${mine.name} · trường của bạn` }] : []), ...SCHOOLS.filter((x) => x !== mine).map((x) => ({ value: x.id, label: x.name }))];
+    const card = (j) => (
+      <JobCard job={j} category={catName[j.categoryId]} saved={savedIds.has(j._id)}
+        onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined}
+        // Khách bấm tim: đăng nhập xong quay lại tin và tự lưu (?save=1, xử lý ở trang chi tiết)
+        saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${j._id}?save=1`)}`} />
+    );
     const weekWhy = !week.length ? 'Tô ít nhất một buổi có tiết học để lọc.' : !weekDirty ? 'Lịch này đang được áp dụng.' : '';
     return (
       <>
         <section className="jx-band">
           <div className="container">
-            <h1 className="display jx-title">Tìm việc part-time hợp lịch học<Sparkle className="jx-spark" size={40} fill="currentColor" aria-hidden="true" /></h1>
+            <h1 className="display jx-title">Tìm việc part-time hợp lịch học</h1>
             <p className="jx-sub">Lương và ca làm ghi rõ trên từng tin. Tô lịch học để chỉ thấy việc không trùng giờ.</p>
             <form className="hx-search jx-search" onSubmit={(e) => { e.preventDefault(); this.apply({ q: form.q }); }} role="search">
               <label className="hx-field hx-q">
@@ -179,10 +251,6 @@ class JobsPage extends Component {
         </section>
 
         <div className="container page jx-page">
-          <div className="jx-summary-head">
-            <h2 className="jx-h2">{form.busy ? 'Việc hợp lịch học của bạn' : 'Việc làm gợi ý'}</h2>
-            <span className="jx-count" aria-live="polite">{meta ? `${NUM.format(meta.total)} việc` : error ? '' : 'Đang tìm…'}</span>
-          </div>
           <div className="jx-layout">
             {/* Cột trái: bộ lọc. Điện thoại: ẩn sau nút "Bộ lọc" */}
             <button type="button" className="btn btn-ghost jx-filter-toggle" aria-expanded={filtersOpen} aria-controls="jx-side"
@@ -190,29 +258,42 @@ class JobsPage extends Component {
               <SlidersHorizontal size={18} aria-hidden="true" />Bộ lọc{chips.length > 0 ? ` (${chips.length})` : ''}
             </button>
             <aside id="jx-side" className={`jx-side ${filtersOpen ? 'open' : ''}`} aria-label="Bộ lọc">
-              <section id="lich-hoc" className="jx-sec">
-                <div className="jx-sec-head">
-                  <h2 className="jx-sec-title"><CalendarDays size={18} aria-hidden="true" />Lịch học</h2>
-                  {chips.length > 0 && <button type="button" className="jx-clear-all" onClick={this.clearAll}>Xóa tất cả bộ lọc</button>}
-                </div>
+              <Sec id="lich-hoc" icon={CalendarDays} title="Lịch học" open={!!open['lich-hoc']} onToggle={() => this.toggleSec('lich-hoc')}
+                tip="Tô các buổi có tiết học. Chỉ hiện việc có ca rảnh ít nhất 3 ngày trong tuần.">
                 {facetError && <Alert>{facetError} <button type="button" className="btn-link" onClick={this.loadFacets}>Thử lại</button></Alert>}
-                <p className="jx-sec-note">{form.busy ? `Đang lọc: bận ${describeShifts(slots(form.busy))}` : 'Tô các buổi có tiết học, chỉ hiện việc có ca rảnh ít nhất 3 ngày trong tuần.'}</p>
+                <p className="jx-sec-note">{form.busy ? `Đang lọc: bận ${describeShifts(slots(form.busy))}` : 'Chỉ hiện việc có ≥3 ngày rảnh/tuần.'}</p>
                 <ShiftGrid tone="busy" value={week} onChange={(v) => this.setState({ week: v })} label="Lịch học trong tuần" />
+                <p className="jx-legend"><span className="jx-legend-dot" aria-hidden="true" />Ô đậm = bận học</p>
                 <div className="jx-sec-actions">
                   <button type="button" className="btn btn-sm" onClick={this.applyWeek} disabled={!week.length || !weekDirty || weekBusy} aria-describedby={weekWhy ? 'jx-week-why' : undefined}>{weekBusy ? 'Đang lưu…' : 'Lọc theo lịch'}</button>
-                  {(week.length > 0 || form.busy) && <button type="button" className="btn-link" onClick={this.clearWeek}>Xóa lịch</button>}
+                  {(week.length > 0 || form.busy) && <button type="button" className="btn btn-sm btn-ghost" onClick={this.clearWeek}>Xóa lịch</button>}
                 </div>
+                {user?.role === 'STUDENT' && (
+                  <label className="jx-switch"><input type="checkbox" checked={saveWeek} onChange={(e) => this.setState({ saveWeek: e.target.checked })} />Lưu lịch vào hồ sơ</label>
+                )}
                 {weekWhy && <p className="jx-sec-hint" id="jx-week-why">{weekWhy}</p>}
-                <p className="jx-sec-hint">{user?.role === 'STUDENT' ? 'Khi bấm “Lọc theo lịch”, lịch được lưu vào hồ sơ của bạn.' : 'Lịch lưu trên trình duyệt này.'}</p>
-                <Alert type="ok">{weekMsg}</Alert>
+                {user?.role !== 'STUDENT' && <p className="jx-sec-hint">Lịch lưu trên trình duyệt này.</p>}
                 <Alert>{weekError}</Alert>
-              </section>
+              </Sec>
 
-              <section className="jx-sec">
-                <h2 className="jx-sec-title" id="jx-cat-title">Ngành nghề</h2>
-                <Choices name="categoryId" labelledBy="jx-cat-title" value={form.categoryId || ''} onPick={(v) => this.apply({ categoryId: v })}
-                  options={categories.map((c) => ({ value: c._id, label: c.name, count: c.jobCount }))} />
-              </section>
+              <Sec id="gan-truong" icon={MapPin} title="Gần trường" open={!!open['gan-truong']} onToggle={() => this.toggleSec('gan-truong')}
+                tip="Khoảng cách đo theo đường chim bay, chỉ tính được với tin đã ghim vị trí. Vị trí của bạn không được lưu lại.">
+                <p className="jx-sec-note">{origin ? `Đang lọc: cách ${origin.label} tối đa ${radius} km.` : 'Chọn trường hoặc dùng vị trí của bạn.'}</p>
+                <Dropdown className="select" searchable value={form.school || ''} onChange={(e) => this.setOrigin({ school: e.target.value })} ariaLabel="Trường của bạn" placeholder={form.near ? 'Đang dùng vị trí hiện tại' : 'Chọn trường'} options={schools} />
+                <div className="jx-sec-actions">
+                  <button type="button" className="btn btn-sm btn-ghost" onClick={this.locate} disabled={locating}><LocateFixed size={18} aria-hidden="true" />{locating ? 'Đang lấy vị trí…' : 'Vị trí hiện tại'}</button>
+                  {origin && <button type="button" className="btn btn-sm btn-ghost" onClick={() => this.setOrigin({})}>Bỏ lọc</button>}
+                </div>
+                {origin && <div className="jx-radius"><Tabs label="Bán kính" value={String(radius)} onChange={(v) => this.apply({ radius: v })} items={RADII.map((km) => [String(km), `${km} km`])} /></div>}
+                <Alert>{geoError}</Alert>
+              </Sec>
+
+              <Sec id="nganh-nghe" icon={Tag} title="Ngành nghề" open={open['nganh-nghe'] !== false} onToggle={() => this.setState((s2) => ({ open: { ...s2.open, 'nganh-nghe': s2.open['nganh-nghe'] === false } }))}>
+                <Choices name="categoryId" labelledBy="nganh-nghe" value={form.categoryId || ''} onPick={(v) => this.apply({ categoryId: v })} options={catShown} />
+                {catOptions.length > CAT_SHOWN && (
+                  <button type="button" className="btn-link jx-more" aria-expanded={catsAll} onClick={() => this.setState({ catsAll: !catsAll })}>{catsAll ? 'Thu gọn' : `Xem thêm ${catOptions.length - CAT_SHOWN} ngành`}</button>
+                )}
+              </Sec>
 
               {districts.length > 0 && (
                 <section className="jx-sec">
@@ -242,11 +323,16 @@ class JobsPage extends Component {
 
             {/* Cột phải: số kết quả, chip bộ lọc đang bật, danh sách tin */}
             <div className="jx-main">
+            <div className="jx-summary-head">
+              <h2 className="jx-h2">{form.busy ? (origin ? 'Việc hợp lịch học, gần bạn' : 'Việc hợp lịch học của bạn') : origin ? 'Việc gần bạn' : 'Việc làm gợi ý'}</h2>
+              <span className="jx-count" aria-live="polite">{meta ? `${NUM.format(meta.total)} việc` : error ? '' : 'Đang tìm…'}</span>
+              <div className="jx-view"><Tabs label="Cách xem kết quả" value={form.view || ''} onChange={(view) => this.apply({ view })} items={[['', 'Danh sách'], ['map', 'Bản đồ']]} /></div>
+            </div>
               {chips.length > 0 && (
                 <div className="jx-summary">
                   <ul className="jx-chips" aria-label="Bộ lọc đang bật">
                     {chips.map(([k, label]) => (
-                      <li key={k}><button type="button" onClick={() => this.apply({ [k]: '' })} aria-label={`Bỏ lọc ${label}`}>{label}<X size={14} aria-hidden="true" /></button></li>
+                      <li key={k}><button type="button" onClick={() => (k === 'origin' ? this.setOrigin({}) : this.apply({ [k]: '' }))} aria-label={`Bỏ lọc ${label}`}>{label}<X size={14} aria-hidden="true" /></button></li>
                     ))}
                     <li><button type="button" className="jx-clear" onClick={this.clearAll}>Xóa tất cả</button></li>
                   </ul>
@@ -260,26 +346,41 @@ class JobsPage extends Component {
                     <span className="sr-only">Đang tải danh sách việc…</span>
                     {[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="sk sk-card" aria-hidden="true" />)}
                   </div>
+                ) : isMap && pins ? (
+                  <div className={`jx-mapview ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
+                    <div className="jx-map-pane">
+                      <MapView className="mp-lg" label="Bản đồ việc làm" markers={pins} selectedId={hot || sel} onSelect={this.selectPin}
+                        origin={origin} radiusKm={origin ? radius : undefined} center={cityCenter(form.city)} zoom={12} />
+                      <p className="jx-map-note" aria-live="polite">
+                        {pins.length ? `${NUM.format(pins.length)} việc có ghim${meta.total > pins.length ? ` (hiện ${pins.length} tin đầu trong ${NUM.format(meta.total)})` : ''}.` : origin ? `Không có việc nào đã ghim vị trí trong bán kính ${radius} km.` : 'Chưa có việc nào ghim vị trí khớp bộ lọc.'}
+                        {meta.noLocation > 0 && ` ${NUM.format(meta.noLocation)} tin khác chưa ghim vị trí nên không hiện ở đây.`}{' '}
+                        {meta.noLocation > 0 && <button type="button" className="btn-link" onClick={() => this.apply({ view: '', school: '', near: '', radius: '' })}>Xem tất cả dạng danh sách</button>}
+                      </p>
+                    </div>
+                    <ol className="jx-map-list" aria-label="Việc có ghim trên bản đồ">
+                      {jobs.map((j) => (
+                        <li key={j._id} id={`jx-job-${j._id}`} className={`jx-map-item ${j._id === sel ? 'on' : ''}`}
+                          onMouseEnter={() => this.setState({ hot: j._id })} onMouseLeave={() => this.setState({ hot: null })}>{card(j)}</li>
+                      ))}
+                    </ol>
+                  </div>
                 ) : !jobs.length ? (
                   <div className="panel">
-                    <Empty title="Không có việc phù hợp">
-                      Thử bỏ bớt bộ lọc, hoặc dùng từ khóa ngắn hơn như “phục vụ”.
+                    <Empty title={origin ? `Không có việc trong bán kính ${radius} km` : 'Không có việc phù hợp'}>
+                      {origin ? 'Thử nới bán kính, hoặc bỏ lọc khoảng cách để xem cả tin chưa ghim vị trí.' : 'Thử bỏ bớt bộ lọc, hoặc dùng từ khóa ngắn hơn như “phục vụ”.'}
+                      {origin && radius < 10 && <div><button type="button" className="btn btn-sm jx-empty-action" onClick={() => this.apply({ radius: '10' })}>Nới lên 10 km</button></div>}
                       {chips.length > 0 && <div><button type="button" className="btn btn-ghost btn-sm jx-empty-action" onClick={this.clearAll}>Xóa bộ lọc</button></div>}
                     </Empty>
                   </div>
                 ) : (
                   <ol className={`jx-grid ${loading ? 'is-loading' : ''}`} aria-busy={loading}>
-                    {jobs.map((j) => (
-                      <li key={j._id}>
-                        <JobCard job={j} category={catName[j.categoryId]} saved={savedIds.has(j._id)}
-                          onSave={user?.role === 'STUDENT' ? this.toggleSave : undefined}
-                          // Khách bấm tim: đăng nhập xong quay lại tin và tự lưu (?save=1, xử lý ở trang chi tiết)
-                          saveHref={user ? undefined : `/login?next=${encodeURIComponent(`/jobs/${j._id}?save=1`)}`} />
-                      </li>
-                    ))}
+                    {jobs.map((j) => <li key={j._id}>{card(j)}</li>)}
                   </ol>
                 )}
-              <Pagination meta={meta} onPage={(page) => this.apply({ page: String(page) })} />
+              {!isMap && origin && meta?.noLocation > 0 && !error && (
+                <p className="jx-map-note">{NUM.format(meta.noLocation)} tin khớp các bộ lọc khác nhưng chưa ghim vị trí nên không tính được khoảng cách. <button type="button" className="btn-link" onClick={() => this.setOrigin({})}>Bỏ lọc khoảng cách để xem</button></p>
+              )}
+              {!isMap && <Pagination meta={meta} onPage={(page) => this.apply({ page: String(page) })} />}
 
               {!user && (
                 <div className="jx-cta">
@@ -290,6 +391,7 @@ class JobsPage extends Component {
             </div>
           </div>
         </div>
+        {toast && <div className="jx-toast" role="status">{toast}</div>}
       </>
     );
   }

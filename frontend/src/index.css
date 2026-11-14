@@ -271,6 +271,12 @@ select.select { appearance: none; padding-right: 40px; background: var(--white) 
 @media (max-width: 480px) { .nav-right .nav-link { display: none; } .nav-inner { height: 60px; gap: 12px; } .nav-right { gap: 8px; } .nav-links { top: 60px; } .nav-right .btn-primary { padding: 8px 12px; font-size: 14px; } }
 
 .bell { position: relative; }
+.bell-btn { min-width: 40px; min-height: 40px; display: inline-grid; place-items: center; }
+.bell-btn.btn-sm { padding: 0 12px; }
+.bell-avatar { border-radius: 50%; }
+.bell-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.bell-avatar:focus-visible { border-radius: 50%; }
+.bell-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 12px; text-align: center; }
 .bell-count { position: absolute; top: -4px; right: -4px; background: var(--alert); color: #fff; border-radius: 99px; font-size: 11px; font-weight: 600; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; }
 .dropdown { position: absolute; right: 0; top: 46px; width: min(380px, 92vw); background: var(--white); border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--stone-border); padding: 8px; z-index: 30; }
 @media (prefers-reduced-motion: reduce) { .dropdown { animation: none; } }
