@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import withRouter from './utils/withRouter';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -11,23 +11,37 @@ import HomePage from './pages/public/HomePage';
 import JobsPage from './pages/public/JobsPage';
 import JobDetailPage from './pages/public/JobDetailPage';
 import EmployerPublicPage from './pages/public/EmployerPublicPage';
-import NotificationsPage from './pages/public/NotificationsPage';
 import ErrorPage from './pages/public/ErrorPage';
-import { TermsPage, PrivacyPage } from './pages/public/LegalPages';
 import { LoginPage, RegisterPage, VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage, ChangePasswordPage } from './pages/public/AuthPages';
-import ApplicationDetailPage from './pages/shared/ApplicationDetailPage';
-import StudentHomePage from './pages/student/StudentHomePage';
-import ProfilePage from './pages/student/ProfilePage';
-import ApplicationsPage from './pages/student/ApplicationsPage';
-import SavedJobsPage from './pages/student/SavedJobsPage';
-import EmployerHomePage from './pages/employer/EmployerHomePage';
-import CompanyPage from './pages/employer/CompanyPage';
-import JobFormPage from './pages/employer/JobFormPage';
-import MyJobsPage from './pages/employer/MyJobsPage';
-import ApplicantsPage from './pages/employer/ApplicantsPage';
-import { PremiumPage, PaymentResultPage, PaymentHistoryPage } from './pages/employer/PremiumPages';
-import AdminLayout from './pages/admin/AdminLayout';
-import { AdminDashboardPage, UsersPage, AdminJobsPage, ReportsPage, ReviewsPage, CategoriesPage, AdminPaymentsPage } from './pages/admin/AdminPages';
+import { Spinner } from './components/ui';
+
+// Trang công khai nằm trong bundle chính; trang theo vai trò (sinh viên, nhà tuyển dụng, admin) tải riêng khi vào lần đầu
+const page = (load, name = 'default') => lazy(() => load().then((m) => ({ default: m[name] })));
+const NotificationsPage = page(() => import('./pages/public/NotificationsPage'));
+const TermsPage = page(() => import('./pages/public/LegalPages'), 'TermsPage');
+const PrivacyPage = page(() => import('./pages/public/LegalPages'), 'PrivacyPage');
+const ApplicationDetailPage = page(() => import('./pages/shared/ApplicationDetailPage'));
+const StudentHomePage = page(() => import('./pages/student/StudentHomePage'));
+const ProfilePage = page(() => import('./pages/student/ProfilePage'));
+const ApplicationsPage = page(() => import('./pages/student/ApplicationsPage'));
+const SavedJobsPage = page(() => import('./pages/student/SavedJobsPage'));
+const EmployerHomePage = page(() => import('./pages/employer/EmployerHomePage'));
+const CompanyPage = page(() => import('./pages/employer/CompanyPage'));
+const JobFormPage = page(() => import('./pages/employer/JobFormPage'));
+const MyJobsPage = page(() => import('./pages/employer/MyJobsPage'));
+const ApplicantsPage = page(() => import('./pages/employer/ApplicantsPage'));
+const PremiumPage = page(() => import('./pages/employer/PremiumPages'), 'PremiumPage');
+const PaymentResultPage = page(() => import('./pages/employer/PremiumPages'), 'PaymentResultPage');
+const PaymentHistoryPage = page(() => import('./pages/employer/PremiumPages'), 'PaymentHistoryPage');
+const AdminLayout = page(() => import('./pages/admin/AdminLayout'));
+const admin = (name) => page(() => import('./pages/admin/AdminPages'), name);
+const AdminDashboardPage = admin('AdminDashboardPage');
+const UsersPage = admin('UsersPage');
+const AdminJobsPage = admin('AdminJobsPage');
+const ReportsPage = admin('ReportsPage');
+const ReviewsPage = admin('ReviewsPage');
+const CategoriesPage = admin('CategoriesPage');
+const AdminPaymentsPage = admin('AdminPaymentsPage');
 
 // Tiêu đề tab theo route (khớp theo tiền tố dài nhất); trang động (chi tiết việc, nhà tuyển dụng) tự đặt document.title riêng
 const TITLES = [
@@ -69,7 +83,7 @@ class SiteLayout extends Component {
         <a className="skip-link" href="#main" onClick={(e) => { e.preventDefault(); const m = document.getElementById('main'); m?.focus(); m?.scrollIntoView(); }}>Bỏ qua điều hướng</a>
         <Navbar />
         <VerifyBanner />
-        <main id="main" tabIndex={-1}><ErrorBoundary><Outlet /></ErrorBoundary></main>
+        <main id="main" tabIndex={-1}><ErrorBoundary><Suspense fallback={<Spinner />}><Outlet /></Suspense></ErrorBoundary></main>
         <Footer />
       </>
     );
@@ -83,6 +97,7 @@ class App extends Component {
       <AuthProvider>
         <BrowserRouter>
           <RouteEffectsWithRouter />
+          <Suspense fallback={<Spinner />}>
           <Routes>
             <Route element={<SiteLayout />}>
               <Route path="/" element={<HomePage />} />
@@ -138,6 +153,7 @@ class App extends Component {
               </Route>
             </Route>
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     );

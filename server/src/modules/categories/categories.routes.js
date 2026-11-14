@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import Category from '../../models/Category.js';
 import Job from '../../models/Job.js';
-import { ok } from '../../utils/http.js';
+import { ok, cdnCache } from '../../utils/http.js';
 import { visibleMatch } from '../jobs/jobs.service.js';
 
 const router = Router();
 
 // API-19, kèm số Job đang tuyển và khoảng lương phổ biến của mỗi danh mục cho trang chủ.
 // pay = hình thức trả lương nhiều tin nhất trong ngành, lương min/max trung bình làm tròn nghìn đồng.
-router.get('/categories', async (req, res) => {
+router.get('/categories', cdnCache(60), async (req, res) => {
   const [cats, groups] = await Promise.all([
     Category.find({ isActive: true }).sort('name').lean(),
     Job.aggregate([

@@ -14,9 +14,9 @@ export default class CompanyPage extends Component {
   load = async () => {
     this.setState({ loadError: null });
     try {
-      const { data } = await api.get('/employers/me');
       // Gợi ý thành phố có sẵn để nhập thống nhất với bộ lọc; lỗi thì chỉ mất gợi ý
-      const cities = (await api.get('/jobs/locations').catch(() => ({ data: [] }))).data.map((l) => l.city);
+      const [{ data }, loc] = await Promise.all([api.get('/employers/me'), api.get('/jobs/locations').catch(() => ({ data: [] }))]);
+      const cities = loc.data.map((l) => l.city);
       const c = data.company || {};
       this.setState({
         cities,

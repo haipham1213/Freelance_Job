@@ -474,7 +474,7 @@ class HomePage extends Component {
                     return (
                       <li key={`${e._id}-${i}`} aria-hidden={copy || undefined}>
                         <Link to={`/employers/${e._id}`} className="em-item" tabIndex={copy ? -1 : undefined} title={`${e.name}, ${e.jobs} tin đang mở`}>
-                          <span className="em-logo">{e.logoUrl ? <img src={e.logoUrl} alt="" width="56" height="56" /> : <Building2 size={22} aria-hidden="true" />}</span>
+                          <span className="em-logo">{e.logoUrl ? <img src={e.logoUrl} alt="" width="56" height="56" loading="lazy" decoding="async" /> : <Building2 size={22} aria-hidden="true" />}</span>
                           <span className="em-name">{e.name}</span>
                         </Link>
                       </li>

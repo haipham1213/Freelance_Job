@@ -55,10 +55,10 @@ export const Stars = ({ value = 0, count }) => {
 };
 
 export const Avatar = ({ src, name = '?', size }) =>
-  src ? <img className={`avatar ${size === 'lg' ? 'avatar-lg' : ''}`} src={src} alt="" /> : <div className={`avatar ${size === 'lg' ? 'avatar-lg' : ''}`}>{name.trim()[0]?.toUpperCase()}</div>;
+  src ? <img className={`avatar ${size === 'lg' ? 'avatar-lg' : ''}`} src={src} alt="" loading="lazy" decoding="async" /> : <div className={`avatar ${size === 'lg' ? 'avatar-lg' : ''}`}>{name.trim()[0]?.toUpperCase()}</div>;
 
 export const CompanyLogo = ({ src, name = '' }) => (
-  <div className="logo-box">{src ? <img src={src} alt={name} /> : <Building2 size={22} />}</div>
+  <div className="logo-box">{src ? <img src={src} alt={name} loading="lazy" decoding="async" /> : <Building2 size={22} />}</div>
 );
 
 // Lưới 7 ngày × 3 buổi để tô lịch học (tone="busy") hoặc ca làm (tone="work"). Bấm tên ngày / tên buổi để chọn cả cột / cả hàng

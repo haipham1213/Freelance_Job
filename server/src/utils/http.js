@@ -13,6 +13,10 @@ const CV_URL = /\/api\/v1\/files\/cv\/[0-9a-f]+\.pdf/g;
 export const ok = (res, data, meta, status = 200) =>
   res.status(status).type('json').send(JSON.stringify(meta ? { success: true, data, meta } : { success: true, data }).replace(CV_URL, (u) => signFile(u)));
 
+// Dữ liệu công khai, giống nhau cho mọi người: CDN Vercel giữ s giây và trả bản cũ trong lúc làm mới nền,
+// trình duyệt không cache (max-age=0) để F5 vẫn hỏi CDN. Không dùng cho route đọc req.user
+export const cdnCache = (s) => (req, res, next) => { res.set('Cache-Control', `public, max-age=0, s-maxage=${s}, stale-while-revalidate=${s * 5}`); next(); };
+
 // ?page=1&limit=10, limit tối đa 50 (NFR-04)
 export const paging = (q) => {
   const page = Math.max(1, parseInt(q.page) || 1);

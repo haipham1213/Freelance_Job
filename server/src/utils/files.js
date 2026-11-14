@@ -29,11 +29,12 @@ export const removeUpload = (url) => {
   return m ? File.deleteOne({ _id: m[1] }) : Promise.resolve();
 };
 
-// GET /api/v1/files/:folder/:name — CV đã qua requireSignedFile (cache 1 giờ); logo/ảnh danh mục công khai, cache 7 ngày
+// GET /api/v1/files/:folder/:name — CV đã qua requireSignedFile (cache 1 giờ, chỉ trình duyệt); logo/ảnh danh mục công khai:
+// tên file ngẫu nhiên, thay ảnh là ra tên mới nên nội dung không bao giờ đổi → CDN và trình duyệt giữ 1 năm
 export const serveFile = async (req, res, next) => {
   const f = await File.findById(`${req.params.folder}/${req.params.name}`);
   if (!f) return next();
-  res.set({ 'Content-Type': f.contentType, 'Cache-Control': req.params.folder === 'cv' ? 'private, max-age=3600' : 'public, max-age=604800', 'X-Content-Type-Options': 'nosniff' }).send(f.data);
+  res.set({ 'Content-Type': f.contentType, 'Cache-Control': req.params.folder === 'cv' ? 'private, max-age=3600' : 'public, max-age=31536000, s-maxage=31536000, immutable', 'X-Content-Type-Options': 'nosniff' }).send(f.data);
 };
 
 // CV chỉ mở được bằng link có chữ ký, hết hạn sau 1–2 giờ. Mốc hết hạn làm tròn theo giờ để trình duyệt vẫn cache được trong giờ đó

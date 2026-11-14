@@ -5,7 +5,7 @@ import Job from '../../models/Job.js';
 import Review from '../../models/Review.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid, unaccent } from '../../utils/http.js';
+import { ok, cdnCache, paging, oid, unaccent } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize } from '../../middlewares/auth.js';
 import { rawFile, saveUpload, removeUpload } from '../../utils/files.js';
@@ -97,7 +97,7 @@ router.get('/employers/me/stats', ...employer, async (req, res) => {
 });
 
 // Nhà tuyển dụng đang có tin mở, nhiều tin xếp trước (dải logo ở trang chủ)
-router.get('/employers/hiring', async (req, res) => {
+router.get('/employers/hiring', cdnCache(60), async (req, res) => {
   const rows = await Job.aggregate([
     { $match: await visibleMatch() },
     { $sort: { createdAt: -1 } },

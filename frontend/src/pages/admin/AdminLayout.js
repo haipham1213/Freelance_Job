@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
+import React, { Component, Suspense } from 'react';
 import { BriefcaseBusiness, CreditCard, Flag, LayoutDashboard, Star, Tags, Users } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import withRouter from '../../utils/withRouter';
-import { Avatar } from '../../components/ui';
+import { Avatar, Spinner } from '../../components/ui';
 import ErrorBoundary from '../../components/ErrorBoundary';
 
 const MENU = [
@@ -42,7 +42,7 @@ class AdminLayout extends Component {
             <button className="btn btn-sm btn-ghost btn-block adm-danger" onClick={this.logout}>Đăng xuất</button>
           </div>
         </aside>
-        <main className="admin-main" id="main" tabIndex={-1}><ErrorBoundary><Outlet /></ErrorBoundary></main>
+        <main className="admin-main" id="main" tabIndex={-1}><ErrorBoundary><Suspense fallback={<Spinner />}><Outlet /></Suspense></ErrorBoundary></main>
       </div>
     );
   }

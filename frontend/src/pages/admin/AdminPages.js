@@ -557,7 +557,7 @@ export class CategoriesPage extends Component {
                   <tr key={c._id}>
                     <td>
                       <label className={`file-pick adm-cat-pick ${uploading === c._id ? 'is-disabled' : ''}`}>
-                        {c.imageUrl ? <img src={c.imageUrl} alt="" className="adm-cat-img" /> : <span className="chip">+ ảnh</span>}
+                        {c.imageUrl ? <img src={c.imageUrl} alt="" className="adm-cat-img" loading="lazy" decoding="async" /> : <span className="chip">+ ảnh</span>}
                         <span className="sr-only">{uploading === c._id ? 'Đang tải ảnh lên…' : `Đổi ảnh danh mục ${c.name}`}</span>
                         <input type="file" accept="image/jpeg,image/png" className="sr-only" disabled={!!uploading} onChange={(e) => this.uploadImage(c, e)} />
                       </label>

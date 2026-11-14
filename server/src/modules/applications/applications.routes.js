@@ -6,7 +6,7 @@ import User from '../../models/User.js';
 import Review from '../../models/Review.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid, DAY, vnDay } from '../../utils/http.js';
+import { ok, cdnCache, paging, oid, DAY, vnDay } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize, requireVerified } from '../../middlewares/auth.js';
 import { notify } from '../../utils/notify.js';
@@ -213,7 +213,7 @@ router.post('/applications/:id/reviews', authenticate, authorize('STUDENT', 'EMP
   });
 
 // Đánh giá gần đây của sinh viên về nhà tuyển dụng (trang chủ): kèm tên việc + công ty, và điểm trung bình trên mọi đánh giá đang hiện
-router.get('/reviews/recent', async (req, res) => {
+router.get('/reviews/recent', cdnCache(60), async (req, res) => {
   const filter = { reviewerRole: 'STUDENT', isHidden: false };
   const [items, [agg]] = await Promise.all([
     Review.find({ ...filter, comment: { $nin: [null, ''] } }).sort('-createdAt').limit(Math.min(6, Number(req.query.limit) || 3))

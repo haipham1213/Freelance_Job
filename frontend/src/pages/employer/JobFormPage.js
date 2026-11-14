@@ -37,14 +37,19 @@ class JobFormPage extends Component {
   load = async () => {
     this.setState({ loadError: null });
     try {
-      const cats = (await api.get('/categories')).data;
-      // Gợi ý thành phố có sẵn để nhập thống nhất với bộ lọc; lỗi thì chỉ mất gợi ý
-      const cities = (await api.get('/jobs/locations').catch(() => ({ data: [] }))).data.map((l) => l.city);
+      // Gọi song song; gợi ý thành phố lỗi thì chỉ mất gợi ý (nhập thống nhất với bộ lọc)
+      const [catRes, locRes, detail] = await Promise.all([
+        api.get('/categories'),
+        api.get('/jobs/locations').catch(() => ({ data: [] })),
+        api.get(this.isEdit() ? `/jobs/${this.props.params.id}` : '/employers/me'),
+      ]);
+      const cats = catRes.data;
+      const cities = locRes.data.map((l) => l.city);
       let form = { ...EMPTY };
       let locked = false;
       let noCompany = false;
       if (this.isEdit()) {
-        const { job, category } = (await api.get(`/jobs/${this.props.params.id}`)).data;
+        const { job, category } = detail.data;
         // Danh mục đã bị admin ẩn sau khi đăng: vẫn hiện để giữ nguyên khi sửa
         if (category && !cats.some((c) => c._id === category._id)) cats.push(category);
         form = Object.fromEntries(Object.keys(EMPTY).map((k) => [k, job[k] ?? '']));
@@ -55,7 +60,7 @@ class JobFormPage extends Component {
         locked = job.acceptedCount > 0;
       } else {
         // US-13: chưa đủ tên, địa chỉ, SĐT công ty thì nhắc ngay thay vì để điền hết form mới báo lỗi
-        const { company } = (await api.get('/employers/me')).data;
+        const { company } = detail.data;
         noCompany = !(company?.name && company?.address && company?.phone);
       }
       form.slots = String(form.slots);

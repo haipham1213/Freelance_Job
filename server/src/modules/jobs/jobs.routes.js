@@ -6,7 +6,7 @@ import User from '../../models/User.js';
 import Category from '../../models/Category.js';
 import Application from '../../models/Application.js';
 import AppError from '../../utils/AppError.js';
-import { ok, paging, oid, unaccent, escapeRegex, slotList, vnDay } from '../../utils/http.js';
+import { ok, cdnCache, paging, oid, unaccent, escapeRegex, slotList, vnDay } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, optionalAuth, authorize, requireVerified } from '../../middlewares/auth.js';
 import { visibleMatch, isVisible, assertQuota, expiryFor, findOwnJob, rejectPending, publicCompany, completeIfDone } from './jobs.service.js';
@@ -48,7 +48,7 @@ const assertCompany = (user) => {
 };
 
 // API-20: FR-SRC-01, Nổi bật trước rồi mới nhất (BR-21)
-router.get('/jobs', async (req, res) => {
+router.get('/jobs', cdnCache(15), async (req, res) => {
   const { page, limit, skip } = paging(req.query);
   const q = req.query;
   const match = await visibleMatch();
@@ -86,7 +86,7 @@ router.get('/jobs', async (req, res) => {
 });
 
 // Thành phố/quận đang có Job để làm bộ lọc; counts = số tin theo quận, total = số tin cả thành phố (mục "Việc theo khu vực" ở trang chủ)
-router.get('/jobs/locations', async (req, res) => {
+router.get('/jobs/locations', cdnCache(60), async (req, res) => {
   const rows = await Job.aggregate([{ $match: await visibleMatch() }, { $group: { _id: { city: '$city', district: '$district' }, n: { $sum: 1 } } }]);
   const map = {};
   for (const { _id, n } of rows) {
@@ -103,14 +103,14 @@ router.get('/jobs/:id', optionalAuth, async (req, res) => {
   const isOwner = job && req.user && job.employerId.equals(req.user._id);
   const isAdmin = req.user?.role === 'ADMIN';
   if (!job || (!isOwner && !isAdmin && !(await isVisible(job)))) throw new AppError(404, 'JOB_NOT_FOUND', 'Tin tuyển dụng không tồn tại hoặc đã ngừng tuyển');
-  if (!isOwner) await Job.updateOne({ _id: job._id }, { $inc: { viewCount: 1 } });
   // jobsPosted / hiredCount: chỉ số "Thông tin khác" ở cột phải trang chi tiết việc (số tin đã đăng, số sinh viên đã được nhận)
   const [employer, category, application, jobsPosted, hiredCount] = await Promise.all([
     User.findById(job.employerId),
-    Category.findById(job.categoryId),
+    Category.findById(job.categoryId).lean(),
     req.user?.role === 'STUDENT' ? Application.findOne({ jobId: job._id, studentId: req.user._id }) : null,
     Job.countDocuments({ employerId: job.employerId, deletedAt: null }),
     Application.countDocuments({ employerId: job.employerId, status: { $in: ['ACCEPTED', 'COMPLETED', 'NOT_COMPLETED'] } }),
+    !isOwner && Job.updateOne({ _id: job._id }, { $inc: { viewCount: 1 } }),
   ]);
   ok(res, {
     job: { ...job.toJSON(), isFeatured: job.featuredUntil > new Date(), remainingSlots: job.slots - job.acceptedCount },

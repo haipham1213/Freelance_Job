@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build -w frontend",
   "outputDirectory": "frontend/build",
+  "regions": ["sin1"],
   "functions": { "api/index.mjs": { "maxDuration": 30 } },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index" },
