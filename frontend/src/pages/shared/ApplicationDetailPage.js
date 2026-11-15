@@ -5,7 +5,7 @@ import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
 import { Spinner, AppBadge, Stars, Avatar, CompanyLogo, Modal, ConfirmModal, Field, Alert, ReasonModal, BackLink, ErrorState } from '../../components/ui';
 import ErrorPage from '../public/ErrorPage';
-import { date, dateTime, APP_STATUS, salary } from '../../utils/format';
+import { date, dateTime, APP_STATUS, salary, vnDay } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
 
 // SCR-S06 / SCR-E07: chấm 1–5 sao, nhận xét ≤ 500 ký tự
@@ -91,7 +91,8 @@ class ApplicationDetailPage extends Component {
         </div>
       );
     if (app.status === 'ACCEPTED') {
-      const started = new Date(job.startDate) <= new Date();
+      // So theo ngày giờ VN như server (BR-29): startDate lưu 00:00 UTC = 7h sáng VN, so thời điểm sẽ khóa nút từ 0h–7h ngày bắt đầu
+      const started = vnDay(job.startDate) <= vnDay();
       return (
         <div className="stack">
           <p className="muted small">Xác nhận kết quả sau khi công việc bắt đầu ({date(job.startDate)}).</p>

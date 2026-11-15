@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
-import { ArrowRight, Ban, Pause, Play, Bell, Building2, CalendarClock, CalendarDays, Check, Heart, Hourglass, Lock, MapPin, Plus, Search, Star, Users, X } from 'lucide-react';
+import { ArrowRight, Ban, Pause, Play, Bell, Building2, CalendarClock, CalendarDays, Check, Hourglass, Lock, MapPin, Plus, Search, Star, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Alert, Dropdown, ErrorState, Stars } from '../../components/ui';
+import { Alert, Dropdown, ErrorState, SaveButton, Stars } from '../../components/ui';
 import { categoryIcon } from '../../components/Illustrations';
-import { loadSavedIds, saveToggler, busyOf, shiftText, PERIOD_ICON, FitBadge } from '../../components/JobRow';
+import { JobCard, loadSavedIds, saveToggler, busyOf, shiftText, PERIOD_ICON, FitBadge } from '../../components/JobRow';
 import withRouter from '../../utils/withRouter';
-import { money, salary, shiftParts, describeShifts, DAYS as WEEKDAYS, PERIODS } from '../../utils/format';
+import { money, salary, formatSalaryRange, SALARY_TYPE, shiftParts, describeShifts, DAYS as WEEKDAYS, PERIODS } from '../../utils/format';
 import { AuthContext } from '../../context/AuthContext';
 
 // Bốn cam kết an toàn, mỗi cam kết là một business rule backend đang chặn
@@ -57,12 +57,7 @@ const faq = (t) => [
 const DAY = 864e5;
 // Cuộn tới mục theo id, tôn trọng prefers-reduced-motion
 const scrollToId = (id, smooth) => document.getElementById(id)?.scrollIntoView(smooth && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? { behavior: 'smooth' } : undefined);
-// Nút lưu (FR-SAV-01): sinh viên bấm lưu ngay, khách được dẫn đi đăng nhập, nhà tuyển dụng không có nút
-const SaveBtn = ({ job, saved, onSave, saveHref }) => (onSave ? (
-  <button type="button" className={`sh-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={`${saved ? 'Bỏ lưu tin' : 'Lưu tin'}: ${job.title}`} onClick={() => onSave(job._id, saved)}>
-    <Heart size={18} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
-  </button>
-) : saveHref ? <Link to={saveHref} className="sh-save" aria-label={`Đăng nhập để lưu tin: ${job.title}`}><Heart size={18} aria-hidden="true" /></Link> : null);
+const SaveBtn = (p) => <SaveButton className="sh-save" {...p} />;
 const Logo = ({ job, category, size }) => {
   const Icon = categoryIcon(category);
   return (
@@ -103,32 +98,21 @@ const WeekStrip = ({ shifts, focus }) => {
   );
 };
 
-// Thẻ việc: công ty và khu vực ở đầu, tên việc, tuần thu nhỏ (hoặc ô giờ linh hoạt cùng chiều cao), chỗ trống, lương
-const JobCard = ({ job: j, category, save, focus }) => {
+// Thẻ việc trang chủ = JobCard của /jobs + phần riêng của Home: tuần thu nhỏ (hoặc ô giờ linh hoạt), chỗ trống, hạn, "Xem ca"
+const ShiftCard = ({ job: j, category, save, focus }) => {
   const left = j.slots - (j.acceptedCount || 0);
   const daysLeft = Math.ceil((new Date(j.expiresAt) - Date.now()) / DAY);
   return (
     <li className="sc">
-      <div className="sc-head">
-        <Logo job={j} category={category} size={44} />
-        <div className="sc-org">
-          <p className="sc-company">{j.companySnapshot?.name}</p>
-          <p className="sc-where"><MapPin size={13} aria-hidden="true" />{[j.district, j.city].filter(Boolean).join(', ')}</p>
-        </div>
-        <SaveBtn job={j} {...save} />
-      </div>
-      <h3 className="sc-title"><Link to={`/jobs/${j._id}`} className="sh-link">{j.title}</Link></h3>
-      {j.shifts?.length ? <WeekStrip shifts={j.shifts} focus={focus} />
-        : <p className="sc-flex"><CalendarClock size={18} aria-hidden="true" /><span><b>Giờ linh hoạt</b>{j.schedule || 'Tự sắp theo lịch học'}</span></p>}
-      <p className="sc-meta">
-        <span><Users size={14} aria-hidden="true" />{left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'}</span>
-        <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={14} aria-hidden="true" />{daysLeft <= 0 ? 'Hết hạn hôm nay' : `Còn ${daysLeft} ngày`}</span>
-        {j.isFeatured && <span className="sc-badge">Nổi bật</span>}
-      </p>
-      <div className="sc-foot">
-        <p className="sc-pay">{salary(j)}</p>
-        <span className="sc-go" aria-hidden="true">Xem ca<ArrowRight size={16} /></span>
-      </div>
+      <JobCard job={j} category={category} {...save}>
+        {j.shifts?.length ? <WeekStrip shifts={j.shifts} focus={focus} />
+          : <p className="sc-flex"><CalendarClock size={18} aria-hidden="true" /><span><b>Giờ linh hoạt</b>{j.schedule || 'Tự sắp theo lịch học'}</span></p>}
+        <p className="sc-meta">
+          <span><Users size={14} aria-hidden="true" />{left > 0 ? `Còn ${left}/${j.slots} chỗ` : 'Đã đủ người'}</span>
+          <span className={daysLeft <= 3 ? 'jr-urgent' : ''}><Hourglass size={14} aria-hidden="true" />{daysLeft <= 0 ? 'Hết hạn hôm nay' : `Còn ${daysLeft} ngày`}</span>
+          <span className="sc-go" aria-hidden="true">Xem ca<ArrowRight size={16} /></span>
+        </p>
+      </JobCard>
     </li>
   );
 };
@@ -138,11 +122,10 @@ const ShiftRow = ({ job: j, category, save, i }) => (
     <Logo job={j} category={category} size={44} />
     <div className="sh-row-main">
       <h3 className="sh-row-title"><Link to={`/jobs/${j._id}`} className="sh-link" title={shiftText(j) || undefined}>{j.title}</Link></h3>
-      <p className="sh-row-sub">{j.companySnapshot?.name}<span aria-hidden="true">, </span>{j.district || j.city}</p>
+      <p className="sh-row-sub">{j.companySnapshot?.name}<span aria-hidden="true">, </span>{j.district || j.city}<span aria-hidden="true"> · </span><b className="sh-row-pay">{salary(j)}</b></p>
       <Shifts job={j} />
       {j.fit !== undefined && <div className="sh-fit"><FitBadge job={j} /></div>}
     </div>
-    <p className="sh-row-pay">{salary(j)}</p>
     <SaveBtn job={j} {...save} />
   </li>
 );
@@ -402,7 +385,7 @@ class HomePage extends Component {
                 </div>
               ) : (
                 <ol className={`sc-grid ${loading ? 'is-loading' : ''}`}>
-                  {jobs.slice(0, HOME_JOBS).map((j) => <JobCard key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} focus={TABS.find(([key]) => key === tab)[2]} />)}
+                  {jobs.slice(0, HOME_JOBS).map((j) => <ShiftCard key={j._id} job={j} category={catName[j.categoryId]} save={save(j)} focus={TABS.find(([key]) => key === tab)[2]} />)}
                 </ol>
               )}
             </div>
@@ -438,18 +421,20 @@ class HomePage extends Component {
           {hiring.length > 0 && (
             <section className="gn-sec" aria-labelledby="gn-cats">
               <div className="band">
-                <div className="sec-head">
+                <div className="sec-head sec-head-left">
                   <h2 id="gn-cats" className="display">Biết mình nhận bao nhiêu trước khi nộp</h2>
                   <p className="lede">Khoảng lương trung bình của các tin đang mở, ngành nhiều tin xếp trước.</p>
                 </div>
                 <ul className="gn-cats">
                   {hiring.map((c) => {
-                    const [amount, unit] = salary(c.pay).split('/');
+                    const amount = c.pay ? formatSalaryRange(c.pay.salaryMin, c.pay.salaryMax) : 'Thỏa thuận';
+                    const unit = c.pay && SALARY_TYPE[c.pay.salaryType];
                     return (
                       <li key={c._id}>
                         <Link to={`/jobs?categoryId=${c._id}`} className="gn-cat">
                           <span className="gn-cat-name">{c.name}</span>
-                          <span className="gn-cat-pay">{amount}<small>/{unit}</small></span>
+                          <span className="gn-cat-pay">{amount}{unit && <small>/{unit}</small>}</span>
+                          {unit && <span className="gn-cat-unit">Tính theo {unit}</span>}
                           <span className="gn-cat-count">{c.jobCount} việc đang tuyển</span>
                         </Link>
                       </li>
@@ -508,8 +493,8 @@ class HomePage extends Component {
                   {COMPARE.map(([when, group, ours]) => (
                     <tr key={when}>
                       <th scope="row">{when}</th>
-                      <td className="gn-compare-no" data-label="Group mạng xã hội"><X size={16} aria-hidden="true" />{group}</td>
-                      <td className="gn-compare-yes" data-label="UniShift"><Check size={16} aria-hidden="true" />{ours}</td>
+                      <td className="gn-compare-no" data-label="Group mạng xã hội"><X size={16} aria-hidden="true" /><span className="sr-only">Không có: </span>{group}</td>
+                      <td className="gn-compare-yes" data-label="UniShift"><Check size={16} aria-hidden="true" /><span className="sr-only">Có: </span>{ours}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -532,7 +517,10 @@ class HomePage extends Component {
                       <figure className="vo-q">
                         <span role="img" aria-label={`${r.rating} trên 5 sao`}><Stars value={r.rating} /></span>
                         <blockquote>“{r.comment}”</blockquote>
-                        <figcaption><strong>{r.reviewerId?.fullName || 'Sinh viên'}</strong>{r.jobId && <span>{r.jobId.title} tại {r.jobId.companySnapshot?.name}</span>}</figcaption>
+                        <figcaption>
+                          <span className="vo-avatar" aria-hidden="true">{(r.reviewerId?.fullName || 'S').trim().charAt(0).toUpperCase()}</span>
+                          <span className="vo-who"><strong>{r.reviewerId?.fullName || 'Sinh viên'}</strong>{r.jobId && <span>{r.jobId.title} tại {r.jobId.companySnapshot?.name}</span>}</span>
+                        </figcaption>
                       </figure>
                     </li>
                   ))}
@@ -559,8 +547,10 @@ class HomePage extends Component {
                   <ol className="tw-steps">
                     {steps.map(([t, d], i) => <li key={t}><span className="tw-n" aria-hidden="true">{i + 1}</span><div><strong>{t}</strong><span>{d}</span></div></li>)}
                   </ol>
-                  {note && <p className="tw-note">{note}</p>}
-                  {cta}
+                  <div className="tw-foot">
+                    {note && <p className="tw-note">{note}</p>}
+                    {cta}
+                  </div>
                 </article>
               ))}
             </div>
@@ -582,7 +572,7 @@ class HomePage extends Component {
 
         {/* Dải cuối trang: nền xanh UniShift, chữ trái, hành động phải (sinh viên/khách nhận email, nhà tuyển dụng đăng tin) */}
         <section className="bd" aria-labelledby="gn-end">
-          <div className="container bd-inner">
+          <div className="container"><div className="bd-inner">
             {user?.role === 'EMPLOYER' ? (
               <>
                 <div className="bd-copy">
@@ -609,7 +599,7 @@ class HomePage extends Component {
                 )}
               </>
             )}
-          </div>
+          </div></div>
         </section>
       </>
     );

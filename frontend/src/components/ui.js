@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { AlertTriangle, ArrowLeft, Building2, Check, ChevronDown, Inbox, Search, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, Check, ChevronDown, Heart, Inbox, Search, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { APP_STATUS, JOB_STATUS, PAY_STATUS, DAYS, DAY_NAMES, PERIODS } from '../utils/format';
 
@@ -10,6 +10,12 @@ export const Spinner = () => (
   </div>
 );
 
+// Nút lưu tin (FR-SAV-01) dùng chung Home và /jobs: sinh viên bấm lưu ngay, khách được dẫn đi đăng nhập, nhà tuyển dụng không có nút. Đã lưu = tim đỏ.
+export const SaveButton = ({ job, saved, onSave, saveHref, className, size = 18 }) => (onSave ? (
+  <button type="button" className={`${className} ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={`${saved ? 'Bỏ lưu tin' : 'Lưu tin'}: ${job.title}`} onClick={() => onSave(job._id, saved)}>
+    <Heart size={size} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
+  </button>
+) : saveHref ? <Link to={saveHref} className={className} aria-label={`Đăng nhập để lưu tin: ${job.title}`}><Heart size={size} aria-hidden="true" /></Link> : null);
 export const Empty = ({ icon: Icon = Inbox, title, children }) => (
   <div className="empty">
     <div className="empty-icon"><Icon size={24} aria-hidden="true" /></div>
@@ -118,9 +124,9 @@ export class Field extends Component {
           ? <label className="field-label" id={`${this.id}-lbl`} htmlFor={single.props.id || this.id}>{label}</label>
           : <span className="field-label" id={`${this.id}-lbl`}>{label}</span>}
         {body}
-        {max && len !== null && <div className="field-count" aria-hidden="true">{len}/{max}</div>}
+        {max && len !== null && len >= max * 0.8 && <div className="field-count" aria-hidden="true">{len}/{max}</div>}
         {hint && <div className="field-hint small muted" id={hintId}>{hint}</div>}
-        {error && <div className="field-error" id={errId}>{error}</div>}
+        {error && <div className="field-error" id={errId}><AlertTriangle size={14} aria-hidden="true" />{error}</div>}
       </div>
     );
   }

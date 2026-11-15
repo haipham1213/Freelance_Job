@@ -9,10 +9,19 @@ export const shortMoney = (n) => {
   if (n >= 1e3 && n % 1e3 === 0 && n < 1e6) return `${n / 1e3}k`;
   return money(n);
 };
+// Khoảng lương gọn cho số trung bình: < 1 triệu → 26k–34k, ≥ 1 triệu → 1,1tr–2,4tr (làm tròn 1 chữ số). Không dùng cho lương đăng thật vì làm tròn.
+const short1 = (n) => (n >= 1e6 ? `${VN_DEC.format(Math.round(n / 1e5) / 10)}tr` : `${Math.round(n / 1e3)}k`);
+export const formatSalaryRange = (min, max) => {
+  if (!min && min !== 0) return '';
+  const a = short1(min), b = max == null ? a : short1(max);
+  return a === b ? a : `${a}–${b}`;
+};
 export const date = (d) => { const x = d && validDate(d); return x ? x.toLocaleDateString('vi-VN') : ''; };
 export const dateTime = (d) => { const x = d && validDate(d); return x ? x.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : ''; };
 // Ngày theo giờ máy người dùng (toISOString là giờ UTC, 0h–7h sáng ở VN sẽ ra ngày hôm qua)
 export const toInputDate = (d) => { const x = d && validDate(d); return x ? x.toLocaleDateString('sv-SE') : ''; };
+// Ngày lịch theo giờ Việt Nam (YYYY-MM-DD), khớp vnDay ở server (AS-17) — không phụ thuộc múi giờ máy người dùng
+export const vnDay = (d = new Date()) => new Date(+new Date(d) + 7 * 3600_000).toISOString().slice(0, 10);
 
 const RTF = new Intl.RelativeTimeFormat('vi', { numeric: 'auto' });
 export const timeAgo = (d) => {

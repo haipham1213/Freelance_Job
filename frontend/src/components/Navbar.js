@@ -118,6 +118,7 @@ class Navbar extends Component {
               </>
             ) : (
               <>
+                {/* Luôn hiện đủ ba nút (kể cả đang ở /login, /register) để cụm phải không co giãn khi chuyển trang */}
                 <Link to="/login" className="nav-link">Đăng nhập</Link>
                 <Link to="/register" className="btn btn-primary">Đăng ký miễn phí <ChevronRight size={16} aria-hidden="true" /></Link>
                 <Link to="/register?role=EMPLOYER" className="btn btn-box">Nhà tuyển dụng</Link>

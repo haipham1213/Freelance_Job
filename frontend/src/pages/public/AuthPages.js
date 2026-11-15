@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { ArrowLeft, Check, Eye, EyeOff, GraduationCap, Store } from 'lucide-react';
+import { ArrowLeft, Banknote, Bike, BookOpen, CalendarCheck, Camera, Check, Coffee, Eye, EyeOff, GraduationCap, Headphones, Laptop, ShoppingBag, Store } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { api, fieldErrors, setAccessToken } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -9,17 +9,48 @@ import withRouter from '../../utils/withRouter';
 
 // Bố cục chia đôi kiểu hero saucelabs: bên trái lời giới thiệu và lợi ích ngay trên nền tối, bên phải thẻ form mint bo 40
 const PERKS = ['Lương và ca làm công khai trước khi nộp', 'Một CV dùng cho mọi đơn ứng tuyển', 'Đánh giá hai chiều sau mỗi công việc'];
-const Shell = ({ title, subtitle, children }) => (
-  <div className="container page pub-auth">
-    <div className="pub-auth-art" aria-hidden="true">
-      <span className="eyebrow eyebrow-dot">UniShift</span>
-      <strong className="display">Việc part-time an toàn cho sinh viên</strong>
-      <ul>{PERKS.map((p) => <li key={p}><Check size={16} />{p}</li>)}</ul>
+// Trang đăng ký: ba bước theo vai trò đang chọn
+const STEPS = {
+  STUDENT: ['Tạo hồ sơ, tải một CV', 'Ứng tuyển ca hợp lịch học', 'Đi làm, nhận đánh giá'],
+  EMPLOYER: ['Đăng tin kèm ca làm trong tuần', 'Duyệt hồ sơ sinh viên', 'Đánh giá hai chiều khi xong việc'],
+};
+// Tiêu đề: hai từ cuối được tô dấu highlight xanh lá; câu chạy đổi buổi làm; lợi ích dạng vé xếp so le
+const Headline = ({ text }) => {
+  const w = text.split(' ');
+  return <strong className="pub-auth-head">{w.slice(0, -2).join(' ')} <em>{w.slice(-2).join(' ')}</em></strong>;
+};
+const ROTOR = ['sáng', 'chiều', 'tối', 'cuối tuần'];
+
+// Bầu trời như hero + biểu tượng việc part-time trôi lơ lửng quanh khung form (chỉ trang trí, aria-hidden).
+// [icon, x, y, nhịp trôi (s), độ nghiêng]; đặt ở hai mép để không che chữ và form
+const FLOAT = [
+  [Coffee, '4%', '14%', 7, -8], [Laptop, '11%', '62%', 9, 6], [Bike, '3%', '84%', 8, 4], [BookOpen, '13%', '34%', 10, -4],
+  [ShoppingBag, '92%', '12%', 8, 8], [Headphones, '86%', '44%', 11, -6], [Banknote, '94%', '70%', 9, 5], [Camera, '84%', '88%', 7, -5],
+  [Store, '47%', '6%', 12, 3], [GraduationCap, '52%', '93%', 10, -3],
+];
+const Shell = ({ title, subtitle, sticky, heading = 'Việc part-time an toàn cho sinh viên', perks = PERKS, children }) => (
+  <div className="pub-auth-scene">
+    <div className="pub-auth-sky" aria-hidden="true">
+      {FLOAT.map(([Icon, x, y, d, r], i) => (
+        <span key={i} className="pub-auth-float" style={{ '--x': x, '--y': y, '--d': `${d}s`, '--r': `${r}deg`, '--i': i }}><Icon size={26} strokeWidth={1.8} /></span>
+      ))}
+      <span className="pub-auth-chip pub-auth-chip-1"><CalendarCheck size={16} />Ca tối T3 · 25k/giờ</span>
+      <span className="pub-auth-chip pub-auth-chip-2"><Check size={16} />Không trùng giờ học</span>
     </div>
-    <div className="panel pub-auth-form">
-      <h1 className="pub-auth-title">{title}</h1>
-      {subtitle && <p className="muted pub-auth-sub">{subtitle}</p>}
-      <div className="stack-lg pub-auth-body">{children}</div>
+    <div className="container page pub-auth">
+      <div className={`pub-auth-art ${sticky ? 'is-sticky' : ''}`} aria-hidden="true">
+        <span className="pub-auth-tag"><i />UniShift · việc làm cho sinh viên</span>
+        <Headline text={heading} />
+        <p className="pub-auth-rotor">Ca <span className="pub-auth-rot">{[...ROTOR, ROTOR[0]].map((r, i) => <b key={i}>{r}</b>)}</span> vừa lịch học, lương ghi rõ.</p>
+        <ol className="pub-auth-tickets">
+          {perks.map((p, i) => <li key={p} style={{ '--i': i }}><span className="pub-auth-n">{String(i + 1).padStart(2, '0')}</span><span>{p}</span></li>)}
+        </ol>
+      </div>
+      <div className="panel pub-auth-form">
+        <h1 className="pub-auth-title">{title}</h1>
+        {subtitle && <p className="muted pub-auth-sub">{subtitle}</p>}
+        <div className="stack-lg pub-auth-body">{children}</div>
+      </div>
     </div>
   </div>
 );
@@ -78,8 +109,8 @@ class FormPage extends Component {
     return (
       <Field label={label} hint={props.hint} error={this.state.errors[k]}>
         <input className="input" name={k} type={shown ? 'text' : 'password'} autoCapitalize="none" spellCheck={false} value={this.state.form[k] || ''} onChange={this.set(k)} {...props} hint={undefined} />
-        <button type="button" className="pw-toggle" aria-pressed={shown} onClick={() => this.setState({ show: { ...this.state.show, [k]: !shown } })}>
-          {shown ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}Hiện mật khẩu
+        <button type="button" className="pw-toggle" aria-label="Hiện mật khẩu" aria-pressed={shown} onClick={() => this.setState({ show: { ...this.state.show, [k]: !shown } })}>
+          {shown ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
         </button>
       </Field>
     );
@@ -90,6 +121,8 @@ class Login extends FormPage {
   static contextType = AuthContext;
   submit = (e) => this.run(e, async () => {
     this.setState({ unverified: false, resent: false });
+    if (!this.state.form.email?.trim()) throw fail('email', 'Vui lòng nhập email');
+    if (!this.state.form.password) throw fail('password', 'Vui lòng nhập mật khẩu');
     try {
       const user = await this.context.login(this.state.form.email, this.state.form.password);
       this.props.navigate(safeNext(this.props.searchParams.get('next'), user.role) || homeOf(user.role), { replace: true });
@@ -154,18 +187,19 @@ class Register extends FormPage {
       );
     const { role } = this.state.form;
     return (
-      <Shell title="Tạo tài khoản" subtitle="Miễn phí cho sinh viên và nhà tuyển dụng">
+      <Shell title="Tạo tài khoản" subtitle="Miễn phí cho sinh viên và nhà tuyển dụng" sticky
+        heading={role === 'EMPLOYER' ? 'Tuyển sinh viên cho ca làm trong tuần' : 'Ba bước để có ca làm đầu tiên'} perks={STEPS[role]}>
         <form className="stack" onSubmit={this.submit} noValidate>
           <fieldset className="pub-role-set">
             <legend className="field-label">Bạn là</legend>
-            {[['STUDENT', GraduationCap, 'Sinh viên'], ['EMPLOYER', Store, 'Nhà tuyển dụng']].map(([v, Ico, t]) => (
-              <label key={v} className="radio-row">
-                <input type="radio" name="role" value={v} checked={role === v} onChange={() => this.setState({ form: { ...this.state.form, role: v } })} />
-                <Ico size={16} aria-hidden="true" />{t}
+            {[['STUDENT', GraduationCap, 'Sinh viên', 'Tìm ca làm hợp lịch học'], ['EMPLOYER', Store, 'Nhà tuyển dụng', 'Đăng tin, duyệt hồ sơ']].map(([v, Ico, t, d]) => (
+              <label key={v} className="pub-role">
+                <input type="radio" name="role" value={v} className="sr-only" checked={role === v} onChange={() => this.setState({ form: { ...this.state.form, role: v } })} />
+                <Ico size={22} aria-hidden="true" />
+                <span><strong>{t}</strong><small>{d}</small></span>
               </label>
             ))}
           </fieldset>
-          <p className="fog tiny pub-role-note" aria-live="polite">{role === 'EMPLOYER' ? 'Nhà tuyển dụng: đăng tin tuyển người' : 'Sinh viên: tìm việc làm thêm'}</p>
           {this.input('fullName', role === 'EMPLOYER' ? 'Họ tên người liên hệ' : 'Họ và tên', { required: true, maxLength: 100, autoComplete: 'name' })}
           {this.input('email', 'Email', EMAIL_PROPS)}
           {this.password('password', 'Mật khẩu', { required: true, maxLength: 64, autoComplete: 'new-password', hint: PW_HINT })}

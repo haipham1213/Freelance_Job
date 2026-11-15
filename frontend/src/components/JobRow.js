@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Clock, Heart, MapPin, Moon, Sun, Sunset, X } from 'lucide-react';
+import { Check, Clock, MapPin, Moon, Sun, Sunset, X } from 'lucide-react';
 import { describeShifts, shiftTag, shortCategoryLabel, salary, formatPostedAt, DAYS, PERIODS } from '../utils/format';
+import { SaveButton } from './ui';
 import { fmtDistance } from '../utils/geo';
 import { api } from '../api';
 
@@ -18,7 +19,7 @@ export const shiftText = (j) => {
 
 // Nhãn mức hợp lịch, chỉ có khi đang lọc theo lịch học (API trả fit/shiftCount)
 export const FitBadge = ({ job: j }) => (j.fit === undefined ? null
-  : <span className={`jx-fit ${j.shiftCount ? '' : 'flex'}`}>{j.shiftCount ? `Hợp ${j.fit}/${j.shiftCount} ca` : 'Linh hoạt'}</span>);
+  : <span className={`jx-fit ${j.shiftCount ? (j.fit < j.shiftCount ? 'part' : '') : 'flex'}`}>{j.shiftCount ? `Hợp ${j.fit}/${j.shiftCount} ca` : 'Linh hoạt'}</span>);
 
 // Lịch học: khách lưu trên trình duyệt (key này), sinh viên đăng nhập lưu ở hồ sơ (student.busySlots)
 export const WEEK_KEY = 'jobsv.busySlots';
@@ -90,7 +91,7 @@ const MAX_TAGS = 3;
 // "Đăng 3 ngày trước", "Đăng hôm qua", "Đăng 05/11/2026"
 const posted = (d) => { const t = formatPostedAt(d); return `Đăng ${/^\d{2}\//.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1)}`; };
 const isNew = (j) => Date.now() - new Date(j.createdAt) < 864e5;
-export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
+export const JobCard = ({ job: j, category, on, saved, onSave, saveHref, children }) => {
   const [amount, unit] = salary(j).split('/');
   const name = j.companySnapshot?.name;
   const where = j.district || j.city;
@@ -99,7 +100,7 @@ export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
   const desc = (j.excerpt ?? j.description ?? '').replace(/\s+/g, ' ').trim();
   // Thứ tự cố định: (mức hợp lịch khi đang lọc theo lịch) → ngành → ca → Nổi bật → Mới; phần thừa gộp +N
   const tags = [
-    j.fit !== undefined && j.shiftCount > 0 && ['t-ink', `Hợp ${j.fit}/${j.shiftCount} ca`],
+    j.fit !== undefined && j.shiftCount > 0 && [j.fit < j.shiftCount ? 't-warn' : 't-fit', `Hợp ${j.fit}/${j.shiftCount} ca`],
     category && ['t-plum', shortCategoryLabel(category), category],
     ['t-mint', shiftTag(j.shifts), j.shifts?.length ? describeShifts(j.shifts) : undefined],
     j.isFeatured && ['t-gold', 'Nổi bật'],
@@ -116,13 +117,7 @@ export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
           <h3 className="jc-title" title={j.title}><Link to={`/jobs/${j._id}`} state={{ from: window.location.pathname }} className="jr-link" aria-current={on ? 'true' : undefined}>{j.title}</Link></h3>
           <p className="jc-sub"><span className="jc-company" title={name}>{name}</span><span className="jc-apps" aria-label={apps}>• {apps}</span></p>
         </div>
-        {onSave ? (
-          <button type="button" className={`jc-save ${saved ? 'on' : ''}`} aria-pressed={!!saved} aria-label={`Lưu tin: ${j.title}`} onClick={() => onSave(j._id, saved)}>
-            <Heart size={28} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
-          </button>
-        ) : saveHref && (
-          <Link to={saveHref} className="jc-save" aria-label={`Đăng nhập để lưu tin: ${j.title}`}><Heart size={28} aria-hidden="true" /></Link>
-        )}
+        <SaveButton className="jc-save" job={j} saved={saved} onSave={onSave} saveHref={saveHref} size={28} />
       </div>
       <ul className="jc-tags">
         {tags.slice(0, MAX_TAGS).map(([cls, text, tip], i) => <li key={`${cls}${i}`} className={`jc-tag ${cls}`} title={tip}>{text}</li>)}
@@ -130,6 +125,7 @@ export const JobCard = ({ job: j, category, on, saved, onSave, saveHref }) => {
       </ul>
       {where && <p className="jc-where" title={where}><MapPin size={18} aria-hidden="true" /><span>{where}{j.distance !== undefined && ` · cách ${fmtDistance(j.distance)}`}</span></p>}
       <p className="jc-desc">{desc}</p>
+      {children}
       <div className="jc-foot">
         <p className="jc-pay">{amount}<span>/{unit}</span></p>
         <span className="jc-side">

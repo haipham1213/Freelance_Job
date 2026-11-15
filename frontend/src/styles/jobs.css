@@ -6,7 +6,8 @@
 
 @scope (:root) to (.rv-hero) {
 
-.jx-fit { padding: 3px 10px; border-radius: var(--r-pill); background: var(--obsidian); color: var(--neon); font-weight: 500; }
+.jx-fit { padding: 3px 10px; border-radius: 8px; background: #DDF7E8; color: #1F8A4C; font-size: 13px; font-weight: 500; }
+.jx-fit.part { background: #FFE9D6; color: #C2570C; }
 .jx-fit.flex { background: var(--sand); color: var(--body); }
 
 /* Đầu trang: tiêu đề + câu dẫn + thanh tìm (từ khóa, địa điểm) trên dải xanh phẳng --primary (không gradient), chữ trắng.
@@ -34,7 +35,7 @@
 .jx-sec { padding: 20px 0; scroll-margin-top: 96px; }
 .jx-sec:first-child { padding-top: 4px; }
 .jx-sec + .jx-sec { border-top: 1px solid var(--line); }
-.jx-sec-title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 18px; font-weight: 700; }
+.jx-sec-title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 .jx-sec-title svg { color: var(--ink); }
 .jx-sec-note { margin: -4px 0 14px; font-size: var(--fs-label); color: var(--body); }
 .jx-sec-hint { margin: 10px 0 0; font-size: var(--fs-label); color: var(--muted); }
@@ -134,15 +135,15 @@
   .jc:hover .jr-link { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 }
 .jc .jr-link::after { border-radius: 25px; }
-.jc-head { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+.jc-head { display: grid; grid-template-columns: 60px minmax(0, 1fr); padding-right: 36px; gap: 18px; align-items: center; }
 .jc-logo { width: 60px; height: 60px; display: grid; place-items: center; overflow: hidden; border-radius: 15px; background: var(--primary-wash); color: var(--primary); font-size: 24px; font-weight: 700; }
 .jc-logo img { width: 100%; height: 100%; object-fit: contain; background: var(--white); }
-.jc-title { margin: 0; font-family: 'SVN-Poppins', var(--font); font-size: 21px; font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; color: #1F2937; -webkit-font-smoothing: antialiased; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.jc-title { margin: 0; font-family: 'SVN-Poppins', var(--font); font-size: 16px; font-weight: 500; line-height: 1.35; letter-spacing: -0.01em; color: #1F2937; -webkit-font-smoothing: antialiased; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 /* Dòng phụ "Tên công ty • N ứng viên": tên cắt bằng …, phần ứng viên luôn hiện đủ */
-.jc-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin: 4px 0 0; min-width: 0; font-size: 17px; color: var(--muted); }
+.jc-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin: 4px 0 0; min-width: 0; font-family: 'SVN-Poppins', var(--font); font-size: 17px; color: var(--muted); }
 .jc-company { flex: 1 1 auto; min-width: 5ch; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jc-apps { flex: none; white-space: nowrap; }
-.jc-save { position: relative; z-index: 1; width: 50px; height: 50px; display: grid; place-items: center; background: none; border: 0; border-radius: var(--r-pill); color: var(--muted); cursor: pointer; transition: color .15s, background .15s, transform .15s; }
+.jc-save { position: absolute; top: 8px; right: 8px; z-index: 1; width: 50px; height: 50px; display: grid; place-items: center; background: none; border: 0; border-radius: var(--r-pill); color: var(--muted); cursor: pointer; transition: color .15s, background .15s, transform .15s; }
 @media (hover: hover) { .jc-save:hover { color: var(--ink); background: var(--page-bg); } }
 .jc-save:active { transform: scale(.92); }
 .jc-save.on { color: var(--alert); }
@@ -155,12 +156,13 @@
 .t-mint { background: var(--mint-whisper); color: var(--pay); }
 .t-peach { background: var(--tag-peach-wash); color: var(--tag-peach); }
 .t-gold { background: var(--signal-yellow); color: var(--obsidian); }
-.t-ink { background: var(--obsidian); color: var(--neon); }
+.t-fit { background: #DDF7E8; color: #1F8A4C; border-radius: 8px; }
+.t-warn { background: #FFE9D6; color: #C2570C; border-radius: 8px; }
 
 .jc-where { display: flex; align-items: center; gap: 6px; margin: -6px 0 0; min-width: 0; font-size: var(--fs-label); color: var(--muted); }
 .jc-where svg { flex-shrink: 0; }
 .jc-where span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.jc-desc { margin: 0; min-height: calc(2 * 1.55em); font-size: 17.5px; line-height: 1.55; color: var(--body); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.jc-desc { margin: 0; font-family: 'SVN-Poppins', var(--font); min-height: calc(2 * 1.55em); font-size: 17.5px; line-height: 1.55; color: var(--body); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .jc-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; margin-top: auto; padding-top: 20px; border-top: 1px solid var(--line); }
 .jc-pay { margin: 0; font-family: 'SVN-Poppins', var(--font); font-size: 27px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .jc-pay span { margin-left: 3px; font-family: var(--font); font-size: 17.5px; font-weight: 400; letter-spacing: 0; color: #9CA3AF; }
@@ -240,7 +242,7 @@
   .shift-grid { grid-template-columns: 44px repeat(7, minmax(0, 1fr)); gap: 4px; }
   .shift-cell { height: 40px; font-size: 11px; border-radius: 10px; }
   .jc { padding: 24px 20px; gap: 16px; }
-  .jc-head { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 14px; }
+  .jc-head { grid-template-columns: 52px minmax(0, 1fr); gap: 14px; }
   .jc-logo { width: 52px; height: 52px; }
 }
 

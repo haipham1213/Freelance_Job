@@ -92,7 +92,7 @@ router.post('/resend-verification', limiter, resendLimiter, validate(z.object({ 
 });
 
 // API-04
-router.post('/login', limiter, validate(z.object({ email, password: z.string().min(1) })), async (req, res) => {
+router.post('/login', limiter, validate(z.object({ email, password: z.string().min(1, 'Vui lòng nhập mật khẩu') })), async (req, res) => {
   const user = await User.findOne({ email: req.body.email }).select('+passwordHash');
   // Email không tồn tại vẫn chạy bcrypt để thời gian phản hồi không lộ email nào đã đăng ký
   if (!(await bcrypt.compare(req.body.password, user?.passwordHash || DUMMY_HASH)) || !user)

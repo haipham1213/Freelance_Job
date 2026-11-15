@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-UniShift — marketplace việc làm part-time cho sinh viên (đồ án tốt nghiệp). Giao diện, thông báo lỗi và comment trong code đều bằng tiếng Việt. Yêu cầu nghiệp vụ nằm trong `docs/` (SRS, backlog) — comment trong code tham chiếu mã ở đó (`FR-APP-01`, `BR-12`, `NFR-22`, `API-28`…).
+UniShift — marketplace việc làm part-time cho sinh viên (đồ án tốt nghiệp). Giao diện, thông báo lỗi và comment trong code đều bằng tiếng Việt. Yêu cầu nghiệp vụ nằm trong `Claude outputs/` (`SRS_Marketplace_ViecLam_SinhVien_v1.3.xlsx`, `Product_Backlog_MoSCoW_v1.3.xlsx` — bản chuẩn duy nhất) — comment trong code tham chiếu mã ở đó (`FR-APP-01`, `BR-12`, `NFR-22`, `API-28`…).
 
 ## Lệnh
 
