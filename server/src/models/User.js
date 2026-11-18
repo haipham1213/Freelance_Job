@@ -5,7 +5,8 @@ const { Schema } = mongoose;
 const userSchema = new Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true, select: false },
+    // Không bắt buộc: tài khoản tạo qua Google chưa có mật khẩu (tạo sau bằng Quên mật khẩu)
+    passwordHash: { type: String, select: false },
     // Access token phát trước mốc này bị từ chối (BR-08: đặt lại mật khẩu đăng xuất mọi thiết bị ngay)
     passwordChangedAt: Date,
     role: { type: String, enum: ['STUDENT', 'EMPLOYER', 'ADMIN'], required: true },

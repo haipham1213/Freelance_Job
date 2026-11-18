@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { createPublicKey } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import User from '../../models/User.js';
@@ -74,6 +75,56 @@ router.post('/register', limiter,
     });
     await sendVerifyEmail(email, await createOneTimeToken(user._id, 'VERIFY_EMAIL', DAY));
     ok(res, { user: user.toPublic() }, null, 201);
+  });
+
+// Đăng nhập Google: ID token do Google ký RS256, xác minh bằng khóa công khai JWKS của Google (cache theo kid)
+let googleKeys = { at: 0, keys: {} };
+const googleKey = async (kid) => {
+  if (!googleKeys.keys[kid] && Date.now() - googleKeys.at > 60_000) {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+    if (!r.ok) throw new AppError(503, 'GOOGLE_UNAVAILABLE', 'Không kết nối được Google, thử lại sau');
+    const { keys } = await r.json();
+    googleKeys = { at: Date.now(), keys: Object.fromEntries(keys.map((k) => [k.kid, createPublicKey({ key: k, format: 'jwk' })])) };
+  }
+  return googleKeys.keys[kid];
+};
+const verifyGoogle = async (credential) => {
+  if (!process.env.GOOGLE_CLIENT_ID) throw new AppError(503, 'GOOGLE_DISABLED', 'Chưa bật đăng nhập bằng Google');
+  const invalid = new AppError(401, 'GOOGLE_INVALID', 'Đăng nhập Google không hợp lệ, vui lòng thử lại');
+  const kid = jwt.decode(credential, { complete: true })?.header?.kid;
+  const key = kid && (await googleKey(kid));
+  if (!key) throw invalid;
+  try {
+    return jwt.verify(credential, key, { algorithms: ['RS256'], audience: process.env.GOOGLE_CLIENT_ID, issuer: ['accounts.google.com', 'https://accounts.google.com'] });
+  } catch {
+    throw invalid;
+  }
+};
+
+// API-80 (FR-AUTH-08): role chỉ dùng khi tạo tài khoản mới (bấm từ trang Đăng ký); email đã có thì đăng nhập vào tài khoản đó
+router.post('/google', limiter,
+  validate(z.object({ credential: z.string().min(1, 'Thiếu thông tin đăng nhập Google'), role: z.enum(['STUDENT', 'EMPLOYER']).optional() })),
+  async (req, res) => {
+    const g = await verifyGoogle(req.body.credential);
+    if (g.email_verified !== true || !g.email) throw new AppError(401, 'GOOGLE_INVALID', 'Email Google chưa được xác minh');
+    const mail = g.email.toLowerCase();
+    let user = await User.findOne({ email: mail });
+    if (!user) {
+      const { role } = req.body;
+      if (!role) throw new AppError(404, 'GOOGLE_NOT_REGISTERED', 'Email này chưa có tài khoản. Hãy chọn vai trò ở trang Đăng ký.');
+      const name = (g.name || '').trim().slice(0, 100);
+      user = new User({
+        fullName: name.length >= 2 ? name : mail.split('@')[0].padEnd(2, '_'), email: mail, role, emailVerified: true,
+        ...(role === 'STUDENT' ? { student: { skills: [], savedJobIds: [] } } : { employer: {} }),
+      });
+    }
+    if (user.status === 'LOCKED') throw new AppError(403, 'ACCOUNT_LOCKED', `Tài khoản đã bị khóa: ${user.lockReason || ''}`);
+    // Google đã xác minh email nên coi như đã xác thực
+    user.emailVerified = true;
+    user.lastLoginAt = new Date();
+    await user.save();
+    const { accessToken } = await issueTokens(res, user);
+    ok(res, { accessToken, user: user.toPublic() });
   });
 
 // API-02
@@ -153,6 +204,7 @@ router.post('/reset-password', validate(z.object({ token: z.string(), newPasswor
 // API-09: FR-AUTH-06
 router.put('/change-password', authenticate, validate(z.object({ currentPassword: z.string(), newPassword: password })), async (req, res) => {
   const user = await User.findById(req.user._id).select('+passwordHash');
+  if (!user.passwordHash) throw new AppError(400, 'NO_PASSWORD', 'Tài khoản chưa có mật khẩu (đăng nhập bằng Google). Hãy dùng Quên mật khẩu để tạo.');
   if (!(await bcrypt.compare(req.body.currentPassword, user.passwordHash)))
     throw new AppError(400, 'WRONG_PASSWORD', 'Mật khẩu hiện tại không đúng', [{ field: 'currentPassword', message: 'Mật khẩu hiện tại không đúng' }]);
   user.passwordHash = await bcrypt.hash(req.body.newPassword, 10);

@@ -322,6 +322,10 @@ ul.pub-notifs { list-style: none; margin: 0; padding: 0; }
 .pub-role-set legend { grid-column: 1 / -1; padding: 0; margin-bottom: 8px; }
 .pub-role-set .radio-row { margin: 0; }
 .pub-auth-back { justify-content: center; }
+/* Nút Google (FR-AUTH-08): dòng "hoặc" phân cách, iframe của Google căn giữa theo bề rộng form */
+.auth-or { display: flex; align-items: center; gap: 12px; }
+.auth-or::before, .auth-or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.google-btn { display: flex; justify-content: center; min-height: 44px; }
 
 /* Rà soát UI/UX 13/11: trang chi tiết việc */
 @media (min-width: 1200px) { .jv-list { order: -1; } }

@@ -6,6 +6,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { Field, Alert, Spinner, ErrorState } from '../../components/ui';
 import { homeOf } from '../../utils/format';
 import withRouter from '../../utils/withRouter';
+import GoogleButton from '../../components/GoogleButton';
 
 // Bố cục chia đôi kiểu hero saucelabs: bên trái lời giới thiệu và lợi ích ngay trên nền tối, bên phải thẻ form mint bo 40
 const PERKS = ['Lương và ca làm công khai trước khi nộp', 'Một CV dùng cho mọi đơn ứng tuyển', 'Đánh giá hai chiều sau mỗi công việc'];
@@ -131,6 +132,17 @@ class Login extends FormPage {
       throw err;
     }
   });
+  // FR-AUTH-08: chưa có tài khoản thì không tự tạo (chưa biết vai trò), hướng sang trang Đăng ký
+  google = (credential) => this.run({ preventDefault() {} }, async () => {
+    this.setState({ unverified: false, needRegister: false });
+    try {
+      const user = await this.context.loginWithGoogle(credential);
+      this.props.navigate(safeNext(this.props.searchParams.get('next'), user.role) || homeOf(user.role), { replace: true });
+    } catch (err) {
+      if (err.code === 'GOOGLE_NOT_REGISTERED') this.setState({ needRegister: true });
+      throw err;
+    }
+  });
   render() {
     if (!this.context.ready) return <Spinner />;
     // Đã đăng nhập mà mở /login?next=… thì vẫn đi tiếp tới next (nếu hợp lệ)
@@ -148,7 +160,9 @@ class Login extends FormPage {
               <Alert>{this.state.resendError}</Alert>
               <button type="button" className="btn btn-block btn-ghost" disabled={this.state.resending} onClick={() => resendVerification(this, this.state.form.email)}>{this.state.resending ? 'Đang gửi…' : 'Gửi lại link xác thực'}</button>
             </>)}
+          {this.state.needRegister && <Link to="/register" className="btn btn-block btn-ghost">Đến trang Đăng ký</Link>}
           <button className="btn btn-block" disabled={this.state.busy}>{this.state.busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
+          <GoogleButton text="signin_with" onCredential={this.google} />
         </form>
         <div className="row-between small">
           <Link to="/forgot-password" className="accent">Quên mật khẩu?</Link>
@@ -162,6 +176,7 @@ export const LoginPage = withRouter(Login);
 
 // FR-AUTH-01
 class Register extends FormPage {
+  static contextType = AuthContext;
   initial = { role: this.props.searchParams.get('role') === 'EMPLOYER' ? 'EMPLOYER' : 'STUDENT' };
   state = { ...this.state, form: this.initial };
   submit = (e) => this.run(e, async () => {
@@ -170,6 +185,11 @@ class Register extends FormPage {
     if (body.password !== confirm) throw fail('confirm', 'Mật khẩu xác nhận không khớp');
     await api.post('/auth/register', body);
     this.setState({ done: body.email });
+  });
+  // FR-AUTH-08: tạo tài khoản theo vai trò đang chọn; email Google đã xác minh nên vào thẳng trang của vai trò
+  google = (credential) => this.run({ preventDefault() {} }, async () => {
+    const user = await this.context.loginWithGoogle(credential, this.state.form.role);
+    this.props.navigate(homeOf(user.role), { replace: true });
   });
   render() {
     if (this.state.done)
@@ -200,6 +220,7 @@ class Register extends FormPage {
               </label>
             ))}
           </fieldset>
+          <GoogleButton text="signup_with" onCredential={this.google} />
           {this.input('fullName', role === 'EMPLOYER' ? 'Họ tên người liên hệ' : 'Họ và tên', { required: true, maxLength: 100, autoComplete: 'name' })}
           {this.input('email', 'Email', EMAIL_PROPS)}
           {this.password('password', 'Mật khẩu', { required: true, maxLength: 64, autoComplete: 'new-password', hint: PW_HINT })}

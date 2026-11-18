@@ -189,3 +189,23 @@ test('luồng chính và các business rule quan trọng', async () => {
   assert.equal((await api('GET', '/employers/me', null, 'emp')).body.error.code, 'ACCOUNT_LOCKED');
   assert.equal((await api('GET', `/employers/${emp._id}`)).status, 404);
 });
+
+// FR-AUTH-08: không có ID token thật của Google nên chỉ kiểm tra các nhánh từ chối
+test('đăng nhập Google: từ chối token sai, tài khoản không mật khẩu không đổi mật khẩu được', async () => {
+  process.env.GOOGLE_CLIENT_ID ||= 'test-client.apps.googleusercontent.com';
+  assert.equal((await api('POST', '/auth/google', {})).status, 400);
+  const bad = await api('POST', '/auth/google', { credential: 'khong-phai-jwt', role: 'STUDENT' });
+  assert.equal(bad.status, 401);
+  assert.equal(bad.body.error.code, 'GOOGLE_INVALID');
+
+  // Tài khoản tạo qua Google không có passwordHash: đổi mật khẩu báo 400 thay vì 500, đăng nhập bằng mật khẩu báo 401
+  await User.create({ fullName: 'Google User', email: 'gg@test.vn', role: 'STUDENT', emailVerified: true, student: { skills: [], savedJobIds: [] } });
+  const login = await api('POST', '/auth/login', { email: 'gg@test.vn', password: 'Matkhau123' });
+  assert.equal(login.status, 401);
+  const u = await User.findOne({ email: 'gg@test.vn' });
+  const { default: jwt } = await import('jsonwebtoken');
+  tokens.gg = jwt.sign({ sub: u.id, role: 'STUDENT' }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
+  const cp = await api('PUT', '/auth/change-password', { currentPassword: 'x', newPassword: 'Matkhau456' }, 'gg');
+  assert.equal(cp.status, 400);
+  assert.equal(cp.body.error.code, 'NO_PASSWORD');
+});
