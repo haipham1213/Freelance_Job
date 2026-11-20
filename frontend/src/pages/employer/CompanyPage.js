@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import ReviewsReceived from '../../components/ReviewsReceived';
 import { Link } from 'react-router-dom';
 import { api, fieldErrors } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -111,6 +112,7 @@ export default class CompanyPage extends Component {
             <Alert type={logo.type}>{logo.text}</Alert>
           </aside>
         </div>
+        <ReviewsReceived userId={this.context.user._id} role="EMPLOYER" />
       </div>
     );
   }

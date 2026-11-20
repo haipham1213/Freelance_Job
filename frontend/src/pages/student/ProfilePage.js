@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import ReviewsReceived from '../../components/ReviewsReceived';
 import { SCHOOLS } from '../../utils/geo';
 import { FileText, Upload } from 'lucide-react';
 import { api, fieldErrors } from '../../api';
@@ -185,6 +186,7 @@ export default class ProfilePage extends Component {
             <button className="btn btn-lg stu-save" disabled={this.state.busy}>{this.state.busy ? 'Đang lưu…' : 'Lưu hồ sơ'}</button>
         </form>
         </div>
+        <ReviewsReceived userId={user._id} role="STUDENT" />
       </div>
     );
   }

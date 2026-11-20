@@ -347,33 +347,37 @@ export const AdminJobsPage = withRouter(AdminJobsList);
 
 // SCR-A04 / FR-ADM-05
 class ResolveModal extends Component {
-  state = { decision: '', note: '', error: '', busy: false };
+  state = { decision: '', note: '', abusive: false, error: '', busy: false };
   submit = async (e) => {
     e.preventDefault();
     if (this.state.busy) return;
     if (!this.state.decision) return this.setState({ error: 'Chọn một kết luận' });
     this.setState({ busy: true, error: '' });
     try {
-      await this.props.onSubmit({ decision: this.state.decision, note: this.state.note });
+      await this.props.onSubmit({ decision: this.state.decision, note: this.state.note, ...(this.state.decision === 'DISMISS' && this.state.abusive && { abusive: true }) });
       this.props.onClose();
     } catch (err) {
       this.setState({ error: err.message, busy: false });
     }
   };
   render() {
-    const { targetType, violationCount = 0, onClose } = this.props;
-    const { decision, note, error, busy } = this.state;
-    // V2 (ẩn nội dung) chỉ áp dụng cho tin; không chọn sẵn kết luận nào
-    const opts = [
+    const { targetType, violationCount = 0, reporterFalseCount = 0, onClose } = this.props;
+    const { decision, note, abusive, error, busy } = this.state;
+    // V2 (ẩn nội dung) chỉ áp dụng cho tin; khiếu nại đánh giá: mọi kết luận vi phạm đều ẩn đánh giá (BR-48). Không chọn sẵn kết luận nào
+    const opts = targetType === 'REVIEW' ? [
+      ['DISMISS', 'Giữ đánh giá', 'Khiếu nại không có căn cứ; đánh giá và điểm giữ nguyên.'],
+      ['V1', 'Ẩn đánh giá + cảnh cáo', 'Ẩn đánh giá, tính lại điểm, ghi một lần vi phạm cho người viết đánh giá.'],
+      ['V3', 'Ẩn đánh giá + khóa tài khoản', 'Ẩn đánh giá và khóa tài khoản người viết (tái phạm nhiều lần).'],
+    ] : [
       ['DISMISS', 'Bác bỏ', 'Báo cáo không đúng; không xử lý ai, báo cáo được đóng.'],
       ['V1', LEVEL.V1, 'Ghi một lần vi phạm và gửi cảnh cáo cho người vi phạm.'],
       ...(targetType === 'JOB' ? [['V2', LEVEL.V2, 'Ẩn tin bị báo cáo khỏi tìm kiếm; các đơn đang chờ bị từ chối.']] : []),
       ['V3', LEVEL.V3, 'Khóa tài khoản người vi phạm: bị đăng xuất ngay và mất Premium còn lại.'],
     ];
     return (
-      <Modal title="Kết luận báo cáo" onClose={onClose} busy={busy} dirty={!!note.trim()}>
+      <Modal title={targetType === 'REVIEW' ? 'Kết luận khiếu nại đánh giá' : 'Kết luận báo cáo'} onClose={onClose} busy={busy} dirty={!!note.trim()}>
         <form className="stack" onSubmit={this.submit}>
-          <div className="muted tiny">Người vi phạm đã bị xử lý <strong>{violationCount}</strong> lần{violationCount >= 2 ? ' — tái phạm lần này có thể áp dụng khóa tài khoản' : ''}.</div>
+          <div className="muted tiny">{targetType === 'REVIEW' ? 'Người viết đánh giá' : 'Người vi phạm'} đã bị xử lý <strong>{violationCount}</strong> lần{violationCount >= 2 ? ', tái phạm lần này có thể áp dụng khóa tài khoản' : ''}. Người gửi có <strong>{reporterFalseCount}</strong> báo cáo sai trước đó.</div>
           <fieldset className="adm-fieldset">
             <legend className="field-label">Kết luận</legend>
             {opts.map(([v, l, d]) => (
@@ -383,6 +387,13 @@ class ResolveModal extends Component {
               </label>
             ))}
           </fieldset>
+          {decision === 'DISMISS' && (
+            // BR-49: chỉ đánh dấu khi chắc chắn người gửi cố ý báo cáo sai, không dùng cho trường hợp thiếu bằng chứng
+            <label className="radio-row adm-radio">
+              <input type="checkbox" checked={abusive} onChange={(e) => this.setState({ abusive: e.target.checked })} />
+              <div><div>Báo cáo sai sự thật / cố ý lạm dụng</div><div className="fog tiny">Ghi nhận cho người gửi. 3 lần trong 90 ngày sẽ tạm khóa chức năng báo cáo của họ.</div></div>
+            </label>
+          )}
           <Field label="Ghi chú kết luận *"><textarea className="textarea" required maxLength={500} value={note} onChange={(e) => this.setState({ note: e.target.value })} /></Field>
           <Alert>{error}</Alert>
           <div className="row row-end">
@@ -390,6 +401,43 @@ class ResolveModal extends Component {
             <button className={`btn ${decision === 'V3' ? 'btn-danger' : ''}`} disabled={busy}>{busy ? 'Đang xử lý…' : 'Xác nhận'}</button>
           </div>
         </form>
+      </Modal>
+    );
+  }
+}
+
+// Khiếu nại đánh giá: người chấm → người bị chấm, số sao, nhận xét; mở tin nhắn của đơn làm bằng chứng
+const nameOf = (u) => u?.employer?.company?.name || u?.fullName || '(đã xóa)';
+const ReviewTarget = ({ review, onOpen }) => (review ? (
+  <span>
+    {nameOf(review.reviewerId)} → {nameOf(review.revieweeId)} <Stars value={review.rating} />
+    {review.comment && <div className="fog tiny">“{review.comment}”</div>}
+    <div><button type="button" className="btn-link tiny" onClick={onOpen}>Xem tin nhắn của đơn</button></div>
+  </span>
+) : <span className="fog">(đánh giá đã bị xóa)</span>);
+
+class ThreadModal extends Component {
+  state = { items: null, error: null };
+  componentDidMount() {
+    api.get(`/applications/${this.props.review.applicationId}/messages`)
+      .then((r) => this.setState({ items: r.data }), (error) => this.setState({ error }));
+  }
+  render() {
+    const { review, onClose } = this.props;
+    const { items, error } = this.state;
+    return (
+      <Modal title={`Tin nhắn: ${review.jobId?.title || 'đơn ứng tuyển'}`} onClose={onClose}>
+        {error ? <Alert>{error.message}</Alert> : !items ? <Spinner /> : !items.length ? <p className="muted">Hai bên chưa nhắn tin trong đơn này.</p> : (
+          <ol className="adm-thread">
+            {items.map((m) => (
+              <li key={m._id}>
+                <div className="tiny fog">{String(m.senderId) === String(review.reviewerId?._id) ? nameOf(review.reviewerId) : nameOf(review.revieweeId)}, {dateTime(m.createdAt)}</div>
+                <p className="pre">{m.text}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+        <button className="btn btn-ghost" onClick={onClose}>Đóng</button>
       </Modal>
     );
   }
@@ -413,12 +461,14 @@ class ReportsList extends ListPage {
           {items.map((r) => (
             <tr key={r._id}>
               <td>
-                <span className="chip tiny">{r.targetType === 'JOB' ? 'Tin' : 'Người dùng'}</span>{' '}
-                {r.targetType === 'JOB' ? <Link to={`/jobs/${r.targetId}`}>{r.target?.title || '(đã xóa)'}</Link> : <span>{r.target?.fullName} <span className="fog tiny">{r.target?.email}</span></span>}
+                <span className="chip tiny">{{ JOB: 'Tin', USER: 'Người dùng', REVIEW: 'Đánh giá' }[r.targetType]}</span>{' '}
+                {r.targetType === 'JOB' ? <Link to={`/jobs/${r.targetId}`}>{r.target?.title || '(đã xóa)'}</Link>
+                  : r.targetType === 'REVIEW' ? <ReviewTarget review={r.target} onOpen={() => this.setState({ thread: r.target })} />
+                  : <span>{r.target?.fullName} <span className="fog tiny">{r.target?.email}</span></span>}
                 {r.violationCount > 0 && <div className="fog tiny">Đã vi phạm {r.violationCount} lần</div>}
               </td>
               <td>{REPORT_REASONS[r.reason]}{r.description && <div className="fog tiny">{r.description}</div>}</td>
-              <td>{r.reporterId?.fullName}</td>
+              <td>{r.reporterId?.fullName}{r.reporterFalseCount > 0 && <div className="tiny adm-false">{r.reporterFalseCount} báo cáo sai trước đó</div>}</td>
               <td>{dateTime(r.createdAt)}</td>
               <td><span className={`chip ${st[r.status][1]}`}>{st[r.status][0]}</span>{r.resolution?.level && <span className="chip chip-red tiny adm-chip-gap">{LEVEL[r.resolution.level] || r.resolution.level}</span>}{r.resolution?.note && <div className="fog tiny">{r.resolution.note}</div>}</td>
               <td>{r.status === 'OPEN' && <button className="btn btn-sm btn-ghost" aria-label={`Xử lý báo cáo về ${r.targetType === 'JOB' ? r.target?.title || 'tin đã xóa' : r.target?.fullName || 'người dùng'}`} onClick={() => this.setState({ modal: r })}>Xử lý</button>}</td>
@@ -430,13 +480,14 @@ class ReportsList extends ListPage {
   }
   render() {
     const f = this.getF();
-    const { modal } = this.state;
+    const { modal, thread } = this.state;
     return (
       <div>
-        <Head title="Báo cáo vi phạm" sub="Xem xét và kết luận các báo cáo từ người dùng." />
+        <Head title="Báo cáo vi phạm" sub="Xem xét và kết luận các báo cáo và khiếu nại đánh giá từ người dùng." />
+        {thread && <ThreadModal review={thread} onClose={() => this.setState({ thread: null })} />}
         <div className="adm-toolbar"><Tabs label="Lọc báo cáo theo trạng thái" items={[['OPEN', 'Chờ xử lý'], ['RESOLVED', 'Đã xử lý'], ['DISMISSED', 'Bác bỏ'], ['all', 'Tất cả']]} value={f.status} onChange={(status) => this.setF({ status })} /></div>
         {this.body()}
-        {modal && <ResolveModal targetType={modal.targetType} violationCount={modal.violationCount} onClose={this.closeModal} onSubmit={(body) => this.act(() => api.patch(`/admin/reports/${modal._id}/resolve`, body), 'Đã xử lý báo cáo')} />}
+        {modal && <ResolveModal targetType={modal.targetType} violationCount={modal.violationCount} reporterFalseCount={modal.reporterFalseCount} onClose={this.closeModal} onSubmit={(body) => this.act(() => api.patch(`/admin/reports/${modal._id}/resolve`, body), 'Đã xử lý báo cáo')} />}
       </div>
     );
   }

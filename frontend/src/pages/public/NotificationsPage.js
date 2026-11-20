@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
-import { Bell, CircleCheck, CreditCard, Inbox, MailX, PartyPopper, Star, TriangleAlert } from 'lucide-react';
+import { Bell, CircleCheck, CreditCard, Flag, Inbox, MailX, MessageCircle, PartyPopper, Star, TriangleAlert } from 'lucide-react';
 import { api, qs } from '../../api';
 import { Empty, ErrorState, Alert, Pagination, Tabs } from '../../components/ui';
 import { dateTime, timeAgo } from '../../utils/format';
 import { param, intParam, setParams } from '../../utils/urlState';
 import withRouter from '../../utils/withRouter';
 
-const ICON = { NEW_APPLICATION: Inbox, APPLICATION_ACCEPTED: PartyPopper, APPLICATION_REJECTED: MailX, WORK_RESULT: CircleCheck, REVIEW_RECEIVED: Star, PAYMENT_SUCCESS: CreditCard, VIOLATION: TriangleAlert };
+const ICON = { NEW_APPLICATION: Inbox, APPLICATION_ACCEPTED: PartyPopper, APPLICATION_REJECTED: MailX, WORK_RESULT: CircleCheck, REVIEW_RECEIVED: Star, PAYMENT_SUCCESS: CreditCard, VIOLATION: TriangleAlert, NEW_MESSAGE: MessageCircle, REPORT_RESULT: Flag };
 const TABS = [['', 'Tất cả'], ['unread', 'Chưa đọc']];
 
 // Tab và trang nằm trên URL (?tab=unread&page=2) để Back / chia sẻ link hoạt động

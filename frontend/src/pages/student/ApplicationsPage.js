@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { ArrowRight, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../../api';
-import { Spinner, Empty, AppBadge, Tabs, Pagination, ErrorState } from '../../components/ui';
+import { Spinner, Empty, AppBadge, Tabs, Pagination, ErrorState, CompanyLogo } from '../../components/ui';
 import { date, APP_STATUS, statusTabs } from '../../utils/format';
 import { param, intParam, setParams } from '../../utils/urlState';
 import withRouter from '../../utils/withRouter';
@@ -53,7 +53,7 @@ class ApplicationsPage extends Component {
             <div className="stu-list">
               {items.map((a) => (
                 <Link key={a._id} to={`/student/applications/${a._id}`} className="stu-app">
-                  <span className="logo-box">{(a.jobSnapshot.companyName || '?')[0]}</span>
+                  {a.companyLogoUrl ? <CompanyLogo src={a.companyLogoUrl} name={a.jobSnapshot.companyName} /> : <span className="logo-box" aria-hidden="true">{(a.jobSnapshot.companyName || '?')[0]}</span>}
                   <div className="stu-app-main">
                     <div className="h-sm stu-ellipsis stu-app-title">{a.jobSnapshot.title}</div>
                     <div className="muted small stu-ellipsis">{a.jobSnapshot.companyName}</div>

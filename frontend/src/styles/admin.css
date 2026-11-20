@@ -99,3 +99,7 @@
   .adm-search-form { max-width: none; flex-basis: 100%; }
 }
 }
+/* BR-49: người gửi từng báo cáo sai; tin nhắn của đơn khi xét khiếu nại đánh giá */
+.adm-false { color: var(--alert); }
+.adm-thread { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 12px; max-height: calc(50 * var(--vh)); overflow-y: auto; }
+.adm-thread p { margin: 2px 0 0; overflow-wrap: anywhere; }

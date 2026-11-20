@@ -128,3 +128,15 @@ export const sendResetEmail = (to, token) => {
     note: 'Link có hiệu lực trong <b>30 phút</b> và chỉ dùng được một lần. Nếu bạn không yêu cầu, hãy bỏ qua email này — mật khẩu của bạn vẫn giữ nguyên.',
   }), link);
 };
+
+// FR-MSG-01 (BR-46): chỉ gửi khi nhà tuyển dụng nhắn tin đầu tiên trong một đơn; tin sau chỉ có thông báo in-app
+export const sendFirstMessageEmail = (to, { company, jobTitle, appId }) => {
+  const link = `${process.env.CLIENT_URL}/student/applications/${appId}#chat`;
+  return trySend(to, `${company} vừa nhắn tin cho bạn trên UniShift`, layout({
+    preheader: `Nhà tuyển dụng nhắn tin về đơn ứng tuyển "${esc(jobTitle)}".`,
+    title: 'Bạn có tin nhắn mới',
+    body: `<b>${esc(company)}</b> vừa nhắn tin cho bạn về đơn ứng tuyển <b>${esc(jobTitle)}</b>. Đăng nhập UniShift để đọc và trả lời.`,
+    link, label: 'Đọc tin nhắn',
+    note: 'Bạn chỉ nhận email cho tin nhắn đầu tiên của mỗi cuộc trò chuyện; các tin sau hiện trong chuông thông báo.',
+  }), link);
+};

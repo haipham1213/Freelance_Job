@@ -21,6 +21,7 @@ import { recomputeRating } from '../../utils/rating.js';
 import { rawFile, saveUpload, removeUpload } from '../../utils/files.js';
 import { quotaOf, rejectPending, visibleMatch, completeIfDone } from '../jobs/jobs.service.js';
 import { extendPremium, settle } from '../payments/payments.service.js';
+import { ABUSE_LIMIT } from '../reports/reports.routes.js';
 
 const router = Router();
 router.use('/admin', authenticate, authorize('ADMIN'));
@@ -221,40 +222,72 @@ router.get('/admin/reports', async (req, res) => {
   const { status, targetType } = req.query;
   const filter = { ...(status && { status }), ...(targetType && { targetType }) };
   const [items, meta] = await list(Report, filter, req.query, '-createdAt', ['reporterId', 'fullName email']);
-  const jobIds = items.filter((r) => r.targetType === 'JOB').map((r) => r.targetId);
-  const userIds = items.filter((r) => r.targetType === 'USER').map((r) => r.targetId);
-  const [jobs, users] = await Promise.all([
-    Job.find({ _id: { $in: jobIds } }).select('title status employerId companySnapshot'),
-    User.find({ _id: { $in: userIds } }).select('fullName email role status'),
+  const idsOf = (t) => items.filter((r) => r.targetType === t).map((r) => r.targetId);
+  const [jobs, users, reviews, abuse] = await Promise.all([
+    Job.find({ _id: { $in: idsOf('JOB') } }).select('title status employerId companySnapshot'),
+    User.find({ _id: { $in: idsOf('USER') } }).select('fullName email role status'),
+    // Khiếu nại đánh giá: kèm người chấm, người bị chấm, tên việc; Admin mở tin nhắn của đơn bằng applicationId
+    Review.find({ _id: { $in: idsOf('REVIEW') } }).populate('reviewerId revieweeId', 'fullName role employer.company.name').populate('jobId', 'title'),
+    // BR-49: số báo cáo trước đây của người gửi bị xác định là sai
+    Report.aggregate([
+      { $match: { reporterId: { $in: [...new Set(items.map((r) => String(r.reporterId?._id || r.reporterId)))].map((id) => new mongoose.Types.ObjectId(id)) }, 'resolution.abusive': true } },
+      { $group: { _id: '$reporterId', n: { $sum: 1 } } },
+    ]),
   ]);
-  const byId = Object.fromEntries([...jobs, ...users].map((x) => [x._id, x]));
-  // TB-04: số lần vi phạm của người chịu trách nhiệm (chủ tin hoặc user bị báo cáo) để Admin quyết V3 khi tái phạm
-  const offenderOf = (r) => String(r.targetType === 'JOB' ? byId[r.targetId]?.employerId || '' : r.targetId);
+  const byId = Object.fromEntries([...jobs, ...users, ...reviews].map((x) => [x._id, x]));
+  const falseOf = Object.fromEntries(abuse.map((a) => [a._id, a.n]));
+  // TB-04: số lần vi phạm của người chịu trách nhiệm (chủ tin, user bị báo cáo, người viết đánh giá) để Admin quyết V3 khi tái phạm
+  const offenderOf = (r) => String(
+    r.targetType === 'JOB' ? byId[r.targetId]?.employerId || '' : r.targetType === 'REVIEW' ? byId[r.targetId]?.reviewerId?._id || '' : r.targetId,
+  );
   const counts = await Violation.aggregate([
     { $match: { userId: { $in: [...new Set(items.map(offenderOf).filter(Boolean))].map((id) => new mongoose.Types.ObjectId(id)) } } },
     { $group: { _id: '$userId', n: { $sum: 1 } } },
   ]);
   const vio = Object.fromEntries(counts.map((c) => [c._id, c.n]));
-  ok(res, items.map((r) => ({ ...r.toObject(), target: byId[r.targetId] || null, violationCount: vio[offenderOf(r)] || 0 })), meta);
+  ok(res, items.map((r) => ({ ...r.toObject(), target: byId[r.targetId] || null, violationCount: vio[offenderOf(r)] || 0, reporterFalseCount: falseOf[r.reporterId?._id] || 0 })), meta);
 });
 
-// API-61: DISMISS | V1 cảnh cáo | V2 ẩn nội dung | V3 khóa tài khoản
+// API-61: DISMISS | V1 cảnh cáo | V2 ẩn nội dung | V3 khóa tài khoản.
+// Khiếu nại đánh giá (BR-48): kết luận khác DISMISS = ẩn đánh giá + tính lại điểm, người vi phạm là người viết đánh giá.
+// abusive (chỉ đi với DISMISS, BR-49): báo cáo sai / cố ý lạm dụng → ghi vào lịch sử người báo cáo
 router.patch('/admin/reports/:id/resolve',
-  validate(z.object({ decision: z.enum(['DISMISS', 'V1', 'V2', 'V3']), note: z.string().trim().min(1, 'Vui lòng ghi chú kết luận').max(500) })),
+  validate(z.object({ decision: z.enum(['DISMISS', 'V1', 'V2', 'V3']), note: z.string().trim().min(1, 'Vui lòng ghi chú kết luận').max(500), abusive: z.boolean().optional() })
+    .refine((b) => !b.abusive || b.decision === 'DISMISS', { message: 'Chỉ đánh dấu báo cáo sai khi bác bỏ', path: ['abusive'] })),
   async (req, res) => {
-    const { decision, note } = req.body;
+    const { decision, note, abusive } = req.body;
     const report = await Report.findOne({ _id: oid(req.params.id), status: 'OPEN' });
     if (!report) throw new AppError(409, 'ALREADY_RESOLVED', 'Báo cáo đã được xử lý');
     const job = report.targetType === 'JOB' ? await Job.findById(report.targetId) : null;
-    const offenderId = job ? job.employerId : report.targetId;
+    const review = report.targetType === 'REVIEW' ? await Review.findById(report.targetId) : null;
+    if (review && decision === 'V2') throw new AppError(400, 'VALIDATION_ERROR', 'Khiếu nại đánh giá chỉ chọn Bác bỏ, Cảnh cáo hoặc Khóa tài khoản');
+    const offenderId = job ? job.employerId : review ? review.reviewerId : report.targetId;
+    const reviewLink = review && `/${(await User.findById(review.revieweeId).select('role'))?.role === 'EMPLOYER' ? 'employer/company' : 'student/profile'}`;
     await mongoose.connection.transaction(async (session) => {
       // Điều kiện status OPEN trong lệnh cập nhật: 2 admin cùng bấm thì chỉ một người xử lý được
       const claimed = await Report.updateOne({ _id: report._id, status: 'OPEN' }, {
         status: decision === 'DISMISS' ? 'DISMISSED' : 'RESOLVED',
-        resolution: { level: decision === 'DISMISS' ? undefined : decision, note, adminId: req.user._id, at: new Date() },
+        resolution: { level: decision === 'DISMISS' ? undefined : decision, note, ...(abusive && { abusive: true }), adminId: req.user._id, at: new Date() },
       }, { session });
       if (!claimed.modifiedCount) throw new AppError(409, 'ALREADY_RESOLVED', 'Báo cáo đã được xử lý');
+      // Báo kết quả cho người gửi; báo cáo sai thì nói rõ là đã ghi nhận
+      let title, body;
+      if (abusive) {
+        title = 'Báo cáo của bạn bị xác định là sai';
+        body = `Báo cáo không đúng sự thật đã được ghi nhận vào tài khoản. ${ABUSE_LIMIT} báo cáo sai trong 90 ngày sẽ tạm khóa chức năng báo cáo.`;
+      } else if (decision === 'DISMISS') {
+        title = review ? 'Khiếu nại đánh giá không được chấp nhận' : 'Báo cáo đã được xem xét';
+        body = review ? 'Đánh giá được giữ nguyên.' : 'Quản trị viên chưa thấy vi phạm.';
+      } else {
+        title = review ? 'Khiếu nại đánh giá được chấp nhận' : 'Báo cáo đã được xử lý';
+        body = review ? 'Đánh giá đã bị ẩn và điểm của bạn được tính lại.' : 'Quản trị viên đã xử lý vi phạm.';
+      }
+      await notify(report.reporterId, 'REPORT_RESULT', title, `${body} Ghi chú: ${note}`, reviewLink || null, session);
       if (decision === 'DISMISS') return;
+      if (review) {
+        await Review.updateOne({ _id: review._id }, { isHidden: true, hiddenReason: `Khiếu nại được chấp nhận: ${note}` }, { session });
+        await recomputeRating(review.revieweeId, session);
+      }
       await Violation.create([{ userId: offenderId, reportId: report._id, level: decision, note, adminId: req.user._id }], { session });
       // ponytail: V2 với báo cáo USER chỉ ghi vi phạm + thông báo; thêm "ẩn toàn bộ tin của user" nếu nhóm cần
       if (decision === 'V2' && job && job.status !== 'HIDDEN') await hideJob(job, `Vi phạm: ${note}`, req.user._id, session);

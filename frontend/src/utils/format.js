@@ -65,8 +65,12 @@ export const APP_STATUS = {
   WITHDRAWN: ['Đã rút', ''], COMPLETED: ['Hoàn thành', 'chip-purple'], NOT_COMPLETED: ['Không hoàn thành', 'chip-red'],
 };
 export const REPORT_REASONS = {
-  SCAM: 'Lừa đảo / thu phí', WRONG_INFO: 'Thông tin sai', HARASSMENT: 'Quấy rối', UNPAID_OR_ABSENT: 'Không trả lương / bỏ việc', OTHER: 'Khác',
+  SCAM: 'Lừa đảo / thu phí', WRONG_INFO: 'Thông tin sai', HARASSMENT: 'Quấy rối', UNPAID_OR_ABSENT: 'Không trả lương / bỏ việc',
+  FALSE_REVIEW: 'Đánh giá sai sự thật', RETALIATION: 'Đánh giá trả đũa', OTHER: 'Khác',
 };
+// BR-48: lý do khiếu nại đánh giá; báo cáo tin / người dùng không dùng 2 lý do riêng của đánh giá
+export const REVIEW_REASON_KEYS = ['FALSE_REVIEW', 'RETALIATION', 'HARASSMENT', 'OTHER'];
+export const REPORT_REASON_KEYS = Object.keys(REPORT_REASONS).filter((k) => !['FALSE_REVIEW', 'RETALIATION'].includes(k));
 export const PAY_STATUS = {
   PENDING: ['Đang xử lý', 'chip-yellow'], SUCCESS: ['Thành công', 'chip-green'], EXPIRED: ['Hết hạn', ''],
 };

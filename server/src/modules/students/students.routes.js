@@ -85,10 +85,13 @@ router.get('/students/me/applications', ...student, async (req, res) => {
   const { page, limit, skip } = paging(req.query);
   const filter = { studentId: req.user._id, ...(req.query.status && { status: { $in: String(req.query.status).split(',') } }) };
   const [items, total] = await Promise.all([
-    Application.find(filter).sort('-createdAt').skip(skip).limit(limit),
+    Application.find(filter).sort('-createdAt').skip(skip).limit(limit).lean(),
     Application.countDocuments(filter),
   ]);
-  ok(res, items, { page, limit, total });
+  // Logo hiện tại của công ty (jobSnapshot không lưu logo); công ty chưa có logo thì frontend hiện chữ cái đầu
+  const logos = new Map((await User.find({ _id: { $in: items.map((a) => a.employerId) } }).select('employer.company.logoUrl').lean())
+    .map((u) => [String(u._id), u.employer?.company?.logoUrl]));
+  ok(res, items.map((a) => ({ ...a, companyLogoUrl: logos.get(String(a.employerId)) || null })), { page, limit, total });
 });
 
 // API-36: Job bị ẩn/hết hạn vẫn trả về kèm cờ isAvailable = false

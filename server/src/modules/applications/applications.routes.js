@@ -1,22 +1,26 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import mongoose from 'mongoose';
+import rateLimit from 'express-rate-limit';
 import Job from '../../models/Job.js';
 import User from '../../models/User.js';
 import Review from '../../models/Review.js';
 import Application from '../../models/Application.js';
+import Message from '../../models/Message.js';
 import AppError from '../../utils/AppError.js';
 import { ok, cdnCache, paging, oid, DAY, vnDay } from '../../utils/http.js';
 import { validate } from '../../middlewares/validate.js';
 import { authenticate, authorize, requireVerified } from '../../middlewares/auth.js';
 import { notify } from '../../utils/notify.js';
 import { recomputeRating } from '../../utils/rating.js';
+import { inBackground, sendFirstMessageEmail } from '../../config/mailer.js';
 import { isVisible, findOwnJob, publicCompany, completeIfDone } from '../jobs/jobs.service.js';
 
 const router = Router();
 const FINISHED = ['COMPLETED', 'NOT_COMPLETED'];
 const CONTACT_OPEN = ['ACCEPTED', ...FINISHED]; // BR-12
 const REVIEW_WINDOW = 14 * DAY; // BR-33
+const CHAT_OPEN = ['PENDING', 'ACCEPTED']; // BR-46: đơn đã kết thúc thì chỉ xem lại tin nhắn
 
 const history = (status, by) => ({ $push: { statusHistory: { status, at: new Date(), by } } });
 
@@ -81,13 +85,18 @@ router.get('/jobs/:id/applications', authenticate, authorize('EMPLOYER'), async 
   ok(res, items, { page, limit, total, job: { _id: job._id, title: job.title, slots: job.slots, acceptedCount: job.acceptedCount, status: job.status } });
 });
 
-// API-32: kèm liên hệ bên kia khi ACCEPTED trở về sau (BR-12)
-router.get('/applications/:id', authenticate, async (req, res) => {
-  const app = await Application.findById(oid(req.params.id));
+// Đơn + vai trò của người gọi với đơn đó (sinh viên của đơn, nhà tuyển dụng của tin, hoặc admin)
+const loadSide = async (id, u) => {
+  const app = await Application.findById(oid(id));
   if (!app) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy đơn');
-  const u = req.user;
   const side = app.studentId.equals(u._id) ? 'STUDENT' : app.employerId.equals(u._id) ? 'EMPLOYER' : u.role === 'ADMIN' ? 'ADMIN' : null;
   if (!side) throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền xem đơn này');
+  return { app, side };
+};
+
+// API-32: kèm liên hệ bên kia khi ACCEPTED trở về sau (BR-12)
+router.get('/applications/:id', authenticate, async (req, res) => {
+  const { app, side } = await loadSide(req.params.id, req.user);
   const showContact = side === 'ADMIN' || CONTACT_OPEN.includes(app.status);
   const [student, employer, job, reviews] = await Promise.all([
     User.findById(app.studentId), User.findById(app.employerId), Job.findById(app.jobId).select('-searchText'), Review.find({ applicationId: app._id, ...(side !== 'ADMIN' && { isHidden: false }) }).select(side === 'ADMIN' ? '' : '-hiddenReason'),
@@ -184,6 +193,57 @@ router.patch('/applications/:id/result', authenticate, authorize('EMPLOYER'),
     ok(res, { application: app });
   });
 
+const employerStarted = (app) => Message.exists({ applicationId: app._id, senderId: app.employerId });
+
+// API-81: FR-MSG-01 tin nhắn của đơn; ?after=<ISO> chỉ lấy tin mới (frontend hỏi lại vài giây một lần).
+// Mở cuộc trò chuyện = đã đọc tin của bên kia; admin xem (khi xử lý báo cáo) không đánh dấu đã đọc
+router.get('/applications/:id/messages', authenticate, async (req, res) => {
+  const { app, side } = await loadSide(req.params.id, req.user);
+  const after = req.query.after && new Date(req.query.after);
+  if (after && isNaN(after)) throw new AppError(400, 'VALIDATION_ERROR', 'Thời điểm không hợp lệ');
+  const items = await Message.find({ applicationId: app._id, ...(after && { createdAt: { $gt: after } }) }).sort('-createdAt').limit(200);
+  if (side !== 'ADMIN')
+    await Message.updateMany({ applicationId: app._id, senderId: { $ne: req.user._id }, readAt: null }, { readAt: new Date() });
+  // Tin bên kia đã đọc tới đâu (để hiện "Đã xem")
+  const seen = await Message.findOne({ applicationId: app._id, senderId: req.user._id, readAt: { $ne: null } }).sort('-createdAt').select('_id');
+  // BR-47: sinh viên chỉ nhắn được sau khi nhà tuyển dụng mở lời
+  const waitEmployer = side === 'STUDENT' && CHAT_OPEN.includes(app.status) && !(await employerStarted(app));
+  ok(res, items.reverse(), { canSend: side !== 'ADMIN' && CHAT_OPEN.includes(app.status) && !waitEmployer, waitEmployer, seenId: seen?._id ?? null });
+});
+
+// Chống spam: 20 tin/phút mỗi người
+const msgLimiter = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: true, legacyHeaders: false,
+  keyGenerator: (req) => String(req.user._id), skip: () => process.env.NODE_ENV === 'test',
+  handler: (req, res, next) => next(new AppError(429, 'TOO_MANY_REQUESTS', 'Bạn gửi tin quá nhanh, thử lại sau 1 phút')) });
+
+// API-82: FR-MSG-01 gửi tin (BR-45 chỉ hai bên của đơn, BR-46 đơn còn đang xử lý hoặc đã nhận)
+router.post('/applications/:id/messages', authenticate, authorize('STUDENT', 'EMPLOYER'), requireVerified, msgLimiter,
+  validate(z.object({ text: z.string().trim().min(1, 'Vui lòng nhập tin nhắn').max(1000, 'Tin nhắn tối đa 1000 ký tự') })),
+  async (req, res) => {
+    const { app, side } = await loadSide(req.params.id, req.user);
+    if (side === 'ADMIN') throw new AppError(403, 'FORBIDDEN', 'Bạn không thuộc đơn này');
+    if (!CHAT_OPEN.includes(app.status)) throw new AppError(409, 'CHAT_CLOSED', 'Đơn đã kết thúc, không gửi thêm tin nhắn được');
+    if (side === 'STUDENT' && !(await employerStarted(app)))
+      throw new AppError(409, 'WAIT_EMPLOYER', 'Nhà tuyển dụng cần nhắn tin trước, sau đó bạn mới trả lời được');
+    const toId = side === 'STUDENT' ? app.employerId : app.studentId;
+    // Chỉ báo khi bên kia đã đọc hết tin trước đó, tránh mỗi tin một thông báo
+    const [pending, sentBefore] = await Promise.all([
+      Message.exists({ applicationId: app._id, senderId: req.user._id, readAt: null }),
+      side === 'EMPLOYER' && Message.exists({ applicationId: app._id, senderId: req.user._id }),
+    ]);
+    const message = await Message.create({ applicationId: app._id, senderId: req.user._id, text: req.body.text });
+    // #chat: mở trang đơn là cuộn tới khung tin nhắn
+    if (!pending)
+      await notify(toId, 'NEW_MESSAGE', 'Tin nhắn mới', `${req.user.fullName} về "${app.jobSnapshot.title}": ${req.body.text}`,
+        `/${side === 'STUDENT' ? 'employer' : 'student'}/applications/${app._id}#chat`);
+    // Tin đầu tiên của nhà tuyển dụng trong đơn → email cho sinh viên (sinh viên có thể không mở web thường xuyên)
+    if (side === 'EMPLOYER' && !sentBefore) {
+      const student = await User.findById(app.studentId).select('email');
+      if (student) inBackground(sendFirstMessageEmail(student.email, { company: app.jobSnapshot.companyName || req.user.fullName, jobTitle: app.jobSnapshot.title, appId: app._id }));
+    }
+    ok(res, { message }, null, 201);
+  });
+
 // API-39: FR-REV-01 (BR-31…33)
 router.post('/applications/:id/reviews', authenticate, authorize('STUDENT', 'EMPLOYER'), requireVerified,
   validate(z.object({ rating: z.number().int().min(1, 'Điểm từ 1 đến 5').max(5, 'Điểm từ 1 đến 5'), comment: z.string().trim().max(500, 'Nhận xét tối đa 500 ký tự').optional() })),
@@ -228,7 +288,9 @@ router.get('/users/:id/reviews', async (req, res) => {
   const { page, limit, skip } = paging(req.query);
   const filter = { revieweeId: oid(req.params.id), isHidden: false };
   const [items, total, user] = await Promise.all([
-    Review.find(filter).sort('-createdAt').skip(skip).limit(limit).populate('reviewerId', 'fullName avatarUrl'),
+    // Người chấm là nhà tuyển dụng thì hiện tên + logo công ty; kèm tên việc để biết đánh giá cho lần làm nào
+    Review.find(filter).sort('-createdAt').skip(skip).limit(limit)
+      .populate('reviewerId', 'fullName avatarUrl role employer.company.name employer.company.logoUrl').populate('jobId', 'title'),
     Review.countDocuments(filter),
     User.findById(filter.revieweeId).select('ratingAvg ratingCount'),
   ]);

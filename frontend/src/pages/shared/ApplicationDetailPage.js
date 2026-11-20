@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Check, FileText, GraduationCap, Mail, Phone, Star } from 'lucide-react';
+import { Check, FileText, GraduationCap, Lock, Mail, Phone, Send, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
 import { AuthContext } from '../../context/AuthContext';
@@ -43,12 +43,121 @@ class ReviewModal extends Component {
   }
 }
 
+// FR-MSG-01: trò chuyện theo đơn. Hỏi tin mới 4 giây một lần khi tab đang mở (không dùng WebSocket)
+class Chat extends Component {
+  state = { items: [], canSend: false, waitEmployer: false, seenId: null, text: '', err: '', busy: false, loaded: false, loadErr: '' };
+  list = React.createRef();
+
+  componentDidMount() {
+    this.dead = false; // StrictMode (dev) gỡ rồi gắn lại cùng instance: phải xóa cờ của lần gỡ
+    this.fetch();
+    this.timer = setInterval(() => !document.hidden && this.fetch(), 4000);
+  }
+  componentDidUpdate(prev) {
+    // Bấm thông báo tin nhắn khi đang ở đúng trang này: URL không đổi nhưng location.key đổi → tải ngay + cuộn tới khung
+    if (prev.ping !== this.props.ping) this.fetch().then(this.reveal);
+  }
+  componentWillUnmount() { clearInterval(this.timer); this.dead = true; }
+
+  // Link thông báo / email có #chat thì cuộn tới khung tin nhắn và đặt con trỏ vào ô nhập
+  reveal = () => {
+    if (this.dead || window.location.hash !== '#chat') return;
+    const el = document.getElementById('chat');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('chat-text')?.focus({ preventScroll: true });
+  };
+
+  fetch = async () => {
+    const last = this.state.items[this.state.items.length - 1];
+    const first = !this.state.loaded;
+    try {
+      const r = await api.get(`/applications/${this.props.appId}/messages${last ? `?after=${encodeURIComponent(last.createdAt)}` : ''}`);
+      if (this.dead) return;
+      const known = new Set(this.state.items.map((m) => m._id));
+      const fresh = r.data.filter((m) => !known.has(m._id));
+      this.setState((s) => ({ items: fresh.length ? [...s.items, ...fresh] : s.items, canSend: r.meta.canSend, waitEmployer: !!r.meta.waitEmployer, seenId: r.meta.seenId, loaded: true, loadErr: '' }), () => {
+        if (fresh.length) this.toBottom();
+        if (first) this.reveal();
+      });
+    } catch (e) {
+      // Lần đầu lỗi thì báo ra; các lần hỏi sau lỗi mạng tạm thời thì bỏ qua, lần kế tiếp thử lại
+      if (!this.dead && !this.state.loaded) this.setState({ loadErr: e.message || 'Không tải được tin nhắn' });
+    }
+  };
+
+  toBottom = () => { const el = this.list.current; if (el) el.scrollTop = el.scrollHeight; };
+
+  send = async (e) => {
+    e.preventDefault();
+    const text = this.state.text.trim();
+    if (!text || this.state.busy) return;
+    this.setState({ busy: true, err: '' });
+    try {
+      await api.post(`/applications/${this.props.appId}/messages`, { text });
+      this.setState({ text: '' });
+      await this.fetch();
+    } catch (err) {
+      this.setState({ err: err.message });
+      if (err.code === 'CHAT_CLOSED') this.setState({ canSend: false });
+    } finally {
+      this.setState({ busy: false });
+    }
+  };
+
+  render() {
+    const { items, canSend, seenId, text, err, busy, loaded, loadErr } = this.state;
+    const { waitEmployer } = this.state;
+    if (loaded && !canSend && !waitEmployer && !items.length) return null;
+    const me = String(this.props.me);
+    return (
+      <section className="card stack pub-app-card chat-card" id="chat" aria-labelledby="chat-h">
+        <h2 className="h-md" id="chat-h">Tin nhắn với {this.props.name}</h2>
+        {!loaded && (loadErr ? <Alert>Không tải được tin nhắn: {loadErr}</Alert> : <p className="fog small">Đang tải tin nhắn…</p>)}
+        {loaded && <ol className="chat-list" ref={this.list} aria-live="polite">
+          {items.length === 0 && !waitEmployer && <li className="fog small chat-empty">Chưa có tin nhắn. Hãy hỏi thêm về công việc, giờ làm hoặc lịch phỏng vấn.</li>}
+          {items.map((m) => {
+            const mine = String(m.senderId) === me;
+            return (
+              <li key={m._id} className={`chat-msg ${mine ? 'mine' : ''}`}>
+                <p className="pre">{m.text}</p>
+                <span className="tiny">{dateTime(m.createdAt)}{mine && String(m._id) === String(seenId) && ' · Đã xem'}</span>
+              </li>
+            );
+          })}
+        </ol>}
+        {!loaded ? null : canSend ? (
+          <form className="chat-form" onSubmit={this.send}>
+            <label className="sr-only" htmlFor="chat-text">Nội dung tin nhắn</label>
+            <textarea id="chat-text" className="textarea" rows={2} maxLength={1000} value={text} placeholder="Nhập tin nhắn…"
+              onChange={(e) => this.setState({ text: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) this.send(e); }} />
+            <button className="btn" disabled={busy || !text.trim()}><Send size={18} aria-hidden="true" /> Gửi</button>
+          </form>
+        ) : waitEmployer ? (
+          // BR-47: khóa có giải thích để sinh viên không tưởng là lỗi
+          <div className="chat-locked" role="note">
+            <Lock size={20} aria-hidden="true" />
+            <div>
+              <div className="h-sm">Chờ nhà tuyển dụng nhắn tin trước</div>
+              <p className="muted small">Để tránh làm phiền, chỉ nhà tuyển dụng mới bắt đầu được cuộc trò chuyện. Khi họ nhắn, bạn sẽ nhận thông báo và email, rồi trả lời ngay tại đây.</p>
+            </div>
+          </div>
+        ) : <p className="fog small">Đơn đã kết thúc, bạn chỉ xem lại được tin nhắn.</p>}
+        <Alert>{err}</Alert>
+      </section>
+    );
+  }
+}
+
 class ApplicationDetailPage extends Component {
   static contextType = AuthContext;
   state = { data: null, error: null, modal: null, note: '', msg: '', err: '', busy: false };
   reqId = 0;
 
   componentDidMount() { this.load(); }
+  // Đang xem đơn A, bấm thông báo của đơn B: cùng route nên component không gắn lại → phải tự tải đơn mới
+  componentDidUpdate(prev) { if (prev.params.id !== this.props.params.id) { this.setState({ data: null, msg: '', err: '', note: '' }); this.load(); } }
   componentWillUnmount() { this.reqId++; }
   load = async () => {
     const id = ++this.reqId;
@@ -119,8 +228,8 @@ class ApplicationDetailPage extends Component {
     return (
       <div className="container page">
         <BackLink to={isEmployer ? `/employer/jobs/${app.jobId}/applicants` : '/student/applications'}>{isEmployer ? 'Danh sách ứng viên' : 'Đơn của tôi'}</BackLink>
+        {/* Logo / avatar chỉ hiện ở thẻ bên phải, đầu trang chỉ còn công việc */}
         <header className="stu-app-hero pub-app-head">
-          {isEmployer ? <Avatar src={student.avatarUrl} name={student.fullName} size="lg" /> : <CompanyLogo src={employer.company?.logoUrl} name={app.jobSnapshot.companyName} />}
           <div className="stu-hero-main">
             <div className="row stu-gap10">
               <AppBadge status={app.status} />
@@ -147,6 +256,7 @@ class ApplicationDetailPage extends Component {
                 <p className="muted">Không có thao tác nào cần làm với đơn này.</p>
               )}
             </div>
+            <Chat key={app._id} appId={app._id} ping={this.props.location.key} me={this.context.user._id} name={isEmployer ? student.fullName : employer.company?.name || app.jobSnapshot.companyName} />
             <div className="card pub-app-card">
               <h2 className="h-md">Lịch sử trạng thái</h2>
               <ol className="stu-timeline">
@@ -173,7 +283,7 @@ class ApplicationDetailPage extends Component {
               </div>
             )}
           </div>
-          <aside className="card stack pub-app-side">
+          <aside className="card stack pub-app-side" aria-label={isEmployer ? 'Ứng viên' : 'Nhà tuyển dụng'}>
             <h2 className="h-md">{isEmployer ? 'Ứng viên' : 'Nhà tuyển dụng'}</h2>
             <div className="row stu-nowrap">
               {isEmployer ? <Avatar src={student.avatarUrl} name={student.fullName} size="lg" /> : <CompanyLogo src={employer.company?.logoUrl} />}
@@ -197,7 +307,7 @@ class ApplicationDetailPage extends Component {
                   <div className="ico-row"><Mail size={16} aria-hidden="true" /><a href={`mailto:${other.email}`}>{other.email}</a></div>
                   {other.phone && <div className="ico-row"><Phone size={16} aria-hidden="true" /><a href={`tel:${other.phone}`}>{other.phone}</a></div>}
                 </div>
-              ) : <p className="fog small">Thông tin liên hệ hiển thị khi đơn được nhận.</p>}
+              ) : <p className="pub-app-locked muted small"><Lock size={16} aria-hidden="true" />Email và số điện thoại hiện khi đơn được nhận.</p>}
             </div>
           </aside>
         </div>

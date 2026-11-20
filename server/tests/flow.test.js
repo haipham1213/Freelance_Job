@@ -130,11 +130,32 @@ test('luồng chính và các business rule quan trọng', async () => {
   const a3 = (await api('POST', `/jobs/${job._id}/applications`, {}, 'sv3')).body.data.application;
   // BR-24
   assert.equal((await api('POST', `/jobs/${job._id}/applications`, {}, 'sv1')).body.error.code, 'ALREADY_APPLIED');
+  // Đơn của tôi kèm logo hiện tại của công ty (chưa có logo → null, frontend hiện chữ cái đầu)
+  assert.equal((await api('GET', '/students/me/applications', null, 'sv1')).body.data[0].companyLogoUrl, null);
   // Thông báo cho Employer
   assert.equal((await api('GET', '/notifications/unread-count', null, 'emp')).body.data.count, 3);
 
   // BR-12: chưa ACCEPTED thì chưa thấy liên hệ
   assert.equal((await api('GET', `/applications/${a1._id}`, null, 'sv1')).body.data.employer.phone, undefined);
+  // FR-MSG-01: hai bên của đơn nhắn tin; người ngoài 403; chỉ báo 1 thông báo khi bên kia chưa đọc; mở chat = đã đọc
+  const msgPath = `/applications/${a1._id}/messages`;
+  assert.equal((await api('POST', msgPath, { text: '  ' }, 'sv1')).status, 400);
+  // BR-47: sinh viên chờ nhà tuyển dụng nhắn trước
+  assert.deepEqual((({ canSend, waitEmployer }) => [canSend, waitEmployer])((await api('GET', msgPath, null, 'sv1')).body.meta), [false, true]);
+  assert.equal((await api('POST', msgPath, { text: 'Em chào anh/chị' }, 'sv1')).body.error.code, 'WAIT_EMPLOYER');
+  assert.equal((await api('POST', msgPath, { text: 'Chào em' }, 'emp')).status, 201);
+  assert.equal((await api('GET', '/notifications/unread-count', null, 'sv1')).body.data.count, 1);
+  assert.equal((await api('POST', msgPath, { text: 'Em chào anh/chị' }, 'sv1')).status, 201);
+  await api('POST', msgPath, { text: 'Em đi làm được từ thứ 2' }, 'sv1');
+  assert.equal((await api('POST', msgPath, { text: 'Chen ngang' }, 'sv2')).status, 403);
+  assert.equal((await api('GET', msgPath, null, 'sv2')).status, 403);
+  assert.equal((await api('GET', '/notifications/unread-count', null, 'emp')).body.data.count, 4);
+  const thread = (await api('GET', msgPath, null, 'emp')).body;
+  assert.deepEqual([thread.data.map((m) => m.text), thread.meta.canSend], [['Chào em', 'Em chào anh/chị', 'Em đi làm được từ thứ 2'], true]);
+  assert.equal(String((await api('GET', msgPath, null, 'sv1')).body.meta.seenId), String(thread.data[2]._id));
+  await api('POST', msgPath, { text: 'Ok em' }, 'emp');
+  assert.deepEqual((await api('GET', `${msgPath}?after=${thread.data[2].createdAt}`, null, 'sv1')).body.data.map((m) => m.text), ['Ok em']);
+
   // BR-26/27: nhận 2/2 → FILLED, đơn còn lại REJECTED
   await api('PATCH', `/applications/${a1._id}/accept`, { employerNote: 'Đến lúc 17h' }, 'emp');
   const acc2 = await api('PATCH', `/applications/${a2._id}/accept`, {}, 'emp');
@@ -149,12 +170,19 @@ test('luồng chính và các business rule quan trọng', async () => {
   await api('PATCH', `/applications/${a1._id}/result`, { result: 'COMPLETED' }, 'emp');
   await api('PATCH', `/applications/${a2._id}/result`, { result: 'NOT_COMPLETED', reason: 'Không đến' }, 'emp');
   assert.equal((await Job.findById(job._id)).status, 'COMPLETED');
+  // BR-46: đơn đã kết thúc thì chỉ xem lại tin nhắn
+  assert.equal((await api('POST', msgPath, { text: 'Cảm ơn' }, 'sv1')).body.error.code, 'CHAT_CLOSED');
+  assert.equal((await api('GET', msgPath, null, 'sv1')).body.meta.canSend, false);
 
   // FR-REV-01 AC1/AC2: 5★ và 3★ → 4.0
   await api('POST', `/applications/${a1._id}/reviews`, { rating: 5, comment: 'Tốt' }, 'sv1');
   assert.equal((await api('POST', `/applications/${a1._id}/reviews`, { rating: 5 }, 'sv1')).body.error.code, 'ALREADY_REVIEWED');
   await api('POST', `/applications/${a2._id}/reviews`, { rating: 3 }, 'sv2');
   const empReviews = (await api('GET', `/users/${emp._id}/reviews`)).body.meta;
+  // Đánh giá về sinh viên: người chấm hiện theo tên công ty, kèm tên việc
+  await api('POST', `/applications/${a1._id}/reviews`, { rating: 4, comment: 'Chăm chỉ' }, 'emp');
+  const stuRev = (await api('GET', `/users/${s1._id}/reviews`)).body;
+  assert.deepEqual([stuRev.meta.ratingAvg, stuRev.data[0].reviewerId.employer.company.name, stuRev.data[0].jobId.title], [4, 'Quán Test', job.title]);
   assert.deepEqual([empReviews.ratingAvg, empReviews.ratingCount], [4, 2]);
   // Đánh giá gần đây ở trang chủ: chỉ câu có nội dung, kèm tên việc; điểm trung bình tính trên mọi đánh giá của sinh viên
   const recent = (await api('GET', '/reviews/recent')).body;

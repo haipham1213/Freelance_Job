@@ -10,7 +10,7 @@ npm workspaces: `server/` (API) và `frontend/` (CRA). Chạy từ thư mục g�
 
 ```bash
 npm install
-cp server/.env.example server/.env      # JWT_ACCESS_SECRET, RESEND_API_KEY, SEPAY_*, ADMIN_*
+cp server/.env.example server/.env      # JWT_ACCESS_SECRET, RESEND_API_KEY, SEPAY_*, GOOGLE_CLIENT_ID, ADMIN_*
 npm run seed -w server                   # admin, gói Premium, danh mục (seed:jobs, seed:applicants, seed:reviews, seed:geo cho dữ liệu demo)
 npm run dev                              # API :5050 (node --watch) + web :3000
 npm test -w server                       # node:test, cần MongoDB local
@@ -23,6 +23,7 @@ npm run build:ds -w frontend             # đóng gói src/design-system → ds-
 - Test server là test tích hợp: khởi `app` trên cổng ngẫu nhiên, `dropDatabase` DB `student_marketplace_test` (flow) / DB riêng (rules) rồi gọi API bằng `fetch`. Không có mock.
 - Cổng API 5050 (macOS chiếm 5000). Frontend proxy `/api` qua `package.json` `proxy`; `src/setupProxy.js` ép `/api/v1/files` sang backend để mở CV trực tiếp.
 - Dev không gửi được email thật thì link xác thực / đặt lại mật khẩu in ra log server.
+- Production: Vercel (project nối GitHub → push `main` là tự deploy). Biến môi trường (kể cả `REACT_APP_*`, đọc lúc build) phải khai báo trên Vercel vì `.env` không được commit.
 
 ## Kiến trúc backend (`server/src`, ESM, Express 5)
 
@@ -32,6 +33,9 @@ npm run build:ds -w frontend             # đóng gói src/design-system → ds-
 - Dùng sẵn trong `utils/http.js`: `paging` (limit ≤ 50), `oid` (validate ObjectId → 400), `unaccent`/`slugify` (tìm kiếm không dấu), `slotList`.
 - Middleware chuỗi chuẩn: `authenticate` → `authorize('STUDENT'|'EMPLOYER'|'ADMIN')` → `requireVerified` → `validate(zodSchema, 'body'|'query')`. `validate` ghi đè `req.body`, còn query đã parse nằm ở `req.valid`.
 - Auth: access token JWT (Bearer) + refresh token trong cookie httpOnly. Token bị vô hiệu khi đổi mật khẩu (`passwordChangedAt`); tài khoản `LOCKED` bị chặn ngay request kế tiếp.
+- Đăng nhập Google (FR-AUTH-08, `POST /auth/google`): frontend `components/GoogleButton.js` tải Google Identity Services và trả ID token; server xác minh chữ ký bằng JWKS của Google (`jsonwebtoken` + `node:crypto`, không dùng `google-auth-library`), kiểm tra `aud = GOOGLE_CLIENT_ID`. Email đã có tài khoản → đăng nhập vào đó (bỏ qua `role`); chưa có → cần `role` (chỉ trang Đăng ký gửi), nếu không 404 `GOOGLE_NOT_REGISTERED`. Tài khoản Google không có `passwordHash` (field không bắt buộc) — code đụng tới mật khẩu phải xử lý trường hợp này. Thiếu `REACT_APP_GOOGLE_CLIENT_ID` thì nút ẩn; thiếu `GOOGLE_CLIENT_ID` thì API trả 503.
+- Báo cáo (`modules/reports`): `targetType` JOB | USER | REVIEW. REVIEW = khiếu nại đánh giá (BR-48, chỉ người bị đánh giá); Admin kết luận khác DISMISS thì ẩn đánh giá + `recomputeRating`. `resolution.abusive` = báo cáo sai (BR-49), ≥ 3 lần / 90 ngày → `REPORT_BLOCKED`.
+- Nhắn tin (FR-MSG-01, US-53): model `Message` gắn `applicationId`; `GET/POST /applications/:id/messages` nằm trong `applications.routes.js` (`loadSide` kiểm tra Student/Employer của đơn, Admin chỉ xem). Gửi được khi đơn `PENDING`/`ACCEPTED` (BR-46), sinh viên chỉ trả lời sau khi nhà tuyển dụng nhắn trước (BR-47, `WAIT_EMPLOYER`), GET đánh dấu đã đọc, chỉ báo `NEW_MESSAGE` khi bên kia đã đọc hết tin trước. Frontend (`Chat` trong `ApplicationDetailPage.js`) hỏi `?after=` 4 giây/lần, không WebSocket.
 - Đổi trạng thái đơn ứng tuyển dùng `findOneAndUpdate` có điều kiện trạng thái cũ (chống race), đẩy vào `statusHistory`, gửi thông báo qua `utils/notify.js`.
 - `Job.shifts`: mảng ô buổi 0–20 (7 ngày × 3 buổi), dùng để khớp lịch học sinh viên.
 - Bản đồ việc gần trường (FR-SRC-05): `Job.location` là GeoJSON Point `[kinh độ, vĩ độ]`, không bắt buộc, index `2dsphere`; API nhận `location: { lat, lng } | null` (null = bỏ ghim, phải trong Việt Nam, khóa khi đã nhận người như BR-18). `GET /jobs?near=lat,lng&radius=km` lọc bằng `$geoNear` và trả `distance` (mét, đường chim bay) + `meta.noLocation`; `GET /jobs/map` trả các tin có ghim (tối đa 200) theo cùng bộ lọc — cả hai dùng chung `searchStages` trong `jobs.routes.js`. Điểm xuất phát của sinh viên không lưu trên server.

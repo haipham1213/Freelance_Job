@@ -88,14 +88,20 @@
 
 /* Chi tiết đơn ứng tuyển: đầu trang có vạch mảnh, thẻ trắng rộng rãi hơn, khung bên phải bo lớn như thẻ gói giá */
 .stu-app-hero.pub-app-head { margin-top: 24px; padding-bottom: 40px; border-bottom: 1px solid var(--line); align-items: flex-start; }
-.pub-app-head .stu-detail-title { display: block; max-width: 880px; text-wrap: balance; }
+.pub-app-head .stu-detail-title { display: block; max-width: 880px; text-wrap: pretty; }
+/* Trang chi tiết: tiêu đề cỡ h2 của trang chủ, 48px của .display bẻ 2 dòng với hầu hết tên việc */
+.pub-app-head .display { font-size: clamp(28px, 3vw, 36px); line-height: 1.25; letter-spacing: -0.01em; font-weight: 600; }
+/* Logo / avatar luôn cùng dòng với tên (stu-nowrap trong student.css không thắng .row ở mọi thứ tự tải CSS) */
+.pub-app-side .stu-nowrap { flex-wrap: nowrap; }
+.pub-app-locked { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
+.pub-app-locked svg { flex: none; margin-top: 2px; }
 .pub-app { margin-top: 40px; }
 .pub-app-card { padding: 32px; }
 .pub-app-side { position: sticky; top: 96px; padding: 32px; border-radius: 32px; }
 
 @media (max-width: 960px) {
   .pub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pub-app-side { position: static; }
+  .pub-app-side { position: static; order: -1; }
   .pub-legal { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .pub-legal-toc { display: none; }
   .pub-auth { grid-template-columns: minmax(0, 1fr); gap: 40px; max-width: 560px; }
@@ -444,3 +450,30 @@ ul.pub-notifs { list-style: none; margin: 0; padding: 0; }
   @keyframes auth-in { from { opacity: 0; transform: translateX(-16px); } }
 }
 @media (max-width: 960px) { .pub-auth-tickets li { margin-left: 0; } }
+
+/* FR-MSG-01: khung tin nhắn trong chi tiết đơn */
+.chat-card { scroll-margin-top: 96px; }
+.chat-list { list-style: none; margin: 0; padding: 4px; display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+.chat-empty { padding: 12px 0; }
+.chat-msg { align-self: flex-start; max-width: 80%; padding: 10px 14px; border-radius: var(--r-md); background: var(--wash-soft); color: var(--ink); display: flex; flex-direction: column; gap: 4px; }
+.chat-msg p { margin: 0; overflow-wrap: anywhere; }
+.chat-msg .tiny { color: var(--muted); }
+.chat-msg.mine { align-self: flex-end; background: var(--primary); color: var(--on-primary); }
+.chat-msg.mine .tiny { color: var(--on-primary); opacity: .85; }
+.chat-form { display: flex; gap: 12px; align-items: flex-end; }
+.chat-form .textarea { flex: 1; min-height: 0; resize: vertical; }
+@media (max-width: 640px) { .chat-msg { max-width: 92%; } .chat-form { flex-direction: column; align-items: stretch; } }
+.chat-locked { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border-radius: var(--r-md); background: var(--wash-soft); color: var(--muted); }
+.chat-locked .h-sm { color: var(--ink); margin-bottom: 4px; }
+.chat-locked p { margin: 0; }
+/* Đánh giá về bạn (Hồ sơ sinh viên, Hồ sơ công ty) */
+.rcv { margin-top: 24px; scroll-margin-top: 96px; }
+.rcv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rcv-item { display: flex; gap: 14px; align-items: flex-start; padding: 16px 0; }
+.rcv-item + .rcv-item { border-top: 1px solid var(--line); }
+.rcv-item .logo-box { width: 44px; height: 44px; border-radius: 12px; }
+.rcv-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.rcv-body p { margin: 4px 0 0; overflow-wrap: anywhere; }
+.rcv-complain { align-self: flex-start; display: inline-flex; gap: 6px; align-items: center; margin-top: 4px; color: var(--muted); }
+.rcv-complain:hover { color: var(--alert); }
+.rcv-state { align-self: flex-start; margin-top: 4px; }
