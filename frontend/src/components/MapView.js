@@ -8,6 +8,7 @@ import React, { Component } from 'react';
 //   pick { lat, lng } | null, onPick({ lat, lng })   chế độ đặt ghim (form đăng tin): bấm bản đồ để đặt, kéo ghim để chỉnh
 //   locked   không cho đặt / dời ghim;   label   tên vùng bản đồ cho trình đọc màn hình;   className   lớp chiều cao (mp-sm, mp-lg)
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILES_FALLBACK = 'https://tile.openstreetmap.de/{z}/{x}/{y}.png';
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>';
 const round = (n) => Math.round(n * 1e6) / 1e6;
 
@@ -32,6 +33,10 @@ class MapView extends Component {
   componentWillUnmount() {
     this.gone = true;
     this.observer?.disconnect();
+    // Leaflet 1.9.4: hiệu ứng zoom hẹn 250ms gọi _onZoomTransitionEnd mà remove() không hủy → gỡ bản đồ giữa lúc zoom (đổi Danh sách/Bản đồ,
+    // rời trang) thì lỗi "reading '_leaflet_pos'". Tắt cờ đang zoom để lệnh hẹn đó thoát ngay.
+    // ponytail: đụng field nội bộ của Leaflet, kiểm tra lại khi nâng Leaflet (bản 2.x có thể đã tự hủy hẹn giờ)
+    if (this.map) this.map._animatingZoom = false;
     this.map?.remove();
     this.map = undefined;
   }
@@ -50,7 +55,10 @@ class MapView extends Component {
     const { center = [10.7769, 106.7009], zoom = 13, pick } = this.props;
     // Con lăn chuột không zoom bản đồ (để cuộn trang bình thường); zoom bằng nút +/−, chụm ngón tay hoặc bấm đúp
     this.map = L.map(this.el.current, { scrollWheelZoom: false, attributionControl: true }).setView(pick ? [pick.lat, pick.lng] : center, pick ? 16 : zoom);
-    L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION }).addTo(this.map);
+    // Một số mạng (DNS của router/nhà mạng) không phân giải được tile.openstreetmap.org → bản đồ trống chỉ còn ghim.
+    // Tile đầu tiên lỗi thì chuyển hẳn sang máy chủ tile cộng đồng OpenStreetMap Đức (không cần API key, cùng dữ liệu và ghi công)
+    const tiles = L.tileLayer(TILES, { maxZoom: 19, attribution: ATTRIBUTION }).addTo(this.map);
+    tiles.once('tileerror', () => tiles.setUrl(TILES_FALLBACK));
     this.layer = L.layerGroup().addTo(this.map);
     this.map.on('click', (e) => { if (this.props.onPick && !this.props.locked) this.props.onPick({ lat: round(e.latlng.lat), lng: round(e.latlng.lng) }); });
     // Khung bản đồ đổi kích thước (mở cột lọc, xoay máy) thì Leaflet phải đo lại
