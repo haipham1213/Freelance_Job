@@ -398,8 +398,7 @@ ul.pub-notifs { list-style: none; margin: 0; padding: 0; }
   background-size: 269px 269px, 431px 431px, 269px 269px, 431px 431px; }
 /* Ô kính chứa icon: nền trắng mờ, viền sáng, nghiêng nhẹ; trôi lên xuống theo nhịp riêng */
 .pub-auth-float { position: absolute; left: var(--x); top: var(--y); width: 60px; height: 60px; display: grid; place-items: center; border-radius: 18px;
-  background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); color: #fff; transform: rotate(var(--r));
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35); color: #fff; transform: rotate(var(--r)); }
 .pub-auth-float:nth-child(3n) { width: 48px; height: 48px; border-radius: 14px; opacity: .8; }
 .pub-auth-float:nth-child(4n+1) { color: #c9f7df; }
 .pub-auth-chip { position: absolute; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: #fff; color: #16233b; font-size: 14px; font-weight: 500; white-space: nowrap; box-shadow: 0 12px 30px -12px rgba(8, 40, 90, .5); }
@@ -439,8 +438,7 @@ ul.pub-notifs { list-style: none; margin: 0; padding: 0; }
 .pub-auth-rot { display: inline-flex; flex-direction: column; height: 1.35em; overflow: hidden; vertical-align: bottom; }
 .pub-auth-rot b { display: block; height: 1.35em; line-height: 1.35em; padding: 0 10px; border-radius: 8px; background: rgba(255, 255, 255, .18); font-weight: 600; color: #fff; }
 .pub-auth-tickets { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
-.pub-auth-tickets li { display: flex; align-items: center; margin-left: calc(var(--i) * 28px); max-width: 420px; border-radius: 16px; background: rgba(255, 255, 255, .13); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); font-size: 15px; color: #fff;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.pub-auth-tickets li { display: flex; align-items: center; margin-left: calc(var(--i) * 28px); max-width: 420px; border-radius: 16px; background: rgba(255, 255, 255, .13); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); font-size: 15px; color: #fff; }
 .pub-auth-n { flex-shrink: 0; align-self: stretch; display: grid; place-items: center; width: 64px; border-right: 2px dashed rgba(255, 255, 255, .35); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: #8ff0bd; }
 .pub-auth-tickets li > span:last-child { padding: 14px 18px; }
 @media (prefers-reduced-motion: no-preference) {
@@ -455,6 +453,7 @@ ul.pub-notifs { list-style: none; margin: 0; padding: 0; }
 .chat-card { scroll-margin-top: 96px; }
 .chat-list { list-style: none; margin: 0; padding: 4px; display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
 .chat-empty { padding: 12px 0; }
+.chat-older { align-self: center; }
 .chat-msg { align-self: flex-start; max-width: 80%; padding: 10px 14px; border-radius: var(--r-md); background: var(--wash-soft); color: var(--ink); display: flex; flex-direction: column; gap: 4px; }
 .chat-msg p { margin: 0; overflow-wrap: anywhere; }
 .chat-msg .tiny { color: var(--muted); }

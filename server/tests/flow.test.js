@@ -7,6 +7,7 @@ import User from '../src/models/User.js';
 import Category from '../src/models/Category.js';
 import Job from '../src/models/Job.js';
 import JobAlert from '../src/models/JobAlert.js';
+import Message from '../src/models/Message.js';
 import { alertsFor } from '../src/modules/alerts/alerts.routes.js';
 
 process.env.NODE_ENV = 'test';
@@ -155,6 +156,18 @@ test('luồng chính và các business rule quan trọng', async () => {
   assert.equal(String((await api('GET', msgPath, null, 'sv1')).body.meta.seenId), String(thread.data[2]._id));
   await api('POST', msgPath, { text: 'Ok em' }, 'emp');
   assert.deepEqual((await api('GET', `${msgPath}?after=${thread.data[2].createdAt}`, null, 'sv1')).body.data.map((m) => m.text), ['Ok em']);
+  // Lần hỏi định kỳ không có tin mới: trả rỗng, không tính lại "Đã xem" khi không xin (?seen=1)
+  const last = (await api('GET', msgPath, null, 'sv1')).body.data.at(-1);
+  const idle = (await api('GET', `${msgPath}?after=${last.createdAt}&started=1`, null, 'sv1')).body;
+  assert.deepEqual([idle.data, idle.meta.seenId, idle.meta.canSend], [[], undefined, true]);
+  // 50 tin gần nhất + hasMore; ?before tải tin cũ hơn
+  const t0 = Date.parse(last.createdAt) + 1000;
+  await Message.insertMany(Array.from({ length: 55 }, (_, i) => ({ applicationId: a1._id, senderId: emp._id, text: `Tin ${i}`, createdAt: new Date(t0 + i * 1000) })));
+  const page1 = (await api('GET', msgPath, null, 'sv1')).body;
+  assert.deepEqual([page1.data.length, page1.meta.hasMore, page1.data.at(-1).text], [50, true, 'Tin 54']);
+  const page2 = (await api('GET', `${msgPath}?before=${page1.data[0].createdAt}`, null, 'sv1')).body;
+  assert.deepEqual([page2.data.length, page2.meta.hasMore, page2.data[0].text], [9, false, 'Chào em']);
+  await Message.deleteMany({ applicationId: a1._id, text: /^Tin \d+$/ });
 
   // BR-26/27: nhận 2/2 → FILLED, đơn còn lại REJECTED
   await api('PATCH', `/applications/${a1._id}/accept`, { employerNote: 'Đến lúc 17h' }, 'emp');

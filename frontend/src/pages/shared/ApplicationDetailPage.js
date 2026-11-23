@@ -43,21 +43,33 @@ class ReviewModal extends Component {
   }
 }
 
-// FR-MSG-01: trò chuyện theo đơn. Hỏi tin mới 4 giây một lần khi tab đang mở (không dùng WebSocket)
+// FR-MSG-01: trò chuyện theo đơn, hỏi tin mới định kỳ (không dùng WebSocket).
+// Hỏi chậm dần khi không có gì mới: 4 → 7 → 10 giây (trễ tối đa 10 giây); có tin mới, vừa gửi hoặc quay lại tab thì về 4 giây. Tab ẩn thì không hỏi
+const POLL = [4000, 7000, 10000];
 class Chat extends Component {
-  state = { items: [], canSend: false, waitEmployer: false, seenId: null, text: '', err: '', busy: false, loaded: false, loadErr: '' };
+  state = { items: [], canSend: false, waitEmployer: false, seenId: null, hasMore: false, older: false, text: '', err: '', busy: false, loaded: false, loadErr: '' };
   list = React.createRef();
+  step = 0;
 
   componentDidMount() {
     this.dead = false; // StrictMode (dev) gỡ rồi gắn lại cùng instance: phải xóa cờ của lần gỡ
     this.fetch();
-    this.timer = setInterval(() => !document.hidden && this.fetch(), 4000);
+    document.addEventListener('visibilitychange', this.onVisible);
   }
   componentDidUpdate(prev) {
     // Bấm thông báo tin nhắn khi đang ở đúng trang này: URL không đổi nhưng location.key đổi → tải ngay + cuộn tới khung
-    if (prev.ping !== this.props.ping) this.fetch().then(this.reveal);
+    if (prev.ping !== this.props.ping) this.fetch(true).then(this.reveal);
   }
-  componentWillUnmount() { clearInterval(this.timer); this.dead = true; }
+  componentWillUnmount() { clearTimeout(this.timer); this.dead = true; document.removeEventListener('visibilitychange', this.onVisible); }
+
+  // Hẹn lần hỏi kế tiếp; active = vừa có hoạt động → quay về nhịp nhanh nhất
+  schedule = (active) => {
+    clearTimeout(this.timer);
+    if (this.dead) return;
+    this.step = active ? 0 : Math.min(this.step + 1, POLL.length - 1);
+    this.timer = setTimeout(() => (document.hidden ? this.schedule(false) : this.fetch()), POLL[this.step]);
+  };
+  onVisible = () => { if (!document.hidden && this.state.loaded) this.fetch(true); };
 
   // Link thông báo / email có #chat thì cuộn tới khung tin nhắn và đặt con trỏ vào ô nhập
   reveal = () => {
@@ -68,21 +80,58 @@ class Chat extends Component {
     document.getElementById('chat-text')?.focus({ preventScroll: true });
   };
 
-  fetch = async () => {
-    const last = this.state.items[this.state.items.length - 1];
+  // Chỉ xin máy chủ những gì còn thiếu: "Đã xem" khi tin cuối của mình chưa được xem, bỏ kiểm tra BR-47 khi đã thấy tin của nhà tuyển dụng
+  query = () => {
+    const { items, seenId } = this.state;
+    const last = items[items.length - 1];
+    if (!last) return '';
+    const me = String(this.props.me);
+    const lastMine = [...items].reverse().find((m) => String(m.senderId) === me);
+    const p = new URLSearchParams({ after: last.createdAt });
+    if (lastMine && String(lastMine._id) !== String(seenId)) p.set('seen', '1');
+    if (items.some((m) => String(m.senderId) === String(this.props.employerId))) p.set('started', '1');
+    return `?${p}`;
+  };
+
+  fetch = async (active = false) => {
     const first = !this.state.loaded;
+    let fresh = [];
     try {
-      const r = await api.get(`/applications/${this.props.appId}/messages${last ? `?after=${encodeURIComponent(last.createdAt)}` : ''}`);
+      const r = await api.get(`/applications/${this.props.appId}/messages${this.query()}`);
       if (this.dead) return;
       const known = new Set(this.state.items.map((m) => m._id));
-      const fresh = r.data.filter((m) => !known.has(m._id));
-      this.setState((s) => ({ items: fresh.length ? [...s.items, ...fresh] : s.items, canSend: r.meta.canSend, waitEmployer: !!r.meta.waitEmployer, seenId: r.meta.seenId, loaded: true, loadErr: '' }), () => {
+      fresh = r.data.filter((m) => !known.has(m._id));
+      this.setState((s) => ({
+        items: fresh.length ? [...s.items, ...fresh] : s.items,
+        canSend: r.meta.canSend, waitEmployer: !!r.meta.waitEmployer, loaded: true, loadErr: '',
+        ...('seenId' in r.meta && { seenId: r.meta.seenId }),
+        ...(first && { hasMore: !!r.meta.hasMore }),
+      }), () => {
         if (fresh.length) this.toBottom();
         if (first) this.reveal();
       });
     } catch (e) {
       // Lần đầu lỗi thì báo ra; các lần hỏi sau lỗi mạng tạm thời thì bỏ qua, lần kế tiếp thử lại
       if (!this.dead && !this.state.loaded) this.setState({ loadErr: e.message || 'Không tải được tin nhắn' });
+    }
+    this.schedule(active || fresh.length > 0);
+  };
+
+  // "Xem tin cũ hơn": chèn lên đầu danh sách, giữ nguyên vị trí đang đọc
+  loadOlder = async () => {
+    const el = this.list.current;
+    const oldest = this.state.items[0];
+    if (!oldest || this.state.older) return;
+    this.setState({ older: true, err: '' });
+    try {
+      const r = await api.get(`/applications/${this.props.appId}/messages?before=${encodeURIComponent(oldest.createdAt)}`);
+      if (this.dead) return;
+      const keep = el ? el.scrollHeight - el.scrollTop : 0;
+      this.setState((s) => ({ items: [...r.data, ...s.items], hasMore: !!r.meta.hasMore, older: false }), () => {
+        if (el) el.scrollTop = el.scrollHeight - keep;
+      });
+    } catch (e) {
+      if (!this.dead) this.setState({ older: false, err: `Không tải được tin cũ hơn: ${e.message}` });
     }
   };
 
@@ -96,7 +145,7 @@ class Chat extends Component {
     try {
       await api.post(`/applications/${this.props.appId}/messages`, { text });
       this.setState({ text: '' });
-      await this.fetch();
+      await this.fetch(true);
     } catch (err) {
       this.setState({ err: err.message });
       if (err.code === 'CHAT_CLOSED') this.setState({ canSend: false });
@@ -106,7 +155,7 @@ class Chat extends Component {
   };
 
   render() {
-    const { items, canSend, seenId, text, err, busy, loaded, loadErr } = this.state;
+    const { items, canSend, seenId, hasMore, older, text, err, busy, loaded, loadErr } = this.state;
     const { waitEmployer } = this.state;
     if (loaded && !canSend && !waitEmployer && !items.length) return null;
     const me = String(this.props.me);
@@ -115,6 +164,11 @@ class Chat extends Component {
         <h2 className="h-md" id="chat-h">Tin nhắn với {this.props.name}</h2>
         {!loaded && (loadErr ? <Alert>Không tải được tin nhắn: {loadErr}</Alert> : <p className="fog small">Đang tải tin nhắn…</p>)}
         {loaded && <ol className="chat-list" ref={this.list} aria-live="polite">
+          {hasMore && (
+            <li className="chat-older">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={this.loadOlder} disabled={older}>{older ? 'Đang tải…' : 'Xem tin cũ hơn'}</button>
+            </li>
+          )}
           {items.length === 0 && !waitEmployer && <li className="fog small chat-empty">Chưa có tin nhắn. Hãy hỏi thêm về công việc, giờ làm hoặc lịch phỏng vấn.</li>}
           {items.map((m) => {
             const mine = String(m.senderId) === me;
@@ -256,7 +310,7 @@ class ApplicationDetailPage extends Component {
                 <p className="muted">Không có thao tác nào cần làm với đơn này.</p>
               )}
             </div>
-            <Chat key={app._id} appId={app._id} ping={this.props.location.key} me={this.context.user._id} name={isEmployer ? student.fullName : employer.company?.name || app.jobSnapshot.companyName} />
+            <Chat key={app._id} appId={app._id} employerId={app.employerId} ping={this.props.location.key} me={this.context.user._id} name={isEmployer ? student.fullName : employer.company?.name || app.jobSnapshot.companyName} />
             <div className="card pub-app-card">
               <h2 className="h-md">Lịch sử trạng thái</h2>
               <ol className="stu-timeline">

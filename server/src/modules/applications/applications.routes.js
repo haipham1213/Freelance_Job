@@ -195,20 +195,43 @@ router.patch('/applications/:id/result', authenticate, authorize('EMPLOYER'),
 
 const employerStarted = (app) => Message.exists({ applicationId: app._id, senderId: app.employerId });
 
-// API-81: FR-MSG-01 tin nhắn của đơn; ?after=<ISO> chỉ lấy tin mới (frontend hỏi lại vài giây một lần).
-// Mở cuộc trò chuyện = đã đọc tin của bên kia; admin xem (khi xử lý báo cáo) không đánh dấu đã đọc
+// API-81: FR-MSG-01 tin nhắn của đơn, cũ → mới.
+//   (không tham số) 50 tin gần nhất · ?before=<ISO> 50 tin cũ hơn (nút "Xem tin cũ hơn") · ?after=<ISO> tin mới (hỏi định kỳ).
+// Lần hỏi định kỳ chỉ chạy truy vấn khi cần: đánh dấu đã đọc khi có tin mới của bên kia, ?seen=1 khi tin cuối của mình chưa được xem,
+// ?started=1 khi frontend đã thấy tin của nhà tuyển dụng (bỏ kiểm tra BR-47; POST vẫn kiểm tra). Lần hỏi rỗng còn 3 thao tác DB
+// (người dùng, đơn, tin mới). Admin xem (khi xử lý báo cáo / khiếu nại) không đánh dấu đã đọc
+const PAGE = 50;
+const isoParam = (v) => {
+  if (!v) return null;
+  const d = new Date(v);
+  if (isNaN(d)) throw new AppError(400, 'VALIDATION_ERROR', 'Thời điểm không hợp lệ');
+  return d;
+};
 router.get('/applications/:id/messages', authenticate, async (req, res) => {
   const { app, side } = await loadSide(req.params.id, req.user);
-  const after = req.query.after && new Date(req.query.after);
-  if (after && isNaN(after)) throw new AppError(400, 'VALIDATION_ERROR', 'Thời điểm không hợp lệ');
-  const items = await Message.find({ applicationId: app._id, ...(after && { createdAt: { $gt: after } }) }).sort('-createdAt').limit(200);
-  if (side !== 'ADMIN')
+  const after = isoParam(req.query.after);
+  const before = isoParam(req.query.before);
+  const createdAt = after ? { $gt: after } : before ? { $lt: before } : null;
+  // after: tin mới thường rất ít, trần 200 phòng mạng mất lâu; còn lại lấy PAGE + 1 để biết còn tin cũ hơn không
+  const cap = after ? 200 : PAGE + 1;
+  const found = await Message.find({ applicationId: app._id, ...(createdAt && { createdAt }) }).sort('-createdAt').limit(cap);
+  const hasMore = !after && found.length > PAGE;
+  const items = (hasMore ? found.slice(0, PAGE) : found).reverse();
+  const meta = { canSend: side !== 'ADMIN' && CHAT_OPEN.includes(app.status), hasMore };
+
+  const fromOther = items.some((m) => !m.senderId.equals(req.user._id));
+  if (side !== 'ADMIN' && (fromOther || (!after && !before)))
     await Message.updateMany({ applicationId: app._id, senderId: { $ne: req.user._id }, readAt: null }, { readAt: new Date() });
-  // Tin bên kia đã đọc tới đâu (để hiện "Đã xem")
-  const seen = await Message.findOne({ applicationId: app._id, senderId: req.user._id, readAt: { $ne: null } }).sort('-createdAt').select('_id');
+  // Tin cuối của mình mà bên kia đã đọc (hiện "Đã xem"); không hỏi thì frontend giữ giá trị cũ
+  if (!after || req.query.seen === '1') {
+    const seen = await Message.findOne({ applicationId: app._id, senderId: req.user._id, readAt: { $ne: null } }).sort('-createdAt').select('_id');
+    meta.seenId = seen?._id ?? null;
+  }
   // BR-47: sinh viên chỉ nhắn được sau khi nhà tuyển dụng mở lời
-  const waitEmployer = side === 'STUDENT' && CHAT_OPEN.includes(app.status) && !(await employerStarted(app));
-  ok(res, items.reverse(), { canSend: side !== 'ADMIN' && CHAT_OPEN.includes(app.status) && !waitEmployer, waitEmployer, seenId: seen?._id ?? null });
+  const started = req.query.started === '1' || items.some((m) => m.senderId.equals(app.employerId));
+  meta.waitEmployer = side === 'STUDENT' && meta.canSend && !started && !(await employerStarted(app));
+  if (meta.waitEmployer) meta.canSend = false;
+  ok(res, items, meta);
 });
 
 // Chống spam: 20 tin/phút mỗi người
