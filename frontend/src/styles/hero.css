@@ -201,6 +201,8 @@ select.hx-field, .dd.hx-field { border-left: 1px solid var(--line); border-radiu
     .rv-sky, .rv-copy, .rv-after, .rv-float { animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --rv; }
     /* Bầu trời co lại đúng bằng khung điện thoại */
     .rv-sky { animation-name: rv-shrink; animation-range: contain 0% contain 70%; }
+    /* clip-path không chạy trên GPU: tách nền và lớp sao thành layer riêng để chỉ vẽ một lần, khi cuộn chỉ cắt lại khung */
+    .rv-sky, .rv-sky::before { will-change: transform; }
     .rv-copy { animation-name: rv-out; animation-range: contain 0% contain 40%; }
     .rv-float { animation-name: rv-away; animation-range: contain 0% contain 35%; }
     .rv-after { display: block; position: absolute; left: 24px; top: 50%; max-width: 15em; margin: 0; transform: translateY(-50%);
